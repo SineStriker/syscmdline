@@ -8,11 +8,11 @@
 
 namespace SysCmdLine {
 
-    Command::Command() : Symbol(ST_Command) {
+    Command::Command() : Symbol(ST_Command), _showHelpIfNoArg(false) {
     }
 
     Command::Command(const std::string &name, const std::string &desc)
-        : Symbol(ST_Command, name, desc) {
+        : Symbol(ST_Command, name, desc), _showHelpIfNoArg(false) {
     }
 
     Command::~Command() {
@@ -67,10 +67,12 @@ namespace SysCmdLine {
                          false, false));
     }
 
-    void Command::addHelpOption(const std::vector<std::string> &tokens, bool global) {
+    void Command::addHelpOption(bool showHelpIfNoArg, const std::vector<std::string> &tokens,
+                                bool global) {
         addOption(Option("help", Strings::info_strings[Strings::Help],
                          tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
                          global));
+        _showHelpIfNoArg = showHelpIfNoArg;
     }
 
     static const char INDENT[] = "    ";

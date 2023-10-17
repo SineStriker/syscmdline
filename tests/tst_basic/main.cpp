@@ -10,33 +10,46 @@ int main(int argc, char *argv[]) {
     (void) argc;
     (void) argv;
 
-    Argument urlArg("url", "1");
+    Command cloneCommand("clone", "Clone a repository into a new directory");
+    cloneCommand.addArgument(Argument("url", "Repository url"));
+    cloneCommand.addHelpOption();
+    cloneCommand.setHandler([](const Parser &parser) -> int {
+        u8printf("clone\n");
+        return 0;
+    });
 
     Command commitCommand("commit", "Record changes to the repository");
     commitCommand.addHelpOption();
+    commitCommand.setHandler([](const Parser &parser) -> int {
+        u8printf("commit\n");
+        return 0;
+    });
 
     Command mergeCommand("merge", "Join two or more development histories together");
     mergeCommand.addHelpOption();
+    mergeCommand.setHandler([](const Parser &parser) -> int {
+        u8printf("merge\n");
+        return 0;
+    });
+
+    Argument arg1("wangwenx190", "You know who");
+    arg1.setExpectedValues({"genius"});
 
     Command rootCommand("git", "Git is a distributed version management system.");
-    rootCommand.setCommands({commitCommand, mergeCommand});
-    rootCommand.setArguments({urlArg});
+    rootCommand.setCommands({cloneCommand, commitCommand, mergeCommand});
+    rootCommand.setArguments({arg1});
     rootCommand.addVersionOption("0.0.1.1");
-    rootCommand.addHelpOption();
+    rootCommand.addHelpOption(true);
+    rootCommand.setHandler([](const Parser &parser) -> int {
+        u8printf("git\n");
+        return 0;
+    });
 
     Parser parser(rootCommand);
     parser.setText(Parser::Top, "Git Version 0.0.1.1");
-    parser.setText(Parser::Bottom, "https://github.com/git/git");
+    parser.setText(Parser::Bottom, "Checkout https://github.com/git/git for more information.");
 
-    parser.parse({
-        "git",
-        "merge",
-        "--help"
-    });
-    if (parser.error() == Parser::NoError) {
-        u8printf("cmd: %s\n", parser.targetCommand()->name().data());
-        parser.invoke();
-    }
+    parser.invoke(commandLineArguments());
 
     return 0;
 }

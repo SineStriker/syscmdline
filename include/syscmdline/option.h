@@ -8,7 +8,7 @@
 
 namespace SysCmdLine {
 
-    class Option : public Symbol, public ArgumentHolder {
+    class SYSCMDLINE_EXPORT Option : public Symbol, public ArgumentHolder {
     public:
         Option();
         Option(const std::string &name, const std::string &desc,

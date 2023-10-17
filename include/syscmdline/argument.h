@@ -12,7 +12,7 @@ namespace SysCmdLine {
     class Parser;
     class ParserPrivate;
 
-    class Argument : public Symbol {
+    class SYSCMDLINE_EXPORT Argument : public Symbol {
     public:
         Argument();
         Argument(const std::string &name, const std::string &desc, bool required = true);
@@ -68,7 +68,7 @@ namespace SysCmdLine {
         _required = required;
     }
 
-    class ArgumentHolder {
+    class SYSCMDLINE_EXPORT ArgumentHolder {
     public:
         ArgumentHolder(const std::vector<Argument> &arguments = {});
         ~ArgumentHolder();

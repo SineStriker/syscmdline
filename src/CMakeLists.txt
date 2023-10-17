@@ -1,13 +1,22 @@
 file(GLOB_RECURSE _src ../include/syscmdline/*.h *.h *.cpp)
 
 # Add library
-add_library(${PROJECT_NAME} STATIC ${_src})
+if(SYSCMDLINE_BUILD_STATIC)
+    add_library(${PROJECT_NAME} STATIC)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC SYSCMDLINE_STATIC)
+else()
+    add_library(${PROJECT_NAME} SHARED)
+endif()
+
+target_sources(${PROJECT_NAME} PRIVATE ${_src})
+target_compile_definitions(${PROJECT_NAME} PRIVATE SYSCMDLINE_LIBRARY)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+
 target_include_directories(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 target_include_directories(${PROJECT_NAME} PRIVATE . ../include/syscmdline)
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
 # Install
 install(TARGETS ${PROJECT_NAME}

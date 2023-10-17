@@ -9,7 +9,7 @@
 
 namespace SysCmdLine {
 
-    class Command : public Symbol, public ArgumentHolder {
+    class SYSCMDLINE_EXPORT Command : public Symbol, public ArgumentHolder {
     public:
         Command();
         Command(const std::string &name, const std::string &desc = {});
@@ -37,7 +37,8 @@ namespace SysCmdLine {
         inline void setDetailedDescription(const std::string &detailedDescription);
 
         void addVersionOption(const std::string &ver, const std::vector<std::string> &tokens = {});
-        void addHelpOption(const std::vector<std::string> &tokens = {}, bool global = false);
+        void addHelpOption(bool showHelpIfNoArg = false,
+                           const std::vector<std::string> &tokens = {}, bool global = false);
 
         inline Handler handler() const;
         inline void setHandler(const Handler &handler);
@@ -53,6 +54,7 @@ namespace SysCmdLine {
         std::unordered_map<std::string, size_t> _subCommandNameIndexes;
         std::string _version;
         std::string _detailedDescription;
+        bool _showHelpIfNoArg;
         Handler _handler;
 
         friend class Parser;

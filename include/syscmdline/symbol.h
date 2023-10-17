@@ -3,9 +3,11 @@
 
 #include <string>
 
+#include <syscmdline/global.h>
+
 namespace SysCmdLine {
 
-    class Symbol {
+    class SYSCMDLINE_EXPORT Symbol {
     public:
         enum SymbolType {
             ST_Command,

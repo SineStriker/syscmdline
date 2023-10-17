@@ -131,26 +131,61 @@ namespace SysCmdLine {
         va_start(args, fmt);
         int res = vprintf(fmt, args);
         va_end(args);
+
 #ifdef _WIN32
         ::SetConsoleOutputCP(codepage);
 #endif
         return res;
     }
 
-    int u8errprint(const char *fmt, ...) {
+    int u8error(const char *fmt, ...) {
+#ifdef _WIN32
+        auto codepage = ::GetConsoleOutputCP();
+        ::SetConsoleOutputCP(CP_UTF8);
+#endif
+
         // ANSI escape code to set text color to red
-        const char* redColor = "\033[31m";
+        const char* redColor = "\033[91m";
         printf("%s", redColor);
 
         va_list args;
         va_start(args, fmt);
-        int res = u8printf(fmt, args);
+        int res = vprintf(fmt, args);
         va_end(args);
 
         // ANSI escape code to reset text color to default
         const char* resetColor = "\033[0m";
         printf("%s", resetColor);
-        return 0;
+
+#ifdef _WIN32
+        ::SetConsoleOutputCP(codepage);
+#endif
+        return res;
+    }
+
+    int u8warning(const char *fmt, ...) {
+#ifdef _WIN32
+        auto codepage = ::GetConsoleOutputCP();
+        ::SetConsoleOutputCP(CP_UTF8);
+#endif
+
+        // ANSI escape code to set text color to red
+        const char* redColor = "\033[93m";
+        printf("%s", redColor);
+
+        va_list args;
+        va_start(args, fmt);
+        int res = vprintf(fmt, args);
+        va_end(args);
+
+        // ANSI escape code to reset text color to default
+        const char* resetColor = "\033[0m";
+        printf("%s", resetColor);
+
+#ifdef _WIN32
+        ::SetConsoleOutputCP(codepage);
+#endif
+        return res;
     }
 
 }

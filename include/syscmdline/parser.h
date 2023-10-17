@@ -10,7 +10,7 @@ namespace SysCmdLine {
 
     class ParserPrivate;
 
-    class Parser {
+    class SYSCMDLINE_EXPORT Parser {
     public:
         Parser();
         Parser(const Command &rootCommand);
@@ -26,8 +26,10 @@ namespace SysCmdLine {
             NoError,
             UnknownOption,
             UnknownArgument,
-            MissingRequiredArgument,
+            MissingOptionArgument,
+            MissingCommandArgument,
             TooManyArguments,
+            InvalidArgumentValue,
         };
 
         const Command &rootCommand() const;
@@ -49,6 +51,8 @@ namespace SysCmdLine {
         std::vector<std::pair<int, std::string>> targetStack() const;
 
         void showHelpText() const;
+        void showErrorAndHelpText(const std::string &message) const;
+        void showWarningAndHelpText(const std::string &message) const;
 
     public:
         inline std::string value(const Argument &arg) const;
@@ -63,10 +67,10 @@ namespace SysCmdLine {
         std::vector<std::string> effectiveOptions() const;
         std::vector<std::string> effectiveArguments() const;
 
-        bool isResultNull() const;
-
         bool isHelpSet() const;
         bool isVersionSet() const;
+
+        bool isResultNull() const;
 
     protected:
         ParserPrivate *d;

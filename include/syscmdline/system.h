@@ -4,17 +4,20 @@
 #include <string>
 #include <vector>
 
+#include <syscmdline/global.h>
+
 namespace SysCmdLine {
 
-    std::string wideToUtf8(const std::wstring &s);
-    std::wstring utf8ToWide(const std::string &s);
+    SYSCMDLINE_EXPORT std::string wideToUtf8(const std::wstring &s);
+    SYSCMDLINE_EXPORT std::wstring utf8ToWide(const std::string &s);
 
-    std::string appPath();
-    std::string appName();
-    std::vector<std::string> commandLineArguments();
+    SYSCMDLINE_EXPORT std::string appPath();
+    SYSCMDLINE_EXPORT std::string appName();
+    SYSCMDLINE_EXPORT std::vector<std::string> commandLineArguments();
 
-    int u8printf(const char *fmt, ...);
-    int u8errprint(const char *fmt, ...);
+    SYSCMDLINE_EXPORT int u8printf(const char *fmt, ...);
+    SYSCMDLINE_EXPORT int u8error(const char *fmt, ...);
+    SYSCMDLINE_EXPORT int u8warning(const char *fmt, ...);
 
 }
 

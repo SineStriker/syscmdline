@@ -2,6 +2,7 @@
 #define SYSCMDLINE_STRINGS_H
 
 #include <string>
+#include <vector>
 
 namespace SysCmdLine::Strings {
 

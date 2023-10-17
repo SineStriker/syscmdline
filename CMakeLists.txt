@@ -5,6 +5,7 @@ project(syscmdline VERSION 0.0.1.1 LANGUAGES CXX)
 # ----------------------------------
 # Build Options
 # ----------------------------------
+option(SYSCMDLINE_BUILD_STATIC "Build static library" ON)
 option(SYSCMDLINE_BUILD_TESTS "Build test cases" ON)
 
 # ----------------------------------

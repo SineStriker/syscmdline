@@ -135,6 +135,20 @@ namespace SysCmdLine {
                 return nullptr;
             };
 
+            auto checkArgument = [&](const Argument *arg, const std::string &value) {
+                const auto &expectedValues = arg->_expectedValues;
+                if (expectedValues.empty()) {
+                    return true;
+                }
+                if (std::find(expectedValues.begin(), expectedValues.end(), value) ==
+                    expectedValues.end()) {
+                    result->error = Parser::InvalidArgumentValue;
+                    result->errorPlaceholders = {value, arg->name()};
+                    return false;
+                }
+                return true;
+            };
+
             // Parse options
             size_t k = 0;
             for (auto j = i; j < args.size(); ++j) {
@@ -155,14 +169,19 @@ namespace SysCmdLine {
                             searchOption(nextToken)) {
                             break;
                         }
+
+                        if (!checkArgument(&arg, nextToken)) {
+                            break;
+                        }
                         curArgResult.insert(std::make_pair(arg.name(), nextToken));
                     }
 
+                    // Check required arguments
                     if (x < opt->_arguments.size()) {
                         const auto &arg = opt->_arguments.at(x);
                         if (arg.isRequired()) {
-                            result->error = Parser::MissingRequiredArgument;
-                            result->errorPlaceholders = {arg.name()};
+                            result->error = Parser::MissingOptionArgument;
+                            result->errorPlaceholders = {arg.name(), token};
                             break;
                         }
                     }
@@ -181,14 +200,35 @@ namespace SysCmdLine {
                             result->errorPlaceholders = {token};
                             break;
                         }
+
+                        if (cmd->_arguments.empty()) {
+                            result->error = Parser::TooManyArguments;
+                            break;
+                        }
+
                         result->error = Parser::UnknownArgument;
                         result->errorPlaceholders = {token};
                         break;
                     }
 
                     const auto &arg = cmd->_arguments.at(k);
+                    if (!checkArgument(&arg, token)) {
+                        break;
+                    }
                     result->argResult.insert(std::make_pair(arg.name(), token));
                     k++;
+                }
+            }
+
+            // Check required arguments
+            if (!cmd->_showHelpIfNoArg &&
+                (result->optResult.empty() && result->argResult.empty())) {
+                if (k < cmd->_arguments.size()) {
+                    const auto &arg = cmd->_arguments.at(k);
+                    if (arg.isRequired()) {
+                        result->error = Parser::MissingCommandArgument;
+                        result->errorPlaceholders = {arg.name()};
+                    }
                 }
             }
 
@@ -201,6 +241,7 @@ namespace SysCmdLine {
             if (result->optResult.count("version")) {
                 result->versionSet = true;
             }
+
             if (result->optResult.count("help")) {
                 result->helpSet = true;
             }
@@ -211,23 +252,45 @@ namespace SysCmdLine {
                 throw std::runtime_error("no valid parse result");
         }
 
-        static std::string formatText(const std::string &fmt,
-                                      const std::vector<std::string> &placeHolders) {
-            std::string res;
-            std::string::size_type start = 0;
-            for (const auto &item : placeHolders) {
-                std::string::size_type idx = fmt.find("{}");
-                if (idx == std::string::npos) {
-                    break;
+        static std::string formatText(const std::string &format,
+                                      const std::vector<std::string> &args) {
+            std::string result = format;
+            for (size_t i = 0; i < args.size(); i++) {
+                std::string placeholder = "%" + std::to_string(i + 1);
+                size_t pos = result.find(placeholder);
+                while (pos != std::string::npos) {
+                    result.replace(pos, placeholder.length(), args[i]);
+                    pos = result.find(placeholder, pos + args[i].size());
                 }
-                res.append(fmt.substr(start, idx - start));
-                start = idx + 2;
+            }
+            return result;
+        }
+
+        void showHelp(const std::function<void()> &messageCaller = {}) {
+            if (!result) {
+                return;
             }
 
-            if (start < fmt.size()) {
-                res.append(fmt.substr(start));
+            std::vector<std::string> parentCommands;
+            const Command *p = &rootCommand;
+            for (const auto &item : std::as_const(result->stack)) {
+                parentCommands.push_back(p->name());
+                p = &p->command(item);
             }
-            return res;
+
+            if (!texts[Parser::Top].empty()) {
+                u8printf("%s\n\n", texts[Parser::Top].data());
+            }
+
+            if (messageCaller) {
+                messageCaller();
+            }
+
+            u8printf("%s", p->helpText(parentCommands, result->globalOptions).data());
+
+            if (!texts[Parser::Bottom].empty()) {
+                u8printf("\n%s\n", texts[Parser::Bottom].data());
+            }
         }
     };
 
@@ -269,7 +332,9 @@ namespace SysCmdLine {
 
     int Parser::invoke(const std::vector<std::string> &args, int errorCode) {
         if (!parse(args)) {
-            u8errprint("%s: %s\n", Strings::common_strings[Strings::Error], errorText().data());
+            d->showHelp([this]() {
+                u8error("%s: %s\n\n", Strings::common_strings[Strings::Error], errorText().data());
+            });
             return errorCode;
         }
         return invoke();
@@ -287,6 +352,11 @@ namespace SysCmdLine {
         }
 
         if (d->result->helpSet) {
+            showHelpText();
+            return 0;
+        }
+
+        if (cmd._showHelpIfNoArg && isResultNull()) {
             showHelpText();
             return 0;
         }
@@ -346,15 +416,34 @@ namespace SysCmdLine {
         if (it == d->result->argResult.end()) {
             return {};
         }
-        return std::string();
+        return it->second;
     }
 
     int Parser::count(const std::string &optName) const {
-        return 0;
+        d->checkResult();
+
+        const auto &map = d->result->optResult;
+        auto it = map.find(optName);
+        if (it == map.end()) {
+            return 0;
+        }
+        return it->second.size();
     }
 
     std::string Parser::value(const std::string &optName, const std::string &argName, int count) {
-        return std::string();
+        d->checkResult();
+
+        auto it = d->result->optResult.find(optName);
+        if (it == d->result->optResult.end() || count >= it->second.size()) {
+            return {};
+        }
+
+        const auto &map = it->second.at(count);
+        auto it2 = map.find(argName);
+        if (it2 == map.end()) {
+            return {};
+        }
+        return it2->second;
     }
 
     std::vector<std::string> Parser::effectiveOptions() const {
@@ -379,11 +468,6 @@ namespace SysCmdLine {
         return res;
     }
 
-    bool Parser::isResultNull() const {
-        d->checkResult();
-        return d->result->argResult.empty() && d->result->optResult.empty();
-    }
-
     bool Parser::isHelpSet() const {
         return d->result && d->result->helpSet;
     }
@@ -392,27 +476,25 @@ namespace SysCmdLine {
         return d->result && d->result->versionSet;
     }
 
+    bool Parser::isResultNull() const {
+        d->checkResult();
+        return d->result->argResult.empty() && d->result->optResult.empty();
+    }
+
     void Parser::showHelpText() const {
-        if (!d->result) {
-            return;
-        }
+        d->showHelp();
+    }
 
-        std::vector<std::string> parentCommands;
-        const Command *p = &d->rootCommand;
-        for (const auto &item : std::as_const(d->result->stack)) {
-            parentCommands.push_back(p->name());
-            p = &p->command(item);
-        }
+    void Parser::showErrorAndHelpText(const std::string &message) const {
+        d->showHelp([&message]() {
+            u8error("%s\n\n", message.data()); //
+        });
+    }
 
-        if (!d->texts[Top].empty()) {
-            u8printf("%s\n\n", d->texts[Top].data());
-        }
-
-        u8printf("%s", p->helpText(parentCommands, d->result->globalOptions).data());
-
-        if (!d->texts[Bottom].empty()) {
-            u8printf("\n%s\n", d->texts[Bottom].data());
-        }
+    void Parser::showWarningAndHelpText(const std::string &message) const {
+        d->showHelp([&message]() {
+            u8warning("%s\n\n", message.data()); //
+        });
     }
 
 }
