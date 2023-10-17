@@ -4,62 +4,58 @@
 #include <string>
 #include <vector>
 
-#include <syscmdline/argumentholder.h>
+#include <syscmdline/argument.h>
 
 namespace SysCmdLine {
 
-    template <class T>
-    class BasicOption : public BasicSymbol<T>, public BasicArgumentHolder<T> {
+    class Option : public Symbol, public ArgumentHolder {
     public:
-        using super = BasicSymbol<T>;
-
-        using value_type = typename super::value_type;
-        using string_type = typename super::string_type;
-
-        using arg_type = BasicArgument<value_type>;
-
-        ~BasicOption() = default;
-
-        BasicOption() : super(ST_Option), _short(false) {
-        }
-
-        BasicOption(const string_type &name, const std::vector<string_type> &tokens,
-                    const std::vector<BasicArgument<value_type>> &arguments = {},
-                    const string_type &desc = {})
-            : super(ST_Option, name, desc), BasicArgumentHolder<T>(arguments), _tokens(tokens),
-              _short(false) {
-        }
-
-        BasicOption(const string_type &name, const std::vector<string_type> &tokens, bool is_short,
-                    const std::vector<BasicArgument<value_type>> &arguments,
-                    const string_type &desc = {})
-            : BasicOption(name, tokens, arguments, desc), _short(is_short) {
-        }
+        Option();
+        Option(const std::string &name, const std::vector<std::string> &tokens,
+               const std::vector<Argument> &arguments = {}, const std::string &desc = {});
+        Option(const std::string &name, const std::vector<std::string> &tokens, bool is_short,
+               bool prior, const std::vector<Argument> &arguments, const std::string &desc = {});
+        ~Option();
 
     public:
-        std::vector<string_type> tokens() const {
-            return _tokens;
-        }
+        inline std::vector<std::string> tokens() const;
+        inline void setTokens(const std::vector<std::string> &tokens);
 
-        void setTokens(const std::vector<string_type> &tokens) {
-            _tokens = tokens;
-        }
+        inline bool isShortOption() const;
+        inline void setShortOption(bool on);
 
-        bool isShortOption() const {
-            return _short;
-        }
+        inline bool isPrior() const;
+        inline void setPrior(bool on);
 
-        void setShortOption(bool on) {
-            _short = on;
-        }
-
-    private:
-        std::vector<string_type> _tokens;
+    protected:
+        std::vector<std::string> _tokens;
         bool _short;
+        bool _prior;
     };
 
-    using Option = BasicOption<char>;
-    using WOption = BasicOption<wchar_t>;
+    inline std::vector<std::string> Option::tokens() const {
+        return _tokens;
+    }
+
+    inline void Option::setTokens(const std::vector<std::string> &tokens) {
+        _tokens = tokens;
+    }
+
+    inline bool Option::isShortOption() const {
+        return _short;
+    }
+
+    inline void Option::setShortOption(bool on) {
+        _short = on;
+    }
+
+    inline bool Option::isPrior() const {
+        return _prior;
+    }
+
+    inline void Option::setPrior(bool on) {
+        _prior = on;
+    }
 
 }
 

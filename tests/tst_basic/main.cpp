@@ -6,5 +6,7 @@
 int main(int argc, char *argv[]) {
     SysCmdLine::Option opt;
 
+    std::cout << 1 << std::endl;
+
     return 0;
 }

@@ -2,54 +2,54 @@
 #define SYMBOL_H
 
 #include <string>
-#include <vector>
-
-#include <syscmdline/symbol.h>
 
 namespace SysCmdLine {
 
-    enum SymbolType {
-        ST_Command,
-        ST_Option,
-        ST_Argument,
-    };
-
-    template <class T>
-    class BasicSymbol {
+    class Symbol {
     public:
-        using value_type = T;
-        using string_type = std::basic_string<T>;
+        enum SymbolType {
+            ST_Command,
+            ST_Option,
+            ST_Argument,
+        };
 
-        BasicSymbol(SymbolType type, const string_type &name = {}, const string_type &desc = {})
-            : _type(type), _name(name), _desc(desc){};
-        virtual ~BasicSymbol() = default;
+        Symbol(SymbolType type, const std::string &name = {}, const std::string &desc = {});
+        virtual ~Symbol();
 
     public:
-        SymbolType type() const {
-            return _type;
-        }
+        inline SymbolType type() const;
 
-        string_type name() const {
-            return _name;
-        }
+        inline std::string name() const;
+        inline void setName(const std::string &name);
 
-        void setName(const string_type &name) {
-            _name = name;
-        }
+        inline std::string description() const;
+        inline void setDescription(const std::string &desc);
 
-        string_type description() const {
-            return _desc;
-        }
-
-        void setDescription(const string_type &desc) {
-            _desc = desc;
-        }
-
-    private:
+    protected:
         SymbolType _type;
-        string_type _name;
-        string_type _desc;
+        std::string _name;
+        std::string _desc;
     };
+
+    inline Symbol::SymbolType Symbol::type() const {
+        return _type;
+    }
+
+    inline std::string Symbol::name() const {
+        return _name;
+    }
+
+    inline void Symbol::setName(const std::string &name) {
+        _name = name;
+    }
+
+    inline std::string Symbol::description() const {
+        return _desc;
+    }
+
+    inline void Symbol::setDescription(const std::string &desc) {
+        _desc = desc;
+    }
 
 }
 

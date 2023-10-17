@@ -9,136 +9,122 @@
 
 namespace SysCmdLine {
 
-    template <class T>
-    class BasicCommand : public BasicSymbol<T>, public BasicArgumentHolder<T> {
+    class ParseResult;
+
+    class Command : public Symbol, public ArgumentHolder {
     public:
-        using super = BasicSymbol<T>;
+        Command();
+        Command(const std::string &name, const std::string &desc = {});
+        ~Command();
 
-        using value_type = typename super::value_type;
-        using string_type = typename super::string_type;
-
-        using arg_type = BasicArgument<value_type>;
-        using option_type = BasicOption<value_type>;
-        using command_type = BasicCommand<value_type>;
-
-        using Handler = std::function<int(const command_type &)>;
-
-        ~BasicCommand();
-
-        BasicCommand(const BasicCommand &other);
-        BasicCommand(BasicCommand &&other) noexcept;
-        BasicCommand &operator=(const BasicCommand &other);
-        BasicCommand &operator=(BasicCommand &&other) noexcept;
+        using Handler = std::function<int(const ParseResult &, const Command &)>;
 
     public:
-        void addCommand(const BasicCommand &command);
-        void addOption(const option_type &option);
+        void addCommand(const Command &command);
+        void addOption(const Option &option);
 
-        std::vector<command_type> commands() const;
-        void setCommands(const std::vector<command_type> &command);
+        inline const Command &command(const std::string &name) const;
+        inline const Command &command(int index) const;
 
-        std::vector<option_type> options() const;
-        void setOptions(const std::vector<option_type> &options);
+        inline const Option &option(const std::string &name) const;
+        inline const Option &option(int index) const;
 
-        string_type version() const;
-        void setVersion(const string_type &version);
+        inline const std::vector<Command> &commands() const;
+        void setCommands(const std::vector<Command> &commands);
 
-        string_type detailedDescription() const;
-        void setDetailedDescription(const string_type &detailedDescription);
+        inline const std::vector<Option> &options() const;
+        void setOptions(const std::vector<Option> &options);
 
-        Handler handler() const;
-        void setHandler(const Handler &handler);
+        inline std::string version() const;
+        inline void setVersion(const std::string &version);
 
-    private:
-        std::vector<option_type> _options;
-        std::vector<command_type *> _subCommands;
-        string_type _version;
-        string_type _detailedDescription;
+        inline std::string detailedDescription() const;
+        inline void setDetailedDescription(const std::string &detailedDescription);
+
+        inline bool isVersionVisible() const;
+        inline void setVersionVisible(bool on);
+
+        inline bool isHelpVisible() const;
+        inline void setHelpVisible(bool on);
+
+        inline Handler handler() const;
+        inline void setHandler(const Handler &handler);
+
+        std::string helpText() const;
+
+    protected:
+        std::vector<Option> _options;
+        std::unordered_map<std::string, size_t> _optionNameIndexes;
+        std::vector<Command> _subCommands;
+        std::unordered_map<std::string, size_t> _subCommandNameIndexes;
+        std::string _version;
+        std::string _detailedDescription;
+        bool _hasVersion;
+        bool _hasHelp;
         Handler _handler;
     };
 
-    template <class T>
-    BasicCommand<T>::~BasicCommand() {
-        for (const auto &item : this->_subCommands)
-            delete item;
+    inline const Command &Command::command(const std::string &name) const {
+        return _subCommands.at(_subCommandNameIndexes.find(name)->second);
     }
 
-    template <class T>
-    BasicCommand<T>::BasicCommand(const BasicCommand &other) {
-        this->_arguments = other._arguments;
-        this->_options = other._options;
-        this->_subCommands.reserve(other._subCommands.size());
-        for (const auto &item : other._subCommands)
-            this->_subCommands.emplace_back(*new BasicCommand(*item));
+    inline const Command &Command::command(int index) const {
+        return _subCommands.at(index);
     }
 
-    template <class T>
-    BasicCommand<T>::BasicCommand(BasicCommand &&other) noexcept {
-        std::swap(this->_arguments, other._arguments);
-        std::swap(this->_options, other._options);
-        std::swap(this->_subCommands, other._subCommands);
+    inline const Option &Command::option(const std::string &name) const {
+        return _options.at(_optionNameIndexes.find(name)->second);
     }
 
-    template <class T>
-    BasicCommand<T> &BasicCommand<T>::operator=(const BasicCommand &other) {
-        if (this == &other)
-            return *this;
-        this->_arguments = other._arguments;
-        this->_options = other._options;
-        this->_subCommands.reserve(other._subCommands.size());
-        for (const auto &item : other._subCommands)
-            this->_subCommands.emplace_back(*new BasicCommand(*item));
-        return *this;
+    inline const Option &Command::option(int index) const {
+        return _options.at(index);
     }
 
-    template <class T>
-    BasicCommand<T> &BasicCommand<T>::operator=(BasicCommand &&other) noexcept {
-        if (this == &other)
-            return *this;
-        std::swap(this->_arguments, other._arguments);
-        std::swap(this->_options, other._options);
-        std::swap(this->_subCommands, other._subCommands);
-        return *this;
+    inline const std::vector<Command> &Command::commands() const {
+        return _subCommands;
     }
 
-    template <class T>
-    void BasicCommand<T>::addCommand(const BasicCommand &command) {
-        _subCommands.push_back(*new BasicCommand(command));
+    inline const std::vector<Option> &Command::options() const {
+        return _options;
     }
 
-    template <class T>
-    void BasicCommand<T>::addOption(const BasicCommand::option_type &option) {
-        _options.push_back(option);
+    inline std::string Command::version() const {
+        return _version;
     }
 
-    template <class T>
-    typename BasicCommand<T>::string_type BasicCommand<T>::version() const {
-        return this->_version;
-    }
-
-    template <class T>
-    void BasicCommand<T>::setVersion(const BasicCommand::string_type &version) {
+    inline void Command::setVersion(const std::string &version) {
         _version = version;
     }
 
-    template <class T>
-    typename BasicCommand<T>::string_type BasicCommand<T>::detailedDescription() const {
-        return this->_detailedDescription;
+    inline std::string Command::detailedDescription() const {
+        return _detailedDescription;
     }
 
-    template <class T>
-    void BasicCommand<T>::setDetailedDescription(
-        const BasicCommand::string_type &detailedDescription) {
+    inline void Command::setDetailedDescription(const std::string &detailedDescription) {
         _detailedDescription = detailedDescription;
     }
 
-    template <class T>
-    typename BasicCommand<T>::Handler BasicCommand<T>::handler() const {
+    inline bool Command::isVersionVisible() const {
+        return _hasVersion;
+    }
+
+    inline void Command::setVersionVisible(bool on) {
+        _hasVersion = on;
+    }
+
+    inline bool Command::isHelpVisible() const {
+        return _hasHelp;
+    }
+
+    inline void Command::setHelpVisible(bool on) {
+        _hasHelp = on;
+    }
+
+    inline Command::Handler Command::handler() const {
         return _handler;
     }
 
-    template <class T>
-    void BasicCommand<T>::setHandler(const BasicCommand::Handler &handler) {
+    inline void Command::setHandler(const Handler &handler) {
         _handler = handler;
     }
 

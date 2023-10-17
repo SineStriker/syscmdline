@@ -8,20 +8,29 @@
 
 namespace SysCmdLine {
 
-    enum ParseErrorType {
-        UnknownCommand,
-        UnknownOption,
-    };
-
-    template <class T>
-    class ParseError {
+    class ParseResult {
     public:
+        ParseResult();
+        ~ParseResult();
 
+        bool isSet(const ParseResult &res, const Option &opt) const;
+        bool isSet(const ParseResult &res, const Argument &arg) const;
+        bool isSet(const ParseResult &res, const Option &opt, const Argument &arg);
+        std::string value(const ParseResult &res, const Argument &arg) const;
+        std::string value(const ParseResult &res, const Option &opt, const Argument &arg);
     };
 
-    template <class T>
     class Parser {
     public:
+        Parser();
+        ~Parser();
+
+        void parse();
+
+        std::vector<int> commandStack() const;
+        const Command &targetCommand() const;
+
+    protected:
     };
 
 }
