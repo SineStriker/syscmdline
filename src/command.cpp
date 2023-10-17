@@ -23,7 +23,7 @@ namespace SysCmdLine {
             throw std::runtime_error("command name \"" + command.name() + "\" duplicated");
         }
         _subCommands.push_back(command);
-        _argumentNameIndexes.insert(std::make_pair(command.name(), _subCommands.size() - 1));
+        _subCommandNameIndexes.insert(std::make_pair(command.name(), _subCommands.size() - 1));
     }
 
     void Command::addOption(const Option &option) {
@@ -64,13 +64,13 @@ namespace SysCmdLine {
         _version = ver;
         addOption(Option("version", Strings::info_strings[Strings::Version],
                          tokens.empty() ? std::vector<std::string>{"-v", "--version"} : tokens,
-                         false, true, false));
+                         false, false));
     }
 
     void Command::addHelpOption(const std::vector<std::string> &tokens, bool global) {
         addOption(Option("help", Strings::info_strings[Strings::Help],
                          tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
-                         true, global));
+                         global));
     }
 
     static const char INDENT[] = "    ";

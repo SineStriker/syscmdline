@@ -137,4 +137,20 @@ namespace SysCmdLine {
         return res;
     }
 
+    int u8errprint(const char *fmt, ...) {
+        // ANSI escape code to set text color to red
+        const char* redColor = "\033[31m";
+        printf("%s", redColor);
+
+        va_list args;
+        va_start(args, fmt);
+        int res = u8printf(fmt, args);
+        va_end(args);
+
+        // ANSI escape code to reset text color to default
+        const char* resetColor = "\033[0m";
+        printf("%s", resetColor);
+        return 0;
+    }
+
 }

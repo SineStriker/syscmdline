@@ -14,6 +14,7 @@ namespace SysCmdLine {
     std::vector<std::string> commandLineArguments();
 
     int u8printf(const char *fmt, ...);
+    int u8errprint(const char *fmt, ...);
 
 }
 

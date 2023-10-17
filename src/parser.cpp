@@ -1,5 +1,7 @@
 #include "parser.h"
 
+#include <list>
+#include <map>
 #include <stdexcept>
 
 #include "strings.h"
@@ -15,10 +17,16 @@ namespace SysCmdLine {
         std::vector<const Option *> globalOptions;
         const Command *command;
 
+        using ArgResult = std::unordered_map<std::string, std::string>;
+
+        ArgResult argResult;
+        std::unordered_map<std::string, std::vector<ArgResult>> optResult;
+
         bool versionSet;
         bool helpSet;
 
-        ParseResult() : error(Parser::NoError), versionSet(false), helpSet(false) {
+        ParseResult()
+            : error(Parser::NoError), command(nullptr), versionSet(false), helpSet(false) {
         }
     };
 
@@ -38,9 +46,167 @@ namespace SysCmdLine {
         void parse(const std::vector<std::string> &args) {
             delete result;
             result = new ParseResult();
+
+            // Search command
+            const Command *cmd = &rootCommand;
+            const Command *lastCmd = nullptr;
+            std::list<const Option *> globalOptions;
+            std::unordered_map<std::string, decltype(globalOptions)::iterator> globalOptionIndexes;
+            size_t i = 1;
+            for (; i < args.size(); ++i) {
+                {
+                    auto it = cmd->_subCommandNameIndexes.find(args[i]);
+                    if (it == cmd->_subCommandNameIndexes.end()) {
+                        break;
+                    }
+                    result->stack.push_back(int(it->second));
+                    cmd = &cmd->_subCommands.at(it->second);
+                }
+
+                // Collect global options
+                if (lastCmd) {
+                    for (const auto &opt : cmd->_options) {
+                        if (!opt.isGlobal())
+                            continue;
+
+                        auto it = globalOptionIndexes.find(opt.name());
+                        if (it != globalOptionIndexes.end()) {
+                            globalOptions.erase(it->second);
+                            globalOptionIndexes.erase(it);
+                        }
+                        globalOptionIndexes.insert(std::make_pair(
+                            opt.name(), globalOptions.insert(globalOptions.end(), &opt)));
+                    }
+                }
+                lastCmd = cmd;
+            }
+            result->command = cmd;
+
+            // Remove duplicated global options
+            if (!globalOptionIndexes.empty()) {
+                for (const auto &opt : cmd->_options) {
+                    if (!opt.isGlobal())
+                        continue;
+
+                    auto it = globalOptionIndexes.find(opt.name());
+                    if (it != globalOptionIndexes.end()) {
+                        globalOptions.erase(it->second);
+                        globalOptionIndexes.erase(it);
+                    }
+                }
+            }
+
+            // Build option indexes
+            std::map<std::string, const Option *> allOptionIndexes;
+            for (const auto &item : std::as_const(globalOptions)) {
+                for (const auto &token : item->_tokens) {
+                    allOptionIndexes.insert(std::make_pair(token, item));
+                }
+            }
+            for (const auto &item : std::as_const(cmd->_options)) {
+                for (const auto &token : item._tokens) {
+                    allOptionIndexes.insert(std::make_pair(token, &item));
+                }
+            }
+
+            auto searchOption = [&](const std::string &token) -> const Option * {
+                {
+                    auto it = allOptionIndexes.find(token);
+                    if (it != allOptionIndexes.end()) {
+                        return it->second;
+                    }
+                }
+
+                if (token.front() != '-') {
+                    return nullptr;
+                }
+
+                // Search for short option
+                auto it = allOptionIndexes.lower_bound(token);
+                if (it != allOptionIndexes.begin() && it != allOptionIndexes.end() &&
+                    token.find(it->first) != 0) {
+                    --it;
+                }
+                if (it != allOptionIndexes.end() && token.find(it->first) == 0) {
+                    const auto &opt = it->second;
+                    if (opt->isShortOption())
+                        return opt;
+                }
+                return nullptr;
+            };
+
+            // Parse options
+            size_t k = 0;
+            for (auto j = i; j < args.size(); ++j) {
+                const auto &token = args[j];
+
+                // Consider option
+                if (auto opt = searchOption(token); opt) {
+                    size_t x = 0;
+                    size_t max = std::min(args.size() - j, opt->_arguments.size());
+
+                    ParseResult::ArgResult curArgResult;
+                    for (; x < max; ++x) {
+                        const auto &nextToken = args[x + j];
+                        const auto &arg = opt->_arguments.at(x);
+
+                        // Break by next option
+                        if (nextToken.front() == '-' && !arg.isRequired() &&
+                            searchOption(nextToken)) {
+                            break;
+                        }
+                        curArgResult.insert(std::make_pair(arg.name(), nextToken));
+                    }
+
+                    if (x < opt->_arguments.size()) {
+                        const auto &arg = opt->_arguments.at(x);
+                        if (arg.isRequired()) {
+                            result->error = Parser::MissingRequiredArgument;
+                            result->errorPlaceholders = {arg.name()};
+                            break;
+                        }
+                    }
+
+                    result->optResult[opt->name()].emplace_back(curArgResult);
+
+                    j += x;
+                    continue;
+                }
+
+                // Consider argument
+                {
+                    if (k == cmd->_arguments.size()) {
+                        if (token.front() == '-') {
+                            result->error = Parser::UnknownOption;
+                            result->errorPlaceholders = {token};
+                            break;
+                        }
+                        result->error = Parser::UnknownArgument;
+                        result->errorPlaceholders = {token};
+                        break;
+                    }
+
+                    const auto &arg = cmd->_arguments.at(k);
+                    result->argResult.insert(std::make_pair(arg.name(), token));
+                    k++;
+                }
+            }
+
+            if (result->error != Parser::NoError) {
+                result->argResult.clear();
+                result->optResult.clear();
+                return;
+            }
+
+            if (result->optResult.count("version")) {
+                result->versionSet = true;
+            }
+            if (result->optResult.count("help")) {
+                result->helpSet = true;
+            }
         }
 
-        void checkResult() const {
+        inline void checkResult() const {
             if (!result)
                 throw std::runtime_error("no valid parse result");
         }
@@ -101,17 +267,22 @@ namespace SysCmdLine {
         return d->result->error == NoError;
     }
 
-    int Parser::invoke(const std::vector<std::string> &args) {
+    int Parser::invoke(const std::vector<std::string> &args, int errorCode) {
         if (!parse(args)) {
-            u8printf("%s: %s\n", Strings::common_strings[Strings::Error], errorText().data());
-            return -1;
+            u8errprint("%s: %s\n", Strings::common_strings[Strings::Error], errorText().data());
+            return errorCode;
         }
+        return invoke();
+    }
+
+    int Parser::invoke() const {
+        d->checkResult();
 
         const auto &cmd = *targetCommand();
         const auto &handler = cmd.handler();
 
-        if (!d->result->versionSet) {
-            u8printf("%s", cmd._version.data());
+        if (d->result->versionSet) {
+            u8printf("%s\n", cmd._version.data());
             return 0;
         }
 
@@ -123,7 +294,7 @@ namespace SysCmdLine {
         if (!handler) {
             throw std::runtime_error("command \"" + cmd.name() + "\" doesn't have a valid handler");
         }
-        return handler(*this, cmd);
+        return handler(*this);
     }
 
     bool Parser::parsed() const {
@@ -168,16 +339,49 @@ namespace SysCmdLine {
         return res;
     }
 
-    std::string Parser::value(const Argument &arg) const {
+    std::string Parser::value(const std::string &argName) const {
+        d->checkResult();
+
+        auto it = d->result->argResult.find(argName);
+        if (it == d->result->argResult.end()) {
+            return {};
+        }
         return std::string();
     }
 
-    int Parser::count(const Option &opt) const {
+    int Parser::count(const std::string &optName) const {
         return 0;
     }
 
-    std::string Parser::value(const Option &opt, const Argument &arg, int count) {
+    std::string Parser::value(const std::string &optName, const std::string &argName, int count) {
         return std::string();
+    }
+
+    std::vector<std::string> Parser::effectiveOptions() const {
+        d->checkResult();
+
+        std::vector<std::string> res;
+        res.reserve(d->result->optResult.size());
+        for (const auto &item : d->result->optResult) {
+            res.push_back(item.first);
+        }
+        return res;
+    }
+
+    std::vector<std::string> Parser::effectiveArguments() const {
+        d->checkResult();
+
+        std::vector<std::string> res;
+        res.reserve(d->result->argResult.size());
+        for (const auto &item : d->result->argResult) {
+            res.push_back(item.first);
+        }
+        return res;
+    }
+
+    bool Parser::isResultNull() const {
+        d->checkResult();
+        return d->result->argResult.empty() && d->result->optResult.empty();
     }
 
     bool Parser::isHelpSet() const {
@@ -200,7 +404,15 @@ namespace SysCmdLine {
             p = &p->command(item);
         }
 
+        if (!d->texts[Top].empty()) {
+            u8printf("%s\n\n", d->texts[Top].data());
+        }
+
         u8printf("%s", p->helpText(parentCommands, d->result->globalOptions).data());
+
+        if (!d->texts[Bottom].empty()) {
+            u8printf("\n%s\n", d->texts[Bottom].data());
+        }
     }
 
 }

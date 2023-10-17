@@ -10,6 +10,7 @@
 namespace SysCmdLine {
 
     class Parser;
+    class ParserPrivate;
 
     class Argument : public Symbol {
     public:
@@ -34,10 +35,13 @@ namespace SysCmdLine {
 
         static std::string displayArgumentList(const std::vector<Argument> &args);
 
-    private:
+    protected:
         std::vector<std::string> _expectedValues;
         std::string _defaultValue;
         bool _required;
+
+        friend class Parser;
+        friend class ParserPrivate;
     };
 
     inline const std::vector<std::string> &Argument::expectedValues() const {
@@ -80,6 +84,9 @@ namespace SysCmdLine {
     protected:
         std::vector<Argument> _arguments;
         std::unordered_map<std::string, size_t> _argumentNameIndexes;
+
+        friend class Parser;
+        friend class ParserPrivate;
     };
 
     inline const std::vector<Argument> &ArgumentHolder::arguments() const {

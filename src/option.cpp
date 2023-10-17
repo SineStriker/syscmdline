@@ -7,7 +7,7 @@
 
 namespace SysCmdLine {
 
-    Option::Option() : Symbol(ST_Option), _short(false), _prior(false), _global(false) {
+    Option::Option() : Symbol(ST_Option), _short(false), _global(false) {
     }
 
     Option::~Option() {
@@ -15,13 +15,13 @@ namespace SysCmdLine {
 
     Option::Option(const std::string &name, const std::string &desc,
                    const std::vector<std::string> &tokens, const std::vector<Argument> &arguments)
-        : Option(name, desc, tokens, false, false, false, arguments) {
+        : Option(name, desc, tokens, false, false, arguments) {
     }
 
     Option::Option(const std::string &name, const std::string &desc,
-                   const std::vector<std::string> &tokens, bool is_short, bool prior, bool global,
+                   const std::vector<std::string> &tokens, bool is_short, bool global,
                    const std::vector<Argument> &arguments)
-        : Symbol(ST_Option, name, desc), ArgumentHolder(arguments), _short(is_short), _prior(prior),
+        : Symbol(ST_Option, name, desc), ArgumentHolder(arguments), _short(is_short),
           _global(global) {
         if (!tokens.empty())
             setTokens(tokens);

@@ -24,8 +24,10 @@ namespace SysCmdLine {
 
         enum Error {
             NoError,
+            UnknownOption,
             UnknownArgument,
             MissingRequiredArgument,
+            TooManyArguments,
         };
 
         const Command &rootCommand() const;
@@ -35,7 +37,8 @@ namespace SysCmdLine {
         void setText(Side side, const std::string &text);
 
         bool parse(const std::vector<std::string> &args);
-        int invoke(const std::vector<std::string> &args);
+        int invoke(const std::vector<std::string> &args, int errorCode = -1);
+        int invoke() const;
 
         bool parsed() const;
         Error error() const;
@@ -48,9 +51,19 @@ namespace SysCmdLine {
         void showHelpText() const;
 
     public:
-        std::string value(const Argument &arg) const;
-        int count(const Option &opt) const;
-        std::string value(const Option &opt, const Argument &arg, int count = 0);
+        inline std::string value(const Argument &arg) const;
+        std::string value(const std::string &argName) const;
+
+        inline int count(const Option &opt) const;
+        int count(const std::string &optName) const;
+
+        inline std::string value(const Option &opt, const Argument &arg, int count = 0);
+        std::string value(const std::string &optName, const std::string &argName, int count = 0);
+
+        std::vector<std::string> effectiveOptions() const;
+        std::vector<std::string> effectiveArguments() const;
+
+        bool isResultNull() const;
 
         bool isHelpSet() const;
         bool isVersionSet() const;
@@ -58,6 +71,18 @@ namespace SysCmdLine {
     protected:
         ParserPrivate *d;
     };
+
+    inline std::string Parser::value(const Argument &arg) const {
+        return value(arg.name());
+    }
+
+    inline int Parser::count(const Option &opt) const {
+        return count(opt.name());
+    }
+
+    inline std::string Parser::value(const Option &opt, const Argument &arg, int count) {
+        return value(opt.name(), arg.name(), count);
+    }
 
 }
 

@@ -15,7 +15,7 @@ namespace SysCmdLine {
         Command(const std::string &name, const std::string &desc = {});
         ~Command();
 
-        using Handler = std::function<int(const Parser &, const Command &)>;
+        using Handler = std::function<int(const Parser &)>;
 
     public:
         void addCommand(const Command &command);
@@ -56,7 +56,7 @@ namespace SysCmdLine {
         Handler _handler;
 
         friend class Parser;
-        friend class Command;
+        friend class ParserPrivate;
     };
 
     inline const Command &Command::command(const std::string &name) const {
