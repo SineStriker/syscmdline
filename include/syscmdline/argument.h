@@ -3,20 +3,23 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include <syscmdline/symbol.h>
 
 namespace SysCmdLine {
 
+    class Parser;
+
     class Argument : public Symbol {
     public:
         Argument();
-        Argument(const std::string &name, bool required = false, const std::string &desc = {});
-        Argument(const std::string &name, const std::string &defaultValue, bool required = false,
-                 const std::string &desc = {});
-        Argument(const std::string &name, const std::string &defaultValue,
-                 const std::vector<std::string> &expectedValues, bool required = false,
-                 const std::string &desc = {});
+        Argument(const std::string &name, const std::string &desc, bool required = true);
+        Argument(const std::string &name, const std::string &desc, const std::string &defaultValue,
+                 bool required = true);
+        Argument(const std::string &name, const std::string &desc,
+                 const std::vector<std::string> &expectedValues, const std::string &defaultValue,
+                 bool required = true);
         ~Argument();
 
     public:
@@ -28,6 +31,8 @@ namespace SysCmdLine {
 
         inline bool isRequired() const;
         inline void setRequired(bool required);
+
+        static std::string displayArgumentList(const std::vector<Argument> &args);
 
     private:
         std::vector<std::string> _expectedValues;

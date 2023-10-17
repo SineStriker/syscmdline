@@ -4,9 +4,6 @@
 
 #ifdef _WIN32
 #  include <Windows.h>
-
-#  include <fcntl.h>
-#  include <io.h>
 #else
 #  include <limits.h>
 #  include <sys/stat.h>
@@ -21,10 +18,10 @@ namespace SysCmdLine {
 
     std::string wideToUtf8(const std::wstring &s) {
 #ifdef _WIN32
-        int len = WideCharToMultiByte(CP_UTF8, 0, str.data(), (int) str.size(), nullptr, 0, nullptr,
-                                      nullptr);
+        int len =
+            WideCharToMultiByte(CP_UTF8, 0, s.data(), (int) s.size(), nullptr, 0, nullptr, nullptr);
         auto buf = new char[len + 1];
-        WideCharToMultiByte(CP_UTF8, 0, str.data(), (int) str.size(), buf, len, nullptr, nullptr);
+        WideCharToMultiByte(CP_UTF8, 0, s.data(), (int) s.size(), buf, len, nullptr, nullptr);
         buf[len] = '\0';
 
         std::string res(buf);
@@ -37,9 +34,9 @@ namespace SysCmdLine {
 
     std::wstring utf8ToWide(const std::string &s) {
 #ifdef _WIN32
-        int len = MultiByteToWideChar(CP_UTF8, 0, bytes.data(), (int) bytes.size(), nullptr, 0);
+        int len = MultiByteToWideChar(CP_UTF8, 0, s.data(), (int) s.size(), nullptr, 0);
         auto buf = new wchar_t[len + 1];
-        MultiByteToWideChar(CP_UTF8, 0, bytes.data(), (int) bytes.size(), buf, len);
+        MultiByteToWideChar(CP_UTF8, 0, s.data(), (int) s.size(), buf, len);
         buf[len] = '\0';
 
         std::wstring res(buf);
@@ -57,7 +54,7 @@ namespace SysCmdLine {
             return {};
         }
         std::wstring wstr = buf;
-        std::replace(wstr.begin(), wstr.end(), L"\\", L"/");
+        std::replace(wstr.begin(), wstr.end(), L'\\', L'/');
         return wideToUtf8(wstr);
 #elif defined(__APPLE__)
         char buf[PATH_MAX];
@@ -81,6 +78,17 @@ namespace SysCmdLine {
         if (slashIdx != std::string::npos) {
             appName = appName.substr(slashIdx + 1);
         }
+
+#ifdef _WIN32
+        auto dotIdx = appName.find_last_of('.');
+        if (dotIdx != std::string::npos) {
+            std::string suffix = appName.substr(dotIdx + 1);
+            std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
+            if (suffix == "exe") {
+                appName = appName.substr(0, dotIdx);
+            }
+        }
+#endif
         return appName;
     }
 
@@ -114,11 +122,19 @@ namespace SysCmdLine {
         return res;
     }
 
-    void u8printf(const char *fmt, ...) {
+    int u8printf(const char *fmt, ...) {
+#ifdef _WIN32
+        auto codepage = ::GetConsoleOutputCP();
+        ::SetConsoleOutputCP(CP_UTF8);
+#endif
         va_list args;
         va_start(args, fmt);
-        vprintf(fmt, args);
+        int res = vprintf(fmt, args);
         va_end(args);
+#ifdef _WIN32
+        ::SetConsoleOutputCP(codepage);
+#endif
+        return res;
     }
 
 }

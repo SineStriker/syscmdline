@@ -1,0 +1,60 @@
+#ifndef SYSCMDLINE_STRINGS_H
+#define SYSCMDLINE_STRINGS_H
+
+#include <string>
+
+namespace SysCmdLine::Strings {
+
+    enum CommonString {
+        Error,
+        Usage,
+        Description,
+        Arguments,
+        Options,
+        Commands,
+    };
+
+    enum InfoString {
+        Version,
+        Help,
+    };
+
+    extern const char *error_strings[];
+
+    extern const char *common_strings[];
+
+    extern const char *info_strings[];
+
+    template <class T>
+    std::vector<std::basic_string<T>> split(const std::basic_string<T> &s,
+                                            const std::basic_string<T> &delimiter) {
+        std::vector<std::basic_string<T>> tokens;
+        typename std::basic_string<T>::size_type start = 0;
+        typename std::basic_string<T>::size_type end = s.find(delimiter);
+        while (end != std::basic_string<T>::npos) {
+            tokens.push_back(s.substr(start, end - start));
+            start = end + delimiter.size();
+            end = s.find(delimiter, start);
+        }
+        tokens.push_back(s.substr(start));
+        return tokens;
+    }
+
+    template <class T>
+    std::basic_string<T> join(const std::vector<std::basic_string<T>> &v,
+                              const std::basic_string<T> &delimiter) {
+        if (v.empty())
+            return {};
+
+        std::basic_string<T> res;
+        for (int i = 0; i < v.size() - 1; ++i) {
+            res.append(v[i]);
+            res.append(delimiter);
+        }
+        res.append(v.back());
+        return res;
+    }
+
+}
+
+#endif // SYSCMDLINE_STRINGS_H

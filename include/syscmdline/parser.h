@@ -8,29 +8,55 @@
 
 namespace SysCmdLine {
 
-    class ParseResult {
-    public:
-        ParseResult();
-        ~ParseResult();
-
-        bool isSet(const ParseResult &res, const Option &opt) const;
-        bool isSet(const ParseResult &res, const Argument &arg) const;
-        bool isSet(const ParseResult &res, const Option &opt, const Argument &arg);
-        std::string value(const ParseResult &res, const Argument &arg) const;
-        std::string value(const ParseResult &res, const Option &opt, const Argument &arg);
-    };
+    class ParserPrivate;
 
     class Parser {
     public:
         Parser();
+        Parser(const Command &rootCommand);
         ~Parser();
 
-        void parse();
+    public:
+        enum Side {
+            Top,
+            Bottom,
+        };
 
-        std::vector<int> commandStack() const;
-        const Command &targetCommand() const;
+        enum Error {
+            NoError,
+            UnknownArgument,
+            MissingRequiredArgument,
+        };
+
+        const Command &rootCommand() const;
+        void setRootCommand(const Command &rootCommand);
+
+        std::string text(Side side) const;
+        void setText(Side side, const std::string &text);
+
+        bool parse(const std::vector<std::string> &args);
+        int invoke(const std::vector<std::string> &args);
+
+        bool parsed() const;
+        Error error() const;
+        std::string errorText() const;
+
+        const Command *targetCommand() const;
+        const std::vector<const Option *> &targetGlobalOptions() const;
+        std::vector<std::pair<int, std::string>> targetStack() const;
+
+        void showHelpText() const;
+
+    public:
+        std::string value(const Argument &arg) const;
+        int count(const Option &opt) const;
+        std::string value(const Option &opt, const Argument &arg, int count = 0);
+
+        bool isHelpSet() const;
+        bool isVersionSet() const;
 
     protected:
+        ParserPrivate *d;
     };
 
 }

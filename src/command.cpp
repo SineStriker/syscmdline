@@ -1,12 +1,18 @@
 #include "command.h"
 
+#include <stdexcept>
+#include <sstream>
+#include <iomanip>
+
+#include "strings.h"
+
 namespace SysCmdLine {
 
-    Command::Command() : Symbol(ST_Command), _hasVersion(false), _hasHelp(false) {
+    Command::Command() : Symbol(ST_Command) {
     }
 
     Command::Command(const std::string &name, const std::string &desc)
-        : Symbol(ST_Command, name, desc), _hasVersion(false), _hasHelp(false) {
+        : Symbol(ST_Command, name, desc) {
     }
 
     Command::~Command() {
@@ -54,7 +60,129 @@ namespace SysCmdLine {
         }
     }
 
-    std::string Command::helpText() const {
+    void Command::addVersionOption(const std::string &ver, const std::vector<std::string> &tokens) {
+        _version = ver;
+        addOption(Option("version", Strings::info_strings[Strings::Version],
+                         tokens.empty() ? std::vector<std::string>{"-v", "--version"} : tokens,
+                         false, true, false));
+    }
+
+    void Command::addHelpOption(const std::vector<std::string> &tokens, bool global) {
+        addOption(Option("help", Strings::info_strings[Strings::Help],
+                         tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
+                         true, global));
+    }
+
+    static const char INDENT[] = "    ";
+
+    std::string Command::helpText(const std::vector<std::string> &parentCommands,
+                                  const std::vector<const Option *> &globalOptions) const {
+        std::stringstream ss;
+
+        // Description
+        const auto &desc = _detailedDescription.empty() ? _desc : _detailedDescription;
+        if (!desc.empty()) {
+            ss << Strings::common_strings[Strings::Description] << ": " << std::endl;
+            ss << INDENT << desc << std::endl;
+            ss << std::endl;
+        }
+
+        // Usage
+        ss << Strings::common_strings[Strings::Usage] << ": " << std::endl;
+        {
+            ss << INDENT;
+            for (const auto &item : parentCommands) {
+                ss << item << " ";
+            }
+            ss << _name;
+
+            if (!_arguments.empty()) {
+                ss << " " << Argument::displayArgumentList(_arguments);
+            }
+
+            if (!_subCommands.empty()) {
+                ss << " [commands]";
+            }
+
+            if (!_options.empty()) {
+                ss << " [options]";
+            }
+
+            ss << std::endl;
+        }
+
+        // Arguments
+        if (!_arguments.empty()) {
+            ss << std::endl;
+
+            size_t widest = 0;
+            std::vector<std::pair<std::string, std::string>> texts;
+            texts.reserve(_arguments.size());
+            for (const auto &item : _arguments) {
+                const auto &text = item.name();
+                widest = std::max(text.size(), widest);
+                texts.emplace_back(text, item.description());
+            }
+
+            ss << Strings::common_strings[Strings::Arguments] << ": " << std::endl;
+            for (const auto &item : texts) {
+                ss << INDENT << std::left << std::setw(widest) << item.first << INDENT
+                   << item.second << std::endl;
+            }
+        }
+
+        // Options
+        if (_options.size() + globalOptions.size() > 0) {
+            ss << std::endl;
+
+            size_t widest = 0;
+            std::vector<std::pair<std::string, std::string>> texts;
+            texts.reserve(_options.size() + globalOptions.size());
+
+            for (const auto &p : globalOptions) {
+                const auto &item = *p;
+                if (_optionNameIndexes.count(item.name()))
+                    continue;
+
+                const auto &text = item.displayTokens();
+                widest = std::max(text.size(), widest);
+                texts.emplace_back(text, item.description());
+            }
+
+            for (const auto &item : _options) {
+                const auto &text = item.displayTokens();
+                widest = std::max(text.size(), widest);
+                texts.emplace_back(text, item.description());
+            }
+
+            ss << Strings::common_strings[Strings::Options] << ": " << std::endl;
+            for (const auto &item : texts) {
+                ss << INDENT << std::left << std::setw(widest) << item.first << INDENT
+                   << item.second << std::endl;
+            }
+        }
+
+        // Commands
+        if (!_subCommands.empty()) {
+            ss << std::endl;
+
+            size_t widest = 0;
+            std::vector<std::pair<std::string, std::string>> texts;
+            texts.reserve(_subCommands.size());
+            for (const auto &item : _subCommands) {
+                const auto &text = item.name();
+                widest = std::max(text.size(), widest);
+                texts.emplace_back(text, item.description());
+            }
+
+            ss << Strings::common_strings[Strings::Commands] << ": " << std::endl;
+            for (const auto &item : texts) {
+                ss << INDENT << std::left << std::setw(widest) << item.first << INDENT
+                   << item.second << std::endl;
+            }
+        }
+
+        return ss.str();
     }
 
 }

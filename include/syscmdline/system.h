@@ -13,7 +13,7 @@ namespace SysCmdLine {
     std::string appName();
     std::vector<std::string> commandLineArguments();
 
-    void u8printf(const char *fmt, ...);
+    int u8printf(const char *fmt, ...);
 
 }
 

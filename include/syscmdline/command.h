@@ -9,15 +9,13 @@
 
 namespace SysCmdLine {
 
-    class ParseResult;
-
     class Command : public Symbol, public ArgumentHolder {
     public:
         Command();
         Command(const std::string &name, const std::string &desc = {});
         ~Command();
 
-        using Handler = std::function<int(const ParseResult &, const Command &)>;
+        using Handler = std::function<int(const Parser &, const Command &)>;
 
     public:
         void addCommand(const Command &command);
@@ -35,22 +33,18 @@ namespace SysCmdLine {
         inline const std::vector<Option> &options() const;
         void setOptions(const std::vector<Option> &options);
 
-        inline std::string version() const;
-        inline void setVersion(const std::string &version);
-
         inline std::string detailedDescription() const;
         inline void setDetailedDescription(const std::string &detailedDescription);
 
-        inline bool isVersionVisible() const;
-        inline void setVersionVisible(bool on);
-
-        inline bool isHelpVisible() const;
-        inline void setHelpVisible(bool on);
+        void addVersionOption(const std::string &ver, const std::vector<std::string> &tokens = {});
+        void addHelpOption(const std::vector<std::string> &tokens = {}, bool global = false);
 
         inline Handler handler() const;
         inline void setHandler(const Handler &handler);
 
-        std::string helpText() const;
+        inline std::string version() const;
+        std::string helpText(const std::vector<std::string> &parentCommands = {},
+                             const std::vector<const Option *> &globalOptions = {}) const;
 
     protected:
         std::vector<Option> _options;
@@ -59,9 +53,10 @@ namespace SysCmdLine {
         std::unordered_map<std::string, size_t> _subCommandNameIndexes;
         std::string _version;
         std::string _detailedDescription;
-        bool _hasVersion;
-        bool _hasHelp;
         Handler _handler;
+
+        friend class Parser;
+        friend class Command;
     };
 
     inline const Command &Command::command(const std::string &name) const {
@@ -88,14 +83,6 @@ namespace SysCmdLine {
         return _options;
     }
 
-    inline std::string Command::version() const {
-        return _version;
-    }
-
-    inline void Command::setVersion(const std::string &version) {
-        _version = version;
-    }
-
     inline std::string Command::detailedDescription() const {
         return _detailedDescription;
     }
@@ -104,28 +91,16 @@ namespace SysCmdLine {
         _detailedDescription = detailedDescription;
     }
 
-    inline bool Command::isVersionVisible() const {
-        return _hasVersion;
-    }
-
-    inline void Command::setVersionVisible(bool on) {
-        _hasVersion = on;
-    }
-
-    inline bool Command::isHelpVisible() const {
-        return _hasHelp;
-    }
-
-    inline void Command::setHelpVisible(bool on) {
-        _hasHelp = on;
-    }
-
     inline Command::Handler Command::handler() const {
         return _handler;
     }
 
     inline void Command::setHandler(const Handler &handler) {
         _handler = handler;
+    }
+
+    inline std::string Command::version() const {
+        return _version;
     }
 
 }

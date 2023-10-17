@@ -26,6 +26,17 @@ if(NOT DEFINED CMAKE_BUILD_SHARE_DIR)
     set(CMAKE_BUILD_SHARE_DIR ${CMAKE_BINARY_DIR}/share)
 endif()
 
+if(MSVC)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /manifest:no")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /manifest:no")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /manifest:no")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
+
+    if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
+        set(CMAKE_DEBUG_POSTFIX "d")
+    endif()
+endif()
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 

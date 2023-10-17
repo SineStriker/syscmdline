@@ -1,27 +1,59 @@
 #include "argument.h"
 
+#include <stdexcept>
+#include <sstream>
+
 namespace SysCmdLine {
 
-    Argument::Argument() : Symbol(ST_Argument), _required(false) {
+    Argument::Argument() : Symbol(ST_Argument), _required(true) {
     }
 
-    Argument::Argument(const std::string &name, bool required, const std::string &desc)
-        : Argument(name, {}, required, desc) {
+    Argument::Argument(const std::string &name, const std::string &desc, bool required)
+        : Argument(name, desc, {}, required) {
     }
 
-    Argument::Argument(const std::string &name, const std::string &defaultValue, bool required,
-                       const std::string &desc)
-        : Argument(name, defaultValue, {}, required, desc) {
+    Argument::Argument(const std::string &name, const std::string &desc,
+                       const std::string &defaultValue, bool required)
+        : Argument(name, desc, {}, defaultValue, required) {
     }
 
-    Argument::Argument(const std::string &name, const std::string &defaultValue,
-                       const std::vector<std::string> &expectedValues, bool required,
-                       const std::string &desc)
-        : Symbol(ST_Argument, name, desc), _defaultValue(defaultValue), _required(required),
-          _expectedValues(expectedValues) {
+    Argument::Argument(const std::string &name, const std::string &desc,
+                       const std::vector<std::string> &expectedValues,
+                       const std::string &defaultValue, bool required)
+        : Symbol(ST_Argument, name, desc), _expectedValues(expectedValues),
+          _defaultValue(defaultValue), _required(required) {
     }
 
     Argument::~Argument() {
+    }
+
+    std::string Argument::displayArgumentList(const std::vector<Argument> &args) {
+        std::stringstream ss;
+
+        std::string::size_type optionalIdx = args.size();
+        for (std::string::size_type i = 0; i < args.size(); ++i) {
+            if (!args.at(i).isRequired()) {
+                optionalIdx = i;
+                break;
+            }
+        }
+
+        if (optionalIdx > 0) {
+            for (std::string::size_type i = 0; i < optionalIdx - 1; ++i) {
+                ss << "<" << args[i].name() << "> ";
+            }
+            ss << "<" << args[optionalIdx - 1].name() << ">";
+        }
+
+        if (optionalIdx < args.size()) {
+            ss << " [";
+            for (std::string::size_type i = optionalIdx; i < args.size() - 1; ++i) {
+                ss << "<" << args[i].name() << "> ";
+            }
+            ss << "<" << args[args.size()].name() << ">]";
+        }
+
+        return ss.str();
     }
 
     ArgumentHolder::ArgumentHolder(const std::vector<Argument> &arguments) {
