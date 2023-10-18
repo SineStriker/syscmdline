@@ -12,12 +12,18 @@ namespace SysCmdLine {
 
     class SYSCMDLINE_EXPORT Option : public ArgumentHolder {
     public:
+        enum PriorLevel {
+            NoPrior,
+            IgnoreMissingArgument,
+            IgnoreRedundantArgument,
+        };
+
         Option();
         Option(const std::string &name, const std::string &desc,
                const std::vector<std::string> &tokens, const std::vector<Argument> &arguments = {});
         Option(const std::string &name, const std::string &desc,
-               const std::vector<std::string> &tokens, bool is_short, bool prior, bool global,
-               const std::vector<Argument> &arguments = {});
+               const std::vector<std::string> &tokens, bool is_short, PriorLevel priorLevel,
+               bool global, const std::vector<Argument> &arguments = {});
         ~Option();
 
         Option(const Option &other);
@@ -32,8 +38,8 @@ namespace SysCmdLine {
         bool isShortOption() const;
         void setShortOption(bool on);
 
-        bool isPrior() const;
-        void setPrior(bool on);
+        PriorLevel priorLevel() const;
+        void setPriorLevel(PriorLevel priorLevel);
 
         bool isGlobal() const;
         void setGlobal(bool on);

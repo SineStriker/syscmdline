@@ -19,14 +19,12 @@ int main(int argc, char *argv[]) {
     });
 
     Command commitCommand("commit", "Record changes to the repository");
-    commitCommand.addHelpOption();
     commitCommand.setHandler([](const Parser &parser) -> int {
         u8printf("commit\n");
         return 0;
     });
 
     Command mergeCommand("merge", "Join two or more development histories together");
-    mergeCommand.addHelpOption();
     mergeCommand.setHandler([](const Parser &parser) -> int {
         u8printf("merge\n");
         return 0;
@@ -39,7 +37,7 @@ int main(int argc, char *argv[]) {
     rootCommand.setCommands({cloneCommand, commitCommand, mergeCommand});
     rootCommand.setArguments({arg1});
     rootCommand.addVersionOption("0.0.1.1");
-    rootCommand.addHelpOption(true);
+    rootCommand.addHelpOption(true, true);
     rootCommand.setHandler([](const Parser &parser) -> int {
         u8printf("git\n");
         return 0;

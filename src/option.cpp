@@ -10,10 +10,10 @@ namespace SysCmdLine {
 
     OptionData::OptionData(const std::string &name, const std::string &desc,
                            const std::vector<std::string> &tokens,
-                           const std::vector<Argument> &args, bool is_short, bool prior,
-                           bool global)
+                           const std::vector<Argument> &args, bool is_short,
+                           Option::PriorLevel priorLevel, bool global)
         : ArgumentHolderData(Symbol::ST_Option, name, desc, args), tokens(tokens),
-          is_short(is_short), prior(prior), global(global) {
+          is_short(is_short), priorLevel(priorLevel), global(global) {
 
         if (!tokens.empty())
             setTokens(tokens);
@@ -23,7 +23,7 @@ namespace SysCmdLine {
     }
 
     SymbolData *OptionData::clone() const {
-        return new OptionData(name, desc, tokens, arguments, is_short, prior, global);
+        return new OptionData(name, desc, tokens, arguments, is_short, priorLevel, global);
     }
 
     void OptionData::setTokens(const std::vector<std::string> &tokens) {
@@ -50,13 +50,15 @@ namespace SysCmdLine {
 
     Option::Option(const std::string &name, const std::string &desc,
                    const std::vector<std::string> &tokens, const std::vector<Argument> &arguments)
-        : Option(name, desc, tokens, false, false, false, arguments) {
+        : Option(name, desc, tokens, false, NoPrior, false, arguments) {
     }
 
     Option::Option(const std::string &name, const std::string &desc,
-                   const std::vector<std::string> &tokens, bool is_short, bool prior, bool global,
+                   const std::vector<std::string> &tokens, bool is_short,
+                   Option::PriorLevel priorLevel, bool global,
                    const std::vector<Argument> &arguments)
-        : ArgumentHolder(new OptionData(name, desc, tokens, arguments, is_short, prior, global)) {
+        : ArgumentHolder(
+              new OptionData(name, desc, tokens, arguments, is_short, priorLevel, global)) {
     }
 
     Option::~Option() {
@@ -109,14 +111,14 @@ namespace SysCmdLine {
         d->is_short = on;
     }
 
-    bool Option::isPrior() const {
+    Option::PriorLevel Option::priorLevel() const {
         SYSCMDLINE_GET_CONST_DATA(Option);
-        return d->prior;
+        return d->priorLevel;
     }
 
-    void Option::setPrior(bool on) {
+    void Option::setPriorLevel(PriorLevel priorLevel) {
         SYSCMDLINE_GET_DATA(Option);
-        d->prior = on;
+        d->priorLevel = priorLevel;
     }
 
     bool Option::isGlobal() const {

@@ -10,7 +10,7 @@ namespace SysCmdLine {
     public:
         OptionData(const std::string &name, const std::string &desc,
                    const std::vector<std::string> &tokens, const std::vector<Argument> &args,
-                   bool is_short, bool prior, bool global);
+                   bool is_short, Option::PriorLevel priorLevel, bool global);
         ~OptionData();
 
         SymbolData *clone() const override;
@@ -20,7 +20,7 @@ namespace SysCmdLine {
 
         std::vector<std::string> tokens;
         bool is_short;
-        bool prior;
+        Option::PriorLevel priorLevel;
         bool global;
     };
 

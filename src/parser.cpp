@@ -49,10 +49,8 @@ namespace SysCmdLine {
             delete result;
             result = new ParseResult();
 
-
             // Search command
             const Command *cmd = &rootCommand;
-            const Command *lastCmd = nullptr;
             std::list<const Option *> globalOptions;
             std::unordered_map<std::string, decltype(globalOptions)::iterator> globalOptionIndexes;
             std::unordered_map<std::string, decltype(globalOptions)::iterator>
@@ -100,8 +98,10 @@ namespace SysCmdLine {
                 }
             };
 
+            // Find target command
             size_t i = 1;
             for (; i < args.size(); ++i) {
+                auto lastCmd = cmd;
                 {
                     auto it = cmd->d_func()->subCommandNameIndexes.find(args[i]);
                     if (it == cmd->d_func()->subCommandNameIndexes.end()) {
@@ -112,27 +112,24 @@ namespace SysCmdLine {
                 }
 
                 // Collect global options
-                if (lastCmd) {
-                    for (const auto &opt : cmd->d_func()->options) {
-                        if (!opt.isGlobal())
-                            continue;
-                        removeDuplicatedOptions(opt);
+                for (const auto &opt : lastCmd->d_func()->options) {
+                    if (!opt.isGlobal())
+                        continue;
 
-                        // Add option
-                        auto targetIterator = globalOptions.insert(globalOptions.end(), &opt);
+                    removeDuplicatedOptions(opt);
 
-                        // Add name index
-                        globalOptionIndexes.insert(std::make_pair(opt.name(), targetIterator));
+                    // Add option
+                    auto targetIterator = globalOptions.insert(globalOptions.end(), &opt);
 
-                        // Add token indexes
-                        for (const auto &token : opt.d_func()->tokens) {
-                            globalOptionTokenIndexes.insert(std::make_pair(token, targetIterator));
-                        }
+                    // Add name index
+                    globalOptionIndexes.insert(std::make_pair(opt.name(), targetIterator));
+
+                    // Add token indexes
+                    for (const auto &token : opt.d_func()->tokens) {
+                        globalOptionTokenIndexes.insert(std::make_pair(token, targetIterator));
                     }
                 }
-                lastCmd = cmd;
             }
-            result->command = cmd;
 
             // Remove duplicated global options
             if (!globalOptionIndexes.empty()) {
@@ -140,6 +137,8 @@ namespace SysCmdLine {
                     removeDuplicatedOptions(opt);
                 }
             }
+            result->command = cmd;
+            result->globalOptions = {globalOptions.begin(), globalOptions.end()};
 
             // Build option indexes
             std::map<std::string, const Option *> allOptionIndexes;
@@ -199,7 +198,7 @@ namespace SysCmdLine {
 
             // Parse options
             size_t k = 0;
-            bool hasPrior = false;
+            Option::PriorLevel priorLevel = Option::NoPrior;
             for (auto j = i; j < args.size(); ++j) {
                 const auto &token = args[j];
 
@@ -240,7 +239,7 @@ namespace SysCmdLine {
 
                     result->optResult[opt->name()].emplace_back(curArgResult);
 
-                    hasPrior |= opt->isPrior();
+                    priorLevel = std::max(priorLevel, opt->priorLevel());
                     j += x;
                     continue;
                 }
@@ -248,6 +247,10 @@ namespace SysCmdLine {
                 // Consider argument
                 {
                     if (k == cmd->d_func()->arguments.size()) {
+                        if (priorLevel >= Option::IgnoreRedundantArgument) {
+                            break;
+                        }
+
                         if (token.front() == '-') {
                             result->error = Parser::UnknownOption;
                             result->errorPlaceholders = {token};
@@ -278,7 +281,7 @@ namespace SysCmdLine {
                 if (cmd->d_func()->showHelpIfNoArg &&
                     (result->optResult.empty() && result->argResult.empty())) {
                     // ...
-                } else if (hasPrior) {
+                } else if (priorLevel >= Option::IgnoreMissingArgument) {
                     // ...
                 } else {
                     if (k < cmd->d_func()->arguments.size()) {
@@ -391,9 +394,14 @@ namespace SysCmdLine {
 
     int Parser::invoke(const std::vector<std::string> &args, int errorCode) {
         if (!parse(args)) {
-            d->showHelp([this]() {
+            auto errCallback = [this]() {
                 u8error("%s: %s\n\n", Strings::common_strings[Strings::Error], errorText().data());
-            });
+            };
+            if (d->result->helpSet) {
+                d->showHelp(errCallback);
+            } else {
+                errCallback();
+            }
             return errorCode;
         }
         return invoke();
@@ -555,4 +563,5 @@ namespace SysCmdLine {
             u8warning("%s\n\n", message.data()); //
         });
     }
+    
 }

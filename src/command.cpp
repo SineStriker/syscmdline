@@ -213,15 +213,15 @@ namespace SysCmdLine {
         d->version = ver;
         addOption(Option("version", Strings::info_strings[Strings::Version],
                          tokens.empty() ? std::vector<std::string>{"-v", "--version"} : tokens,
-                         false, true, false));
+                         false, Option::IgnoreRedundantArgument, false));
     }
 
-    void Command::addHelpOption(bool showHelpIfNoArg, const std::vector<std::string> &tokens,
-                                bool global) {
+    void Command::addHelpOption(bool showHelpIfNoArg, bool global,
+                                const std::vector<std::string> &tokens) {
         SYSCMDLINE_GET_DATA(Command);
         addOption(Option("help", Strings::info_strings[Strings::Help],
                          tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
-                         true, global));
+                         Option::IgnoreRedundantArgument, global));
         d->showHelpIfNoArg = showHelpIfNoArg;
     }
 
