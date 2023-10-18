@@ -38,7 +38,7 @@ namespace SysCmdLine {
         bool isGlobal() const;
         void setGlobal(bool on);
 
-        std::string displayTokens() const;
+        std::string displayedTokens() const;
 
     protected:
         OptionData *d_func();

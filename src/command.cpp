@@ -99,11 +99,11 @@ namespace SysCmdLine {
     Command::~Command() {
     }
 
-    Command::Command(const Command &other)
-        : ArgumentHolder(static_cast<CommandData *>(other.d_ptr->clone())) {
+    Command::Command(const Command &other) : ArgumentHolder(nullptr) {
+        d_ptr = other.d_ptr;
     }
 
-    Command::Command(Command &&other) noexcept : Command() {
+    Command::Command(Command &&other) noexcept : ArgumentHolder(nullptr) {
         d_ptr.swap(other.d_ptr);
     }
 
@@ -111,7 +111,7 @@ namespace SysCmdLine {
         if (this == &other) {
             return *this;
         }
-        d_ptr = other.d_ptr->clone();
+        d_ptr = other.d_ptr;
         return *this;
     }
 
@@ -251,7 +251,7 @@ namespace SysCmdLine {
             ss << d->name;
 
             if (!d->arguments.empty()) {
-                ss << " " << displayArgumentList();
+                ss << " " << displayedArguments();
             }
 
             if (!d->subCommands.empty()) {
@@ -298,13 +298,13 @@ namespace SysCmdLine {
                 if (d->optionNameIndexes.count(item.name()))
                     continue;
 
-                const auto &text = item.displayTokens();
+                const auto &text = item.displayedTokens();
                 widest = std::max(text.size(), widest);
                 texts.emplace_back(text, item.description());
             }
 
             for (const auto &item : d->options) {
-                const auto &text = item.displayTokens();
+                const auto &text = item.displayedTokens();
                 widest = std::max(text.size(), widest);
                 texts.emplace_back(text, item.description());
             }

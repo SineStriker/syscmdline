@@ -170,6 +170,8 @@ namespace SysCmdLine {
                     case Yellow:
                         colorStr = "\033[93m";
                         break;
+                    default:
+                        break;
                 }
                 std::cout << colorStr;
             }
@@ -193,8 +195,8 @@ namespace SysCmdLine {
         }
 
     private:
-#ifdef _WIN32
         Color _color;
+#ifdef _WIN32
         UINT _codepage;
         HANDLE _hConsole;
         CONSOLE_SCREEN_BUFFER_INFO _csbi;

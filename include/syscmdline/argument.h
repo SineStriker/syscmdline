@@ -67,7 +67,7 @@ namespace SysCmdLine {
         void addArgument(const Argument &argument);
         void setArguments(const std::vector<Argument> &arguments);
 
-        std::string displayArgumentList() const;
+        std::string displayedArguments() const;
 
     protected:
         ArgumentHolder(ArgumentHolderData *d);

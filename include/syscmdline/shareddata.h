@@ -2,6 +2,7 @@
 #define SHAREDDATA_H
 
 #include <atomic>
+#include <utility>
 
 namespace SysCmdLine {
 

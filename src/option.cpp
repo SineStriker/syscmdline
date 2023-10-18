@@ -62,11 +62,11 @@ namespace SysCmdLine {
     Option::~Option() {
     }
 
-    Option::Option(const Option &other)
-        : ArgumentHolder(static_cast<OptionData *>(other.d_ptr->clone())) {
+    Option::Option(const Option &other) : ArgumentHolder(nullptr) {
+        d_ptr = other.d_ptr;
     }
 
-    Option::Option(Option &&other) noexcept : Option() {
+    Option::Option(Option &&other) noexcept : ArgumentHolder(nullptr) {
         d_ptr.swap(other.d_ptr);
     }
 
@@ -74,7 +74,7 @@ namespace SysCmdLine {
         if (this == &other) {
             return *this;
         }
-        d_ptr = other.d_ptr->clone();
+        d_ptr = other.d_ptr;
         return *this;
     }
 
@@ -129,7 +129,7 @@ namespace SysCmdLine {
         d->global = on;
     }
 
-    std::string Option::displayTokens() const {
+    std::string Option::displayedTokens() const {
         SYSCMDLINE_GET_CONST_DATA(Option);
 
         const auto &_arguments = d->arguments;
@@ -138,7 +138,7 @@ namespace SysCmdLine {
         std::stringstream ss;
         ss << Strings::join<char>(_tokens, ", ");
         if (!_arguments.empty()) {
-            ss << " " << displayArgumentList();
+            ss << " " << displayedArguments();
         }
         return ss.str();
     }

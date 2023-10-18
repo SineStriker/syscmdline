@@ -41,10 +41,11 @@ namespace SysCmdLine {
     Argument::~Argument() {
     }
 
-    Argument::Argument(const Argument &other) : Symbol(other.d_ptr->clone()) {
+    Argument::Argument(const Argument &other) : Symbol(nullptr) {
+        d_ptr = other.d_ptr;
     }
 
-    Argument::Argument(Argument &&other) noexcept : Argument() {
+    Argument::Argument(Argument &&other) noexcept : Symbol(nullptr) {
         d_ptr.swap(other.d_ptr);
     }
 
@@ -52,7 +53,7 @@ namespace SysCmdLine {
         if (this == &other) {
             return *this;
         }
-        d_ptr = other.d_ptr->clone();
+        d_ptr = other.d_ptr;
         return *this;
     }
 
@@ -167,7 +168,7 @@ namespace SysCmdLine {
         d->setArguments(arguments);
     }
 
-    std::string ArgumentHolder::displayArgumentList() const {
+    std::string ArgumentHolder::displayedArguments() const {
         SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
         auto &_arguments = d->arguments;
 
