@@ -156,16 +156,27 @@ namespace SysCmdLine {
     }
 
     void CommandData::addCommand(const Command &command) {
-        if (subCommandNameIndexes.count(command.name())) {
-            throw std::runtime_error("command name \"" + command.name() + "\" duplicated");
+        const auto &name = command.name();
+        if (name.empty()) {
+            throw std::runtime_error("empty command name");
         }
-        subCommandNameIndexes.insert(std::make_pair(command.name(), subCommands.size()));
+        if (subCommandNameIndexes.count(name)) {
+            throw std::runtime_error("command name \"" + name + "\" duplicated");
+        }
+        subCommandNameIndexes.insert(std::make_pair(name, subCommands.size()));
         subCommands.push_back(command);
     }
 
     void CommandData::addOption(const Option &option) {
-        if (optionNameIndexes.count(option.name())) {
-            throw std::runtime_error("option name \"" + option.name() + "\" duplicated");
+        const auto &name = option.name();
+        if (name.empty()) {
+            throw std::runtime_error("empty option name");
+        }
+        if (option.d_func()->tokens.empty()) {
+            throw std::runtime_error("option \"" + name + "\" has no tokens");
+        }
+        if (optionNameIndexes.count(name)) {
+            throw std::runtime_error("option name \"" + name + "\" duplicated");
         }
         for (const auto &token : option.d_func()->tokens) {
             if (optionTokenIndexes.count(token)) {
@@ -174,7 +185,7 @@ namespace SysCmdLine {
         }
 
         auto last = options.size();
-        optionNameIndexes.insert(std::make_pair(option.name(), last));
+        optionNameIndexes.insert(std::make_pair(name, last));
         options.push_back(option);
         for (const auto &token : option.d_func()->tokens) {
             optionTokenIndexes.insert(std::make_pair(token, last));
@@ -324,6 +335,9 @@ namespace SysCmdLine {
     }
 
     void Command::setDetailedDescription(const std::string &detailedDescription) {
+        if (detailedDescription == this->detailedDescription())
+            return;
+
         SYSCMDLINE_GET_DATA(Command);
         d->detailedDescription = detailedDescription;
     }
@@ -358,7 +372,7 @@ namespace SysCmdLine {
         d->version = ver;
         addOption(Option("version", Strings::info_strings[Strings::Version],
                          tokens.empty() ? std::vector<std::string>{"-v", "--version"} : tokens,
-                         false, Option::IgnoreMissingArgument, false));
+                         false, false, Option::IgnoreMissingArgument, false));
     }
 
     void Command::addHelpOption(bool showHelpIfNoArg, bool global,
@@ -366,7 +380,7 @@ namespace SysCmdLine {
         SYSCMDLINE_GET_DATA(Command);
         addOption(Option("help", Strings::info_strings[Strings::Help],
                          tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
-                         Option::IgnoreMissingArgument, global));
+                         false, Option::IgnoreMissingArgument, global));
         d->showHelpIfNoArg = showHelpIfNoArg;
     }
 
@@ -437,6 +451,17 @@ namespace SysCmdLine {
         SYSCMDLINE_GET_CONST_DATA(Command);
         const auto &dd = d->catalogue.d.constData();
 
+        // Build option indexes
+        auto options = d->options;
+        auto optionNameIndexes = d->optionNameIndexes;
+
+        options.reserve(options.size() + globalOptions.size());
+        optionNameIndexes.reserve(optionNameIndexes.size() + globalOptions.size());
+        for (const auto &item : globalOptions) {
+            optionNameIndexes.insert(std::make_pair(item->name(), options.size()));
+            options.push_back(*item);
+        }
+
         std::stringstream ss;
 
         // Description
@@ -454,17 +479,32 @@ namespace SysCmdLine {
             for (const auto &item : parentCommands) {
                 ss << item << " ";
             }
+
+            // name
             ss << d->name;
 
+            // arguments
             if (!d->arguments.empty()) {
                 ss << " " << displayedArguments();
             }
 
+            // required options
+            size_t requiredCount = 0;
+            for (const auto &opt : options) {
+                if (!opt.isRequired()) {
+                    continue;
+                }
+                requiredCount++;
+                ss << " " << opt.displayedText(false);
+            }
+
+            // command
             if (!d->subCommands.empty()) {
                 ss << " [commands]";
             }
 
-            if (!d->options.empty()) {
+            // options
+            if (requiredCount < options.size() || !d->subCommands.empty()) {
                 ss << " [options]";
             }
 
@@ -481,21 +521,11 @@ namespace SysCmdLine {
         }
 
         // Options
-        if (d->options.size() + globalOptions.size() > 0) {
-            auto options = d->options;
-            auto optionNameIndexes = d->optionNameIndexes;
-
-            options.reserve(options.size() + globalOptions.size());
-            optionNameIndexes.reserve(optionNameIndexes.size() + globalOptions.size());
-            for (const auto &item : globalOptions) {
-                optionNameIndexes.insert(std::make_pair(item->name(), options.size()));
-                options.push_back(*item);
-            }
-
+        if (!options.empty()) {
             collectItems(
                 ss, dd->_opt, dd->_optIndexes, options, optionNameIndexes,
                 Strings::common_strings[Strings::Options],
-                [](const Option &opt) { return opt.displayedTokens(); },
+                [](const Option &opt) { return opt.displayedText(); },
                 [](const Option &opt) { return opt.description(); });
         }
 

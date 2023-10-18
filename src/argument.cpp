@@ -8,34 +8,36 @@ namespace SysCmdLine {
 
     ArgumentData::ArgumentData(const std::string &name, const std::string &desc,
                                const std::vector<std::string> &expectedValues,
-                               const std::string &defaultValue, bool required)
+                               const std::string &defaultValue, bool required,
+                               const std::string &displayName)
         : SymbolData(Symbol::ST_Argument, name, desc), expectedValues(expectedValues),
-          defaultValue(defaultValue), required(required) {
+          defaultValue(defaultValue), required(required), displayName(displayName) {
     }
 
     ArgumentData::~ArgumentData() {
     }
 
     SymbolData *ArgumentData::clone() const {
-        return new ArgumentData(name, desc, expectedValues, defaultValue, required);
+        return new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName);
     }
 
     Argument::Argument() : Argument({}, {}) {
     }
 
-    Argument::Argument(const std::string &name, const std::string &desc, bool required)
-        : Argument(name, desc, {}, required) {
+    Argument::Argument(const std::string &name, const std::string &desc, bool required,
+                       const std::string &displayName)
+        : Argument(name, desc, {}, required, displayName) {
     }
 
     Argument::Argument(const std::string &name, const std::string &desc,
-                       const std::string &defaultValue, bool required)
-        : Argument(name, desc, {}, defaultValue, required) {
+                       const std::string &defaultValue, bool required, const std::string &displayName)
+        : Argument(name, desc, {}, defaultValue, required, displayName) {
     }
 
     Argument::Argument(const std::string &name, const std::string &desc,
                        const std::vector<std::string> &expectedValues,
-                       const std::string &defaultValue, bool required)
-        : Symbol(new ArgumentData(name, desc, expectedValues, defaultValue, required)) {
+                       const std::string &defaultValue, bool required, const std::string &displayName)
+        : Symbol(new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName)) {
     }
 
     Argument::~Argument() {
@@ -65,6 +67,14 @@ namespace SysCmdLine {
         return *this;
     }
 
+    std::string Argument::displayedText() const {
+        SYSCMDLINE_GET_CONST_DATA(Argument);
+        if (d->displayName.empty()) {
+            return "<" + d->name + ">";
+        }
+        return d->displayName;
+    }
+
     const std::vector<std::string> &Argument::expectedValues() const {
         SYSCMDLINE_GET_CONST_DATA(Argument);
         return d->expectedValues;
@@ -89,6 +99,19 @@ namespace SysCmdLine {
 
         SYSCMDLINE_GET_DATA(Argument);
         d->defaultValue = defaultValue;
+    }
+
+    std::string Argument::displayName() const {
+        SYSCMDLINE_GET_CONST_DATA(Argument);
+        return d->displayName;
+    }
+
+    void Argument::setDisplayName(const std::string &displayName) {
+        if (displayName == this->displayName())
+            return;
+
+        SYSCMDLINE_GET_DATA(Argument);
+        d->displayName = displayName;
     }
 
     bool Argument::isRequired() const {
@@ -126,14 +149,18 @@ namespace SysCmdLine {
     }
 
     void ArgumentHolderData::addArgument(const Argument &arg) {
-        if (argumentNameIndexes.count(arg.name())) {
-            throw std::runtime_error("argument name \"" + arg.name() + "\" duplicated");
+        const auto &name = arg.name();
+        if (name.empty()) {
+            throw std::runtime_error("empty argument name");
+        }
+        if (argumentNameIndexes.count(name)) {
+            throw std::runtime_error("argument name \"" + name + "\" duplicated");
         }
         if (!arguments.empty() && !arguments.back().isRequired() && arg.isRequired()) {
             throw std::runtime_error(
                 "adding required argument after optional arguments is prohibited");
         }
-        argumentNameIndexes.insert(std::make_pair(arg.name(), arguments.size()));
+        argumentNameIndexes.insert(std::make_pair(name, arguments.size()));
         arguments.push_back(arg);
     }
 
@@ -169,17 +196,17 @@ namespace SysCmdLine {
 
         if (optionalIdx > 0) {
             for (std::string::size_type i = 0; i < optionalIdx - 1; ++i) {
-                ss << "<" << _arguments[i].name() << "> ";
+                ss << _arguments[i].displayedText() << " ";
             }
-            ss << "<" << _arguments[optionalIdx - 1].name() << ">";
+            ss << _arguments[optionalIdx - 1].displayedText();
         }
 
         if (optionalIdx < _arguments.size()) {
             ss << " [";
             for (std::string::size_type i = optionalIdx; i < _arguments.size() - 1; ++i) {
-                ss << "<" << _arguments[i].name() << "> ";
+                ss << _arguments[i].displayedText() << " ";
             }
-            ss << "<" << _arguments[_arguments.size() - 1].name() << ">]";
+            ss << _arguments[_arguments.size() - 1].displayedText() << "]";
         }
 
         return ss.str();

@@ -272,6 +272,19 @@ namespace SysCmdLine {
                     size_t x = 0;
                     size_t max = std::min(args.size() - j, opt->d_func()->arguments.size());
 
+                    auto &resVec = result->optResult[opt->name()];
+
+                    // Check max occurrence
+                    if (opt->maxOccurrence() > 0 && resVec.size() == opt->maxOccurrence() &&
+                        priorLevel < Option::IgnoreRedundantArgument) {
+                        result->error = Parser::OptionOccurTooMuch;
+                        result->errorPlaceholders = {
+                            opt->displayedTokens(),
+                            std::to_string(opt->maxOccurrence()),
+                        };
+                        break;
+                    }
+
                     ParseResult::ArgResult curArgResult;
                     for (; x < max; ++x) {
                         const auto &nextToken = args[x + j];
@@ -283,6 +296,7 @@ namespace SysCmdLine {
                             break;
                         }
 
+                        // Check argument
                         if (!checkArgument(&arg, nextToken, arg.isRequired())) {
                             break;
                         }
@@ -302,7 +316,7 @@ namespace SysCmdLine {
                         }
                     }
 
-                    result->optResult[opt->name()].emplace_back(curArgResult);
+                    resVec.emplace_back(curArgResult);
 
                     priorLevel = std::max(priorLevel, opt->priorLevel());
                     j += x;
@@ -349,12 +363,36 @@ namespace SysCmdLine {
                 } else if (priorLevel >= Option::IgnoreMissingArgument) {
                     // ...
                 } else {
+                    // Required arguments
                     if (k < cmd->d_func()->arguments.size()) {
                         const auto &arg = cmd->d_func()->arguments.at(k);
                         if (arg.isRequired()) {
                             result->error = Parser::MissingCommandArgument;
                             result->errorPlaceholders = {arg.name()};
                         }
+                    }
+
+                    // Required options
+                    const Option *missingOpt = nullptr;
+                    for (const auto &opt : cmd->d_func()->options) {
+                        if (opt.isRequired() && !result->optResult.count(opt.name())) {
+                            missingOpt = &opt;
+                            break;
+                        }
+                    }
+
+                    if (!missingOpt) {
+                        for (const auto &opt : std::as_const(globalOptions)) {
+                            if (opt->isRequired() && !result->optResult.count(opt->name())) {
+                                missingOpt = opt;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (missingOpt) {
+                        result->error = Parser::MissingRequiredOption;
+                        result->errorPlaceholders = {missingOpt->displayedTokens()};
                     }
                 }
             }
@@ -490,6 +528,12 @@ namespace SysCmdLine {
 
         return Strings::formatText(Strings::error_strings[d->result->error],
                                    d->result->errorPlaceholders);
+    }
+
+    std::string Parser::correctionText() const {
+        if (!d->result)
+            return {};
+        return d->result->correctionText();
     }
 
     Command Parser::targetCommand() const {

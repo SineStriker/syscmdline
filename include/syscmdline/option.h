@@ -20,10 +20,11 @@ namespace SysCmdLine {
 
         Option();
         Option(const std::string &name, const std::string &desc,
-               const std::vector<std::string> &tokens, const std::vector<Argument> &arguments = {});
+               const std::vector<std::string> &tokens, bool required = false,
+               const std::vector<Argument> &arguments = {});
         Option(const std::string &name, const std::string &desc,
-               const std::vector<std::string> &tokens, bool is_short, PriorLevel priorLevel,
-               bool global, const std::vector<Argument> &arguments = {});
+               const std::vector<std::string> &tokens, bool required, bool is_short,
+               PriorLevel priorLevel, bool global, const std::vector<Argument> &arguments = {});
         ~Option();
 
         Option(const Option &other);
@@ -32,10 +33,14 @@ namespace SysCmdLine {
         Option &operator=(Option &&other) noexcept;
 
         std::string displayedTokens() const;
+        std::string displayedText(bool allTokens = true) const;
 
     public:
         const std::vector<std::string> &tokens() const;
         void setTokens(const std::vector<std::string> &tokens);
+
+        bool isRequired() const;
+        void setRequired(bool required);
 
         bool isShortOption() const;
         void setShortOption(bool on);
@@ -45,6 +50,9 @@ namespace SysCmdLine {
 
         bool isGlobal() const;
         void setGlobal(bool on);
+
+        int maxOccurrence() const;
+        void setMaxOccurrence(int max);
 
     protected:
         OptionData *d_func();

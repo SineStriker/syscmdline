@@ -22,12 +22,13 @@ namespace SysCmdLine {
     class SYSCMDLINE_EXPORT Argument : public Symbol {
     public:
         Argument();
-        Argument(const std::string &name, const std::string &desc, bool required = true);
+        Argument(const std::string &name, const std::string &desc, bool required = true,
+                 const std::string &displayName = {});
         Argument(const std::string &name, const std::string &desc, const std::string &defaultValue,
-                 bool required = true);
+                 bool required = true, const std::string &displayName = {});
         Argument(const std::string &name, const std::string &desc,
                  const std::vector<std::string> &expectedValues, const std::string &defaultValue,
-                 bool required = true);
+                 bool required = true, const std::string &displayName = {});
         ~Argument();
 
         Argument(const Argument &other);
@@ -35,12 +36,17 @@ namespace SysCmdLine {
         Argument &operator=(const Argument &other);
         Argument &operator=(Argument &&other) noexcept;
 
+        std::string displayedText() const;
+
     public:
         const std::vector<std::string> &expectedValues() const;
         void setExpectedValues(const std::vector<std::string> &expectedValues);
 
         std::string defaultValue() const;
         void setDefaultValue(const std::string &defaultValue);
+
+        std::string displayName() const;
+        void setDisplayName(const std::string &displayName);
 
         bool isRequired() const;
         void setRequired(bool required);

@@ -35,9 +35,15 @@ int main(int argc, char *argv[]) {
     Argument arg3("age", "Your age", false);
     arg1.setExpectedValues({"genius"});
 
+    Option opt1("link", "link libraries", {"-l", "--link"}, true,
+                {
+                    Argument("lib", "library"),
+                });
+
     Command rootCommand("git", "Git is a distributed version management system.");
     rootCommand.setCommands({cloneCommand, commitCommand, mergeCommand});
     rootCommand.setArguments({arg1, arg2, arg3});
+    rootCommand.addOption(opt1);
     rootCommand.addVersionOption("0.0.1.1");
     rootCommand.addHelpOption(true, true);
     rootCommand.setHandler([](const Parser &parser) -> int {

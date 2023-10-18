@@ -34,6 +34,8 @@ namespace SysCmdLine {
             TooManyArguments,
             InvalidArgumentValue,
             InvalidOptionPosition,
+            MissingRequiredOption,
+            OptionOccurTooMuch,
         };
 
         const Command &rootCommand() const;
@@ -48,6 +50,7 @@ namespace SysCmdLine {
         bool parsed() const;
         Error error() const;
         std::string errorText() const;
+        std::string correctionText() const;
 
         Command targetCommand() const;
         std::vector<Option> targetGlobalOptions() const;
