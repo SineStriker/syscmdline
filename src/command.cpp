@@ -12,7 +12,7 @@
 
 namespace SysCmdLine {
 
-    class CommandCataloguePrivate {
+    class CommandCatalogueData : public SharedData {
     public:
         std::vector<std::unordered_set<std::string>> _arg;
         std::vector<std::unordered_set<std::string>> _opt;
@@ -21,26 +21,46 @@ namespace SysCmdLine {
         std::unordered_map<std::string, size_t> _argIndexes;
         std::unordered_map<std::string, size_t> _optIndexes;
         std::unordered_map<std::string, size_t> _cmdIndexes;
+
+        CommandCatalogueData *clone() const {
+            auto cc = new CommandCatalogueData();
+            cc->_arg = _arg;
+            cc->_opt = _opt;
+            cc->_cmd = _cmd;
+            cc->_argIndexes = _argIndexes;
+            cc->_optIndexes = _optIndexes;
+            cc->_cmdIndexes = _cmdIndexes;
+            return cc;
+        }
     };
 
-    CommandCatalogue::CommandCatalogue() : d(new CommandCataloguePrivate()) {
+    CommandCatalogue::CommandCatalogue() : d(new CommandCatalogueData()) {
     }
 
     CommandCatalogue::~CommandCatalogue() {
-        delete d;
     }
 
-    CommandCatalogue::CommandCatalogue(const CommandCatalogue &other)
-        : d(new CommandCataloguePrivate(*other.d)) {
+    CommandCatalogue::CommandCatalogue(const CommandCatalogue &other) {
+        d = other.d;
+    }
+
+    CommandCatalogue::CommandCatalogue(CommandCatalogue &&other) noexcept {
+        d.swap(other.d);
     }
 
     CommandCatalogue &CommandCatalogue::operator=(const CommandCatalogue &other) {
         if (this == &other) {
             return *this;
         }
+        d = other.d;
+        return *this;
+    }
 
-        delete d;
-        d = new CommandCataloguePrivate(*other.d);
+    CommandCatalogue &CommandCatalogue::operator=(CommandCatalogue &&other) noexcept {
+        if (this == &other) {
+            return *this;
+        }
+        d.swap(other.d);
         return *this;
     }
 
@@ -417,6 +437,7 @@ namespace SysCmdLine {
     std::string Command::helpText(const std::vector<std::string> &parentCommands,
                                   const std::vector<const Option *> &globalOptions) const {
         SYSCMDLINE_GET_CONST_DATA(Command);
+        const auto &dd = d->catalogue.d.constData();
 
         std::stringstream ss;
 
@@ -454,7 +475,6 @@ namespace SysCmdLine {
 
         // Arguments
         if (!d->arguments.empty()) {
-            const auto &dd = d->catalogue.d;
             collectItems(
                 ss, dd->_arg, dd->_argIndexes, d->arguments, d->argumentNameIndexes,
                 Strings::common_strings[Strings::Arguments],
@@ -474,7 +494,6 @@ namespace SysCmdLine {
                 options.push_back(*item);
             }
 
-            const auto &dd = d->catalogue.d;
             collectItems(
                 ss, dd->_opt, dd->_optIndexes, options, optionNameIndexes,
                 Strings::common_strings[Strings::Options],
@@ -484,7 +503,6 @@ namespace SysCmdLine {
 
         // Commands
         if (!d->subCommands.empty()) {
-            const auto &dd = d->catalogue.d;
             collectItems(
                 ss, dd->_cmd, dd->_cmdIndexes, d->subCommands, d->subCommandNameIndexes,
                 Strings::common_strings[Strings::Commands],

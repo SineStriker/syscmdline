@@ -9,7 +9,7 @@
 
 namespace SysCmdLine {
 
-    class CommandCataloguePrivate;
+    class CommandCatalogueData;
 
     class SYSCMDLINE_EXPORT CommandCatalogue {
     public:
@@ -17,7 +17,9 @@ namespace SysCmdLine {
         ~CommandCatalogue();
 
         CommandCatalogue(const CommandCatalogue &other);
+        CommandCatalogue(CommandCatalogue &&other) noexcept;
         CommandCatalogue &operator=(const CommandCatalogue &other);
+        CommandCatalogue &operator=(CommandCatalogue &&other) noexcept;
 
     public:
         void addArgumentCategory(const std::string &name, const std::vector<std::string> &args);
@@ -25,7 +27,7 @@ namespace SysCmdLine {
         void addCommandCatalogue(const std::string &name, const std::vector<std::string> &commands);
 
     protected:
-        CommandCataloguePrivate *d;
+        SharedDataPointer<CommandCatalogueData> d;
 
         friend class Command;
         friend class CommandData;
