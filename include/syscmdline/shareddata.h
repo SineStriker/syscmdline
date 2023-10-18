@@ -119,7 +119,7 @@ namespace SysCmdLine {
         }
 
         inline void swap(SharedDataPointer &other) noexcept {
-            qSwap(d, other.d);
+            std::swap(d, other.d);
         }
 
     protected:
@@ -151,7 +151,7 @@ namespace SysCmdLine {
 
     template <class T>
     inline T *SharedDataPointer<T>::clone() {
-        return d ? d->clone() : nullptr;
+        return d->clone();
     }
 
     template <class T>
@@ -162,6 +162,12 @@ namespace SysCmdLine {
             delete d;
         d = x;
     }
+
+#define SYSCMDLINE_GET_DATA(T)                                                                     \
+    T##Data *const d = reinterpret_cast<T##Data *>(d_ptr.data())
+
+#define SYSCMDLINE_GET_CONST_DATA(T)                                                               \
+    const T##Data *const d = reinterpret_cast<const T##Data *>(d_ptr.constData());
 
 }
 

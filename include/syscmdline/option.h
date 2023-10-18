@@ -8,7 +8,9 @@
 
 namespace SysCmdLine {
 
-    class SYSCMDLINE_EXPORT Option : public Symbol, public ArgumentHolder {
+    class OptionData;
+
+    class SYSCMDLINE_EXPORT Option : public ArgumentHolder {
     public:
         Option();
         Option(const std::string &name, const std::string &desc,
@@ -18,60 +20,35 @@ namespace SysCmdLine {
                const std::vector<Argument> &arguments = {});
         ~Option();
 
+        Option(const Option &other);
+        Option(Option &&other) noexcept;
+        Option &operator=(const Option &other);
+        Option &operator=(Option &&other) noexcept;
+
     public:
-        inline std::vector<std::string> tokens() const;
+        const std::vector<std::string> &tokens() const;
         void setTokens(const std::vector<std::string> &tokens);
 
-        inline bool isShortOption() const;
-        inline void setShortOption(bool on);
+        bool isShortOption() const;
+        void setShortOption(bool on);
 
-        inline bool isPrior() const;
-        inline void setPrior(bool on);
+        bool isPrior() const;
+        void setPrior(bool on);
 
-        inline bool isGlobal() const;
-        inline void setGlobal(bool on);
+        bool isGlobal() const;
+        void setGlobal(bool on);
 
         std::string displayTokens() const;
 
     protected:
-        std::vector<std::string> _tokens;
-        bool _short;
-        bool _prior;
-
-    protected:
-        bool _global;
+        OptionData *d_func();
+        const OptionData *d_func() const;
 
         friend class Command;
+        friend class CommandData;
         friend class Parser;
         friend class ParserPrivate;
     };
-
-    inline std::vector<std::string> Option::tokens() const {
-        return _tokens;
-    }
-
-    inline bool Option::isShortOption() const {
-        return _short;
-    }
-
-    inline void Option::setShortOption(bool on) {
-        _short = on;
-    }
-
-    inline bool Option::isPrior() const {
-        return _prior;
-    }
-    inline void Option::setPrior(bool on) {
-        _prior = on;
-    }
-
-    inline bool Option::isGlobal() const {
-        return _global;
-    }
-
-    inline void Option::setGlobal(bool on) {
-        _global = on;
-    }
 
 }
 

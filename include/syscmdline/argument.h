@@ -10,9 +10,14 @@
 namespace SysCmdLine {
 
     class Parser;
+
     class ParserPrivate;
 
     class Command;
+
+    class CommandData;
+
+    class ArgumentData;
 
     class SYSCMDLINE_EXPORT Argument : public Symbol {
     public:
@@ -25,59 +30,39 @@ namespace SysCmdLine {
                  bool required = true);
         ~Argument();
 
+        Argument(const Argument &other);
+        Argument(Argument &&other) noexcept;
+        Argument &operator=(const Argument &other);
+        Argument &operator=(Argument &&other) noexcept;
+
     public:
-        inline const std::vector<std::string> &expectedValues() const;
-        inline void setExpectedValues(const std::vector<std::string> &expectedValues);
+        const std::vector<std::string> &expectedValues() const;
+        void setExpectedValues(const std::vector<std::string> &expectedValues);
 
-        inline std::string defaultValue() const;
-        inline void setDefaultValue(const std::string &defaultValue);
+        std::string defaultValue() const;
+        void setDefaultValue(const std::string &defaultValue);
 
-        inline bool isRequired() const;
-        inline void setRequired(bool required);
+        bool isRequired() const;
+        void setRequired(bool required);
 
     protected:
-        std::vector<std::string> _expectedValues;
-        std::string _defaultValue;
-        bool _required;
+        ArgumentData *d_func();
+        const ArgumentData *d_func() const;
 
         friend class Command;
+        friend class CommandData;
         friend class Parser;
         friend class ParserPrivate;
     };
 
-    inline const std::vector<std::string> &Argument::expectedValues() const {
-        return _expectedValues;
-    }
+    class ArgumentHolderData;
 
-    inline void Argument::setExpectedValues(const std::vector<std::string> &expectedValues) {
-        _expectedValues = expectedValues;
-    }
-
-    inline std::string Argument::defaultValue() const {
-        return _defaultValue;
-    }
-
-    inline void Argument::setDefaultValue(const std::string &defaultValue) {
-        _defaultValue = defaultValue;
-    }
-
-    inline bool Argument::isRequired() const {
-        return _required;
-    }
-
-    inline void Argument::setRequired(bool required) {
-        _required = required;
-    }
-
-    class SYSCMDLINE_EXPORT ArgumentHolder {
+    class SYSCMDLINE_EXPORT ArgumentHolder : public Symbol {
     public:
-        ArgumentHolder(const std::vector<Argument> &arguments = {});
         ~ArgumentHolder();
 
     public:
-        inline const std::vector<Argument> &arguments() const;
-        inline const Argument &argument(const std::string &name) const;
-        inline const Argument &argument(int index) const;
+        const std::vector<Argument> &arguments() const;
 
         void addArgument(const Argument &argument);
         void setArguments(const std::vector<Argument> &arguments);
@@ -85,24 +70,8 @@ namespace SysCmdLine {
         std::string displayArgumentList() const;
 
     protected:
-        std::vector<Argument> _arguments;
-        std::unordered_map<std::string, size_t> _argumentNameIndexes;
-
-        friend class Parser;
-        friend class ParserPrivate;
+        ArgumentHolder(ArgumentHolderData *d);
     };
-
-    inline const std::vector<Argument> &ArgumentHolder::arguments() const {
-        return _arguments;
-    }
-
-    inline const Argument &ArgumentHolder::argument(const std::string &name) const {
-        return _arguments.at(_argumentNameIndexes.find(name)->second);
-    }
-
-    inline const Argument &ArgumentHolder::argument(int index) const {
-        return _arguments.at(index);
-    }
 
 }
 

@@ -6,6 +6,8 @@
 
 #include "strings.h"
 #include "system.h"
+#include "command_p.h"
+#include "option_p.h"
 
 namespace SysCmdLine {
 
@@ -55,17 +57,17 @@ namespace SysCmdLine {
             size_t i = 1;
             for (; i < args.size(); ++i) {
                 {
-                    auto it = cmd->_subCommandNameIndexes.find(args[i]);
-                    if (it == cmd->_subCommandNameIndexes.end()) {
+                    auto it = cmd->d_func()->subCommandNameIndexes.find(args[i]);
+                    if (it == cmd->d_func()->subCommandNameIndexes.end()) {
                         break;
                     }
                     result->stack.push_back(int(it->second));
-                    cmd = &cmd->_subCommands.at(it->second);
+                    cmd = &cmd->d_func()->subCommands.at(it->second);
                 }
 
                 // Collect global options
                 if (lastCmd) {
-                    for (const auto &opt : cmd->_options) {
+                    for (const auto &opt : cmd->d_func()->options) {
                         if (!opt.isGlobal())
                             continue;
 
@@ -84,7 +86,7 @@ namespace SysCmdLine {
 
             // Remove duplicated global options
             if (!globalOptionIndexes.empty()) {
-                for (const auto &opt : cmd->_options) {
+                for (const auto &opt : cmd->d_func()->options) {
                     if (!opt.isGlobal())
                         continue;
 
@@ -99,12 +101,12 @@ namespace SysCmdLine {
             // Build option indexes
             std::map<std::string, const Option *> allOptionIndexes;
             for (const auto &item : std::as_const(globalOptions)) {
-                for (const auto &token : item->_tokens) {
+                for (const auto &token : item->d_func()->tokens) {
                     allOptionIndexes.insert(std::make_pair(token, item));
                 }
             }
-            for (const auto &item : std::as_const(cmd->_options)) {
-                for (const auto &token : item._tokens) {
+            for (const auto &item : std::as_const(cmd->d_func()->options)) {
+                for (const auto &token : item.d_func()->tokens) {
                     allOptionIndexes.insert(std::make_pair(token, &item));
                 }
             }
@@ -137,7 +139,7 @@ namespace SysCmdLine {
 
             auto checkArgument = [&](const Argument *arg, const std::string &value,
                                      bool setError = true) {
-                const auto &expectedValues = arg->_expectedValues;
+                const auto &expectedValues = arg->d_func()->expectedValues;
                 if (expectedValues.empty()) {
                     return true;
                 }
@@ -161,12 +163,12 @@ namespace SysCmdLine {
                 // Consider option
                 if (auto opt = searchOption(token); opt) {
                     size_t x = 0;
-                    size_t max = std::min(args.size() - j, opt->_arguments.size());
+                    size_t max = std::min(args.size() - j, opt->d_func()->arguments.size());
 
                     ParseResult::ArgResult curArgResult;
                     for (; x < max; ++x) {
                         const auto &nextToken = args[x + j];
-                        const auto &arg = opt->_arguments.at(x);
+                        const auto &arg = opt->d_func()->arguments.at(x);
 
                         // Break by next option
                         if (nextToken.front() == '-' && !arg.isRequired() &&
@@ -184,8 +186,8 @@ namespace SysCmdLine {
                         break;
 
                     // Check required arguments
-                    if (x < opt->_arguments.size()) {
-                        const auto &arg = opt->_arguments.at(x);
+                    if (x < opt->d_func()->arguments.size()) {
+                        const auto &arg = opt->d_func()->arguments.at(x);
                         if (arg.isRequired()) {
                             result->error = Parser::MissingOptionArgument;
                             result->errorPlaceholders = {arg.name(), token};
@@ -202,14 +204,14 @@ namespace SysCmdLine {
 
                 // Consider argument
                 {
-                    if (k == cmd->_arguments.size()) {
+                    if (k == cmd->d_func()->arguments.size()) {
                         if (token.front() == '-') {
                             result->error = Parser::UnknownOption;
                             result->errorPlaceholders = {token};
                             break;
                         }
 
-                        if (cmd->_arguments.empty()) {
+                        if (cmd->d_func()->arguments.empty()) {
                             result->error = Parser::TooManyArguments;
                             break;
                         }
@@ -219,7 +221,7 @@ namespace SysCmdLine {
                         break;
                     }
 
-                    const auto &arg = cmd->_arguments.at(k);
+                    const auto &arg = cmd->d_func()->arguments.at(k);
                     if (!checkArgument(&arg, token)) {
                         break;
                     }
@@ -230,14 +232,14 @@ namespace SysCmdLine {
 
             // Check required arguments
             if (result->error == Parser::NoError) {
-                if (cmd->_showHelpIfNoArg &&
+                if (cmd->d_func()->showHelpIfNoArg &&
                     (result->optResult.empty() && result->argResult.empty())) {
                     // ...
                 } else if (hasPrior) {
                     // ...
                 } else {
-                    if (k < cmd->_arguments.size()) {
-                        const auto &arg = cmd->_arguments.at(k);
+                    if (k < cmd->d_func()->arguments.size()) {
+                        const auto &arg = cmd->d_func()->arguments.at(k);
                         if (arg.isRequired()) {
                             result->error = Parser::MissingCommandArgument;
                             result->errorPlaceholders = {arg.name()};
@@ -289,7 +291,7 @@ namespace SysCmdLine {
             const Command *p = &rootCommand;
             for (const auto &item : std::as_const(result->stack)) {
                 parentCommands.push_back(p->name());
-                p = &p->command(item);
+                p = p->command(item);
             }
 
             if (!texts[Parser::Top].empty()) {
@@ -361,7 +363,7 @@ namespace SysCmdLine {
         const auto &handler = cmd.handler();
 
         if (d->result->versionSet) {
-            u8printf("%s\n", cmd._version.data());
+            u8printf("%s\n", cmd.version().data());
             return 0;
         }
 
@@ -370,7 +372,7 @@ namespace SysCmdLine {
             return 0;
         }
 
-        if (cmd._showHelpIfNoArg && isResultNull()) {
+        if (cmd.d_func()->showHelpIfNoArg && isResultNull()) {
             showHelpText();
             return 0;
         }
@@ -417,7 +419,7 @@ namespace SysCmdLine {
 
         const Command *p = &d->rootCommand;
         for (const auto &item : std::as_const(d->result->stack)) {
-            p = &p->command(item);
+            p = p->command(item);
             res.emplace_back(item, p->name());
         }
         return res;
