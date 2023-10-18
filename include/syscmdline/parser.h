@@ -38,11 +38,14 @@ namespace SysCmdLine {
             OptionOccurTooMuch,
         };
 
-        const Command &rootCommand() const;
+        Command rootCommand() const;
         void setRootCommand(const Command &rootCommand);
 
         std::string text(Side side) const;
         void setText(Side side, const std::string &text);
+
+        bool showHelpOnError() const;
+        void setShowHelpOnError(bool on);
 
         bool parse(const std::vector<std::string> &args);
         int invoke(const std::vector<std::string> &args, int errorCode = -1);
@@ -71,9 +74,11 @@ namespace SysCmdLine {
         inline bool optionIsSet(const Option &opt) const;
         inline bool optionIsSet(const std::string &optName) const;
 
-        inline std::string valueForOption(const Option &opt, const Argument &arg = {},
+        inline std::string valueForOption(const Option &opt, const Argument &arg,
                                           int count = 0) const;
-        std::string valueForOption(const std::string &optName, const std::string &argName = {},
+        std::string valueForOption(const std::string &optName, const std::string &argName,
+                                   int count = 0) const;
+        std::string valueForOption(const std::string &optName, int argIndex = 0,
                                    int count = 0) const;
 
         std::vector<std::string> effectiveOptions() const;
@@ -81,7 +86,6 @@ namespace SysCmdLine {
 
         bool isHelpSet() const;
         bool isVersionSet() const;
-
         bool isResultNull() const;
 
     protected:

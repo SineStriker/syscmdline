@@ -91,5 +91,6 @@ int main(int argc, char *argv[]) {
     rootCommand.setCatalogue(cc);
 
     Parser parser(rootCommand);
+    // parser.setShowHelpOnError(false);
     return parser.invoke(commandLineArguments());
 }

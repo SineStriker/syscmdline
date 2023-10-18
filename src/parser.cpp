@@ -97,8 +97,9 @@ namespace SysCmdLine {
         Command rootCommand;
         std::string texts[2];
         ParseResult *result;
+        bool showHelpOnError;
 
-        ParserPrivate() : result(nullptr) {
+        ParserPrivate() : result(nullptr), showHelpOnError(true) {
         }
 
         ~ParserPrivate() {
@@ -435,6 +436,7 @@ namespace SysCmdLine {
 
             if (messageCaller) {
                 messageCaller();
+                u8printf("\n");
             }
 
             u8printf("%s", p->helpText(parentCommands, result->globalOptions).data());
@@ -456,7 +458,7 @@ namespace SysCmdLine {
         delete d;
     }
 
-    const Command &Parser::rootCommand() const {
+    Command Parser::rootCommand() const {
         return d->rootCommand;
     }
 
@@ -479,6 +481,14 @@ namespace SysCmdLine {
 
     void Parser::setText(Parser::Side side, const std::string &text) {
         d->texts[side] = text;
+    }
+
+    bool Parser::showHelpOnError() const {
+        return d->showHelpOnError;
+    }
+
+    void Parser::setShowHelpOnError(bool on) {
+        d->showHelpOnError = on;
     }
 
     bool Parser::parse(const std::vector<std::string> &args) {
@@ -592,19 +602,29 @@ namespace SysCmdLine {
             return {};
         }
 
-        std::string newArgName;
-        if (argName.empty()) {
-            const Option &opt = d->result->command->option(optName);
-            const auto &args = opt.arguments();
-            if (args.empty())
-                return {};
-            newArgName = args.front().name();
-        } else {
-            newArgName = argName;
+        const auto &map = it->second.at(count);
+        auto it2 = map.find(argName);
+        if (it2 == map.end()) {
+            return {};
+        }
+        return it2->second;
+    }
+
+    std::string Parser::valueForOption(const std::string &optName, int argIndex, int count) const {
+        d->checkResult();
+
+        const Option &opt = d->result->command->option(optName);
+        const auto &args = opt.arguments();
+        if (argIndex >= args.size())
+            return {};
+
+        auto it = d->result->optResult.find(optName);
+        if (it == d->result->optResult.end() || count >= it->second.size()) {
+            return {};
         }
 
         const auto &map = it->second.at(count);
-        auto it2 = map.find(newArgName);
+        auto it2 = map.find(args[argIndex].name());
         if (it2 == map.end()) {
             return {};
         }
@@ -651,13 +671,13 @@ namespace SysCmdLine {
             if (auto correction = d->result->correctionText(); !correction.empty()) {
                 u8printf("%s", correction.data());
             }
-            u8error("%s: %s\n\n", Strings::common_strings[Strings::Error], errorText().data());
+            u8error("%s: %s\n", Strings::common_strings[Strings::Error], errorText().data());
         };
 
-        if (d->result->command->d_func()->optionNameIndexes.count("help")) {
+        d->checkResult();
+        if (d->showHelpOnError && d->result->command->d_func()->optionNameIndexes.count("help")) {
             d->showHelp(errCallback);
         } else {
-            d->checkResult();
             errCallback();
         }
     }
@@ -668,13 +688,13 @@ namespace SysCmdLine {
 
     void Parser::showErrorAndHelpText(const std::string &message) const {
         d->showHelp([&message]() {
-            u8error("%s\n\n", message.data()); //
+            u8error("%s\n", message.data()); //
         });
     }
 
     void Parser::showWarningAndHelpText(const std::string &message) const {
         d->showHelp([&message]() {
-            u8warning("%s\n\n", message.data()); //
+            u8warning("%s\n", message.data()); //
         });
     }
 
