@@ -49,11 +49,57 @@ namespace SysCmdLine {
             delete result;
             result = new ParseResult();
 
+
             // Search command
             const Command *cmd = &rootCommand;
             const Command *lastCmd = nullptr;
             std::list<const Option *> globalOptions;
             std::unordered_map<std::string, decltype(globalOptions)::iterator> globalOptionIndexes;
+            std::unordered_map<std::string, decltype(globalOptions)::iterator>
+                globalOptionTokenIndexes;
+
+            auto removeDuplicatedOptions = [&](const Option &opt) {
+                // Search name
+                {
+                    auto optIdxIt = globalOptionIndexes.find(opt.name());
+                    if (optIdxIt != globalOptionIndexes.end()) {
+                        auto optIt = optIdxIt->second;
+                        const auto &targetOpt = *optIt;
+
+                        // Remove all token indexes
+                        for (const auto &targetToken : targetOpt->d_func()->tokens) {
+                            globalOptionTokenIndexes.erase(targetToken);
+                        }
+
+                        // Remove name index
+                        globalOptionIndexes.erase(optIdxIt);
+
+                        // Remove option
+                        globalOptions.erase(optIt);
+                    }
+                }
+
+                // Search tokens
+                for (const auto &token : opt.d_func()->tokens) {
+                    auto optTokenIdxIt = globalOptionTokenIndexes.find(token);
+                    if (optTokenIdxIt != globalOptionTokenIndexes.end()) {
+                        auto optIt = optTokenIdxIt->second;
+                        const auto &targetOpt = *optIt;
+
+                        // Remove all token indexes
+                        for (const auto &targetToken : targetOpt->d_func()->tokens) {
+                            globalOptionTokenIndexes.erase(targetToken);
+                        }
+
+                        // Remove name index
+                        globalOptionIndexes.erase(targetOpt->name());
+
+                        // Remove option
+                        globalOptions.erase(optIt);
+                    }
+                }
+            };
+
             size_t i = 1;
             for (; i < args.size(); ++i) {
                 {
@@ -70,14 +116,18 @@ namespace SysCmdLine {
                     for (const auto &opt : cmd->d_func()->options) {
                         if (!opt.isGlobal())
                             continue;
+                        removeDuplicatedOptions(opt);
 
-                        auto it = globalOptionIndexes.find(opt.name());
-                        if (it != globalOptionIndexes.end()) {
-                            globalOptions.erase(it->second);
-                            globalOptionIndexes.erase(it);
+                        // Add option
+                        auto targetIterator = globalOptions.insert(globalOptions.end(), &opt);
+
+                        // Add name index
+                        globalOptionIndexes.insert(std::make_pair(opt.name(), targetIterator));
+
+                        // Add token indexes
+                        for (const auto &token : opt.d_func()->tokens) {
+                            globalOptionTokenIndexes.insert(std::make_pair(token, targetIterator));
                         }
-                        globalOptionIndexes.insert(std::make_pair(
-                            opt.name(), globalOptions.insert(globalOptions.end(), &opt)));
                     }
                 }
                 lastCmd = cmd;
@@ -87,14 +137,7 @@ namespace SysCmdLine {
             // Remove duplicated global options
             if (!globalOptionIndexes.empty()) {
                 for (const auto &opt : cmd->d_func()->options) {
-                    if (!opt.isGlobal())
-                        continue;
-
-                    auto it = globalOptionIndexes.find(opt.name());
-                    if (it != globalOptionIndexes.end()) {
-                        globalOptions.erase(it->second);
-                        globalOptionIndexes.erase(it);
-                    }
+                    removeDuplicatedOptions(opt);
                 }
             }
 
@@ -512,5 +555,4 @@ namespace SysCmdLine {
             u8warning("%s\n\n", message.data()); //
         });
     }
-
 }

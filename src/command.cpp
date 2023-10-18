@@ -298,6 +298,20 @@ namespace SysCmdLine {
                 if (d->optionNameIndexes.count(item.name()))
                     continue;
 
+                {
+                    bool skip = false;
+                    for (const auto &token : item.d_func()->tokens) {
+                        if (d->optionTokenIndexes.count(token)) {
+                            skip = true;
+                            break;
+                        }
+                    }
+
+                    if (skip) {
+                        continue;
+                    }
+                }
+
                 const auto &text = item.displayedTokens();
                 widest = std::max(text.size(), widest);
                 texts.emplace_back(text, item.description());
