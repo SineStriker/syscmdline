@@ -87,6 +87,12 @@ namespace SysCmdLine {
 
     protected:
         ArgumentHolder(ArgumentHolderData *d);
+
+        ArgumentHolderData *d_func();
+        const ArgumentHolderData *d_func() const;
+
+        friend class Parser;
+        friend class ParserPrivate;
     };
 
 }

@@ -270,4 +270,14 @@ namespace SysCmdLine {
     ArgumentHolder::ArgumentHolder(ArgumentHolderData *d) : Symbol(d) {
     }
 
+    ArgumentHolderData *ArgumentHolder::d_func() {
+        SYSCMDLINE_GET_DATA(ArgumentHolder);
+        return d;
+    }
+
+    const ArgumentHolderData *ArgumentHolder::d_func() const {
+        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        return d;
+    }
+
 }

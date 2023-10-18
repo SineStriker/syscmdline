@@ -292,9 +292,11 @@ namespace SysCmdLine {
                         } catch (...) {
                             break;
                         }
-                        break;
+                        return true;
                     }
+
                     default:
+                        *out = token;
                         return true;
                 }
 
@@ -361,16 +363,16 @@ namespace SysCmdLine {
                     }
 
                     // Set default values
-                    for (auto y = x; y < optArgs.size(); ++y) {
-                        const auto &arg = optArgs.at(y);
-                        const auto &defaultValue = arg.d_func()->defaultValue;
-                        if (defaultValue.type() == Value::Null)
-                            continue;
+                    // for (auto y = x; y < optArgs.size(); ++y) {
+                    //     const auto &arg = optArgs.at(y);
+                    //     const auto &defaultValue = arg.d_func()->defaultValue;
+                    //     if (defaultValue.type() == Value::Null)
+                    //         continue;
 
-                        if (curArgResult.count(arg.name()))
-                            continue;
-                        curArgResult.insert(std::make_pair(arg.name(), defaultValue));
-                    }
+                    //     if (curArgResult.count(arg.name()))
+                    //         continue;
+                    //     curArgResult.insert(std::make_pair(arg.name(), defaultValue));
+                    // }
 
                     resVec.emplace_back(curArgResult);
 
@@ -461,15 +463,15 @@ namespace SysCmdLine {
             }
 
             // Set default values
-            for (const auto &arg : std::as_const(cmd->d_func()->arguments)) {
-                const auto &defaultValue = arg.d_func()->defaultValue;
-                if (defaultValue.type() == Value::Null)
-                    continue;
+            // for (const auto &arg : std::as_const(cmd->d_func()->arguments)) {
+            //     const auto &defaultValue = arg.d_func()->defaultValue;
+            //     if (defaultValue.type() == Value::Null)
+            //         continue;
 
-                if (result->argResult.count(arg.name()))
-                    continue;
-                result->argResult.insert(std::make_pair(arg.name(), defaultValue));
-            }
+            //     if (result->argResult.count(arg.name()))
+            //         continue;
+            //     result->argResult.insert(std::make_pair(arg.name(), defaultValue));
+            // }
 
             if (result->optResult.count("version")) {
                 result->versionSet = true;
@@ -485,25 +487,24 @@ namespace SysCmdLine {
                 throw std::runtime_error("no valid parse result");
         }
 
-        Value getDefaultResult(const std::string &optName, const std::string &argName) const {
-            const auto &d = result->command->d_func();
-            auto it = d->optionNameIndexes.find(optName);
-            if (it == d->optionNameIndexes.end())
-                return {};
-
-            const auto &opt = d->options.at(it->second);
-            const auto &d2 = opt.d_func();
+        Value getDefaultResult(const ArgumentHolder *argumentHolder,
+                               const std::string &argName) const {
+            const auto &d2 = argumentHolder->d_func();
             auto it2 = d2->argumentNameIndexes.find(argName);
             if (it2 == d2->argumentNameIndexes.end())
                 return {};
             return d2->arguments.at(it2->second).defaultValue();
         }
 
-        void showHelp(const std::function<void()> &messageCaller = {}) {
-            if (!result) {
-                return;
-            }
+        Value getDefaultResult(const std::string &optName, const std::string &argName) const {
+            const auto &d = result->command->d_func();
+            auto it = d->optionNameIndexes.find(optName);
+            if (it == d->optionNameIndexes.end())
+                return {};
+            return getDefaultResult(&d->options.at(it->second), argName);
+        }
 
+        void showHelp(const std::function<void()> &messageCaller = {}) {
             std::vector<std::string> parentCommands;
             const Command *p = &rootCommand;
             for (const auto &item : std::as_const(result->stack)) {
@@ -658,7 +659,7 @@ namespace SysCmdLine {
 
         auto it = d->result->argResult.find(argName);
         if (it == d->result->argResult.end()) {
-            return {};
+            return d->getDefaultResult(d->result->command, argName);
         }
         return it->second;
     }
@@ -748,6 +749,9 @@ namespace SysCmdLine {
     }
 
     void Parser::showError() const {
+        if (!d->result)
+            return;
+
         auto errCallback = [this]() {
             if (auto correction = d->result->correctionText(); !correction.empty()) {
                 u8printf("%s", correction.data());
@@ -755,7 +759,6 @@ namespace SysCmdLine {
             u8error("%s: %s\n", Strings::common_strings[Strings::Error], errorText().data());
         };
 
-        d->checkResult();
         if (d->showHelpOnError && d->result->command->d_func()->optionNameIndexes.count("help")) {
             d->showHelp(errCallback);
         } else {
@@ -764,16 +767,25 @@ namespace SysCmdLine {
     }
 
     void Parser::showHelpText() const {
+        if (!d->result) {
+            return;
+        }
         d->showHelp();
     }
 
     void Parser::showErrorAndHelpText(const std::string &message) const {
+        if (!d->result) {
+            return;
+        }
         d->showHelp([&message]() {
             u8error("%s\n", message.data()); //
         });
     }
 
     void Parser::showWarningAndHelpText(const std::string &message) const {
+        if (!d->result) {
+            return;
+        }
         d->showHelp([&message]() {
             u8warning("%s\n", message.data()); //
         });
