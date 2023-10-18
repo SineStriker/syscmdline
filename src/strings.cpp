@@ -17,6 +17,8 @@ namespace SysCmdLine::Strings {
         R"(Invalid occurrence of option "%1", which should be argument "%2".)",
         R"(Missing required option "%1".)",
         R"(Option "%1" occurs too much, at most %2.)",
+        R"(Invalid token "%1" of argument "%2", expect "%3".)",
+        R"(Invalid token "%1" of argument "%2", reason: %3)",
     };
 
     const char *common_strings[] = {

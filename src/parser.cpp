@@ -4,6 +4,7 @@
 #include <map>
 #include <stdexcept>
 #include <sstream>
+#include <iostream>
 
 #include "strings.h"
 #include "system.h"
@@ -21,7 +22,7 @@ namespace SysCmdLine {
 
         const Command *command;
 
-        using ArgResult = std::unordered_map<std::string, std::string>;
+        using ArgResult = std::unordered_map<std::string, Value>;
 
         ArgResult argResult;
         std::unordered_map<std::string, std::vector<ArgResult>> optResult;
@@ -240,26 +241,66 @@ namespace SysCmdLine {
                 return nullptr;
             };
 
-            auto checkArgument = [&](const Argument *arg, const std::string &value,
+            auto checkArgument = [&](const Argument *arg, const std::string &token, Value *out,
                                      bool setError = true) {
-                const auto &expectedValues = arg->d_func()->expectedValues;
-                if (expectedValues.empty()) {
+                const auto &d = arg->d_func();
+                const auto &expectedValues = d->expectedValues;
+                if (!expectedValues.empty()) {
+                    if (std::find(expectedValues.begin(), expectedValues.end(), token) ==
+                        expectedValues.end()) {
+                        if (setError) {
+                            if (token.front() == '-') {
+                                result->error = Parser::InvalidOptionPosition;
+                                result->errorPlaceholders = {token, arg->name()};
+                            } else {
+                                result->error = Parser::InvalidArgumentValue;
+                                result->errorPlaceholders = {token, arg->name()};
+                            }
+                        }
+                        return false;
+                    }
+                    *out = token;
                     return true;
                 }
-                if (std::find(expectedValues.begin(), expectedValues.end(), value) ==
-                    expectedValues.end()) {
-                    if (setError) {
-                        if (value.front() == '-') {
-                            result->error = Parser::InvalidOptionPosition;
-                            result->errorPlaceholders = {value, arg->name()};
-                        } else {
-                            result->error = Parser::InvalidArgumentValue;
-                            result->errorPlaceholders = {value, arg->name()};
-                        }
+
+                if (d->validator) {
+                    std::string errorMessage;
+                    if (d->validator(token, out, &errorMessage)) {
+                        return true;
                     }
+                    result->error = Parser::ArgumentValidateFailed;
+                    result->errorPlaceholders = {token, arg->name(), errorMessage};
                     return false;
                 }
-                return true;
+
+                const char *expected;
+                switch (d->defaultValue.type()) {
+                    case Value::Int: {
+                        expected = "int";
+                        try {
+                            *out = std::stoi(token);
+                        } catch (...) {
+                            break;
+                        }
+                        return true;
+                    }
+
+                    case Value::Double: {
+                        expected = "double";
+                        try {
+                            *out = std::stod(token);
+                        } catch (...) {
+                            break;
+                        }
+                        break;
+                    }
+                    default:
+                        return true;
+                }
+
+                result->error = Parser::ArgumentTypeMismatch;
+                result->errorPlaceholders = {token, arg->name(), expected};
+                return false;
             };
 
             // Parse options
@@ -298,23 +339,37 @@ namespace SysCmdLine {
                         }
 
                         // Check argument
-                        if (!checkArgument(&arg, nextToken, arg.isRequired())) {
+                        Value val;
+                        if (!checkArgument(&arg, nextToken, &val, arg.isRequired())) {
                             break;
                         }
-                        curArgResult.insert(std::make_pair(arg.name(), nextToken));
+                        curArgResult.insert(std::make_pair(arg.name(), val));
                     }
 
                     if (result->error != Parser::NoError)
                         break;
 
                     // Check required arguments
-                    if (x < opt->d_func()->arguments.size()) {
-                        const auto &arg = opt->d_func()->arguments.at(x);
+                    const auto &optArgs = opt->d_func()->arguments;
+                    if (x < optArgs.size()) {
+                        const auto &arg = optArgs.at(x);
                         if (arg.isRequired()) {
                             result->error = Parser::MissingOptionArgument;
                             result->errorPlaceholders = {arg.name(), token};
                             break;
                         }
+                    }
+
+                    // Set default values
+                    for (auto y = x; y < optArgs.size(); ++y) {
+                        const auto &arg = optArgs.at(y);
+                        const auto &defaultValue = arg.d_func()->defaultValue;
+                        if (defaultValue.type() == Value::Null)
+                            continue;
+
+                        if (curArgResult.count(arg.name()))
+                            continue;
+                        curArgResult.insert(std::make_pair(arg.name(), defaultValue));
                     }
 
                     resVec.emplace_back(curArgResult);
@@ -348,10 +403,11 @@ namespace SysCmdLine {
                     }
 
                     const auto &arg = cmd->d_func()->arguments.at(k);
-                    if (!checkArgument(&arg, token)) {
+                    Value val;
+                    if (!checkArgument(&arg, token, &val)) {
                         break;
                     }
-                    result->argResult.insert(std::make_pair(arg.name(), token));
+                    result->argResult.insert(std::make_pair(arg.name(), val));
                     k++;
                 }
             }
@@ -404,6 +460,17 @@ namespace SysCmdLine {
                 return;
             }
 
+            // Set default values
+            for (const auto &arg : std::as_const(cmd->d_func()->arguments)) {
+                const auto &defaultValue = arg.d_func()->defaultValue;
+                if (defaultValue.type() == Value::Null)
+                    continue;
+
+                if (result->argResult.count(arg.name()))
+                    continue;
+                result->argResult.insert(std::make_pair(arg.name(), defaultValue));
+            }
+
             if (result->optResult.count("version")) {
                 result->versionSet = true;
             }
@@ -416,6 +483,20 @@ namespace SysCmdLine {
         inline void checkResult() const {
             if (!result)
                 throw std::runtime_error("no valid parse result");
+        }
+
+        Value getDefaultResult(const std::string &optName, const std::string &argName) const {
+            const auto &d = result->command->d_func();
+            auto it = d->optionNameIndexes.find(optName);
+            if (it == d->optionNameIndexes.end())
+                return {};
+
+            const auto &opt = d->options.at(it->second);
+            const auto &d2 = opt.d_func();
+            auto it2 = d2->argumentNameIndexes.find(argName);
+            if (it2 == d2->argumentNameIndexes.end())
+                return {};
+            return d2->arguments.at(it2->second).defaultValue();
         }
 
         void showHelp(const std::function<void()> &messageCaller = {}) {
@@ -572,7 +653,7 @@ namespace SysCmdLine {
         return d->result->stack;
     }
 
-    std::string Parser::valueForArgument(const std::string &argName) const {
+    Value Parser::valueForArgument(const std::string &argName) const {
         d->checkResult();
 
         auto it = d->result->argResult.find(argName);
@@ -593,13 +674,13 @@ namespace SysCmdLine {
         return it->second.size();
     }
 
-    std::string Parser::valueForOption(const std::string &optName, const std::string &argName,
-                                       int count) const {
+    Value Parser::valueForOption(const std::string &optName, const std::string &argName,
+                                 int count) const {
         d->checkResult();
 
         auto it = d->result->optResult.find(optName);
         if (it == d->result->optResult.end() || count >= it->second.size()) {
-            return {};
+            return d->getDefaultResult(optName, argName);
         }
 
         const auto &map = it->second.at(count);
@@ -610,7 +691,7 @@ namespace SysCmdLine {
         return it2->second;
     }
 
-    std::string Parser::valueForOption(const std::string &optName, int argIndex, int count) const {
+    Value Parser::valueForOption(const std::string &optName, int argIndex, int count) const {
         d->checkResult();
 
         const Option &opt = d->result->command->option(optName);
@@ -620,7 +701,7 @@ namespace SysCmdLine {
 
         auto it = d->result->optResult.find(optName);
         if (it == d->result->optResult.end() || count >= it->second.size()) {
-            return {};
+            return d->getDefaultResult(optName, args[argIndex].name());
         }
 
         const auto &map = it->second.at(count);

@@ -7,15 +7,15 @@
 using namespace SysCmdLine;
 
 static int routine(const Parser &parser) {
-    auto dsPath = parser.valueForOption("--ds-file");
-    auto dsConfigPath = parser.valueForOption("--acoustic-config");
-    auto vocoderConfigPath = parser.valueForOption("--vocoder-config");
-    auto spkMixStr = parser.valueForOption("--spk");
-    auto outputAudioTitle = parser.valueForOption("--out");
-    auto speedup = std::atoi(parser.valueForOption("--speedup").data());
-    auto depth = std::atoi(parser.valueForOption("--depth").data());
+    auto dsPath = parser.valueForOption("--ds-file").toString();
+    auto dsConfigPath = parser.valueForOption("--acoustic-config").toString();
+    auto vocoderConfigPath = parser.valueForOption("--vocoder-config").toString();
+    auto spkMixStr = parser.valueForOption("--spk").toString();
+    auto outputAudioTitle = parser.valueForOption("--out").toString();
+    auto speedup = parser.valueForOption("--speedup").toInt();
+    auto depth = parser.valueForOption("--depth").toInt();
     auto cpuOnly = parser.optionIsSet("--cpu-only");
-    auto deviceIndex = std::atoi(parser.valueForOption("--device-index").data());
+    auto deviceIndex = parser.valueForOption("--device-index").toInt();
 
     std::cout << "dsPath: " << dsPath << std::endl;
     std::cout << "dsConfigPath: " << dsConfigPath << std::endl;
@@ -55,15 +55,15 @@ int main(int argc, char *argv[]) {
     outOption.setRequired(true);
 
     Option speedUpOption("--speedup", "PNDM speedup ratio");
-    speedUpOption.addArgument(Argument("rate", {}, "10"));
+    speedUpOption.addArgument(Argument("rate", {}, 10));
 
     Option depthOption("--depth", "Shallow diffusion depth (needs acoustic model support)");
-    depthOption.addArgument(Argument("depth", {}, "1000"));
+    depthOption.addArgument(Argument("depth", {}, 1000));
 
     Option cpuOnlyOption("--cpu-only", "Use CPU for audio inference");
 
     Option deviceIndexOption("--device-index", "GPU device index");
-    deviceIndexOption.addArgument(Argument("index", {}, "0"));
+    deviceIndexOption.addArgument(Argument("index", {}, 1));
 
     Command rootCommand("DiffSinger");
     rootCommand.setOptions({

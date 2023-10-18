@@ -1,11 +1,13 @@
 #ifndef ARGUMENT_H
 #define ARGUMENT_H
 
+#include <functional>
 #include <string>
 #include <vector>
 #include <unordered_map>
 
 #include <syscmdline/symbol.h>
+#include <syscmdline/value.h>
 
 namespace SysCmdLine {
 
@@ -21,13 +23,15 @@ namespace SysCmdLine {
 
     class SYSCMDLINE_EXPORT Argument : public Symbol {
     public:
+        using Validator = std::function<bool /* result */ (
+            const std::string & /* token */, Value * /* out */, std::string * /* errorMessage */)>;
+
         Argument();
-        Argument(const std::string &name, const std::string &desc = {}, bool required = true,
-                 const std::string &displayName = {});
-        Argument(const std::string &name, const std::string &desc, const std::string &defaultValue,
+        Argument(const std::string &name, const std::string &desc = {});
+        Argument(const std::string &name, const std::string &desc, const Value &defaultValue,
                  bool required = true, const std::string &displayName = {});
         Argument(const std::string &name, const std::string &desc,
-                 const std::vector<std::string> &expectedValues, const std::string &defaultValue,
+                 const std::vector<std::string> &expectedValues, const Value &defaultValue,
                  bool required = true, const std::string &displayName = {});
         ~Argument();
 
@@ -42,14 +46,17 @@ namespace SysCmdLine {
         const std::vector<std::string> &expectedValues() const;
         void setExpectedValues(const std::vector<std::string> &expectedValues);
 
-        std::string defaultValue() const;
-        void setDefaultValue(const std::string &defaultValue);
+        Value defaultValue() const;
+        void setDefaultValue(const Value &defaultValue);
 
         std::string displayName() const;
         void setDisplayName(const std::string &displayName);
 
         bool isRequired() const;
         void setRequired(bool required);
+
+        Validator validator() const;
+        void setValidator(const Validator &validator);
 
     protected:
         ArgumentData *d_func();

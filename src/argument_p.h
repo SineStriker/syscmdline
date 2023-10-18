@@ -9,18 +9,19 @@ namespace SysCmdLine {
     class ArgumentData : public SymbolData {
     public:
         ArgumentData(const std::string &name, const std::string &desc,
-                     const std::vector<std::string> &expectedValues,
-                     const std::string &defaultValue, bool required,
-                     const std::string &displayName);
+                     const std::vector<std::string> &expectedValues, const Value &defaultValue,
+                     bool required, const std::string &displayName,
+                     const Argument::Validator &validator);
         ~ArgumentData();
 
         SymbolData *clone() const override;
 
     public:
         std::vector<std::string> expectedValues;
-        std::string defaultValue;
+        Value defaultValue;
         bool required;
         std::string displayName;
+        Argument::Validator validator;
     };
 
     class ArgumentHolderData : public SymbolData {

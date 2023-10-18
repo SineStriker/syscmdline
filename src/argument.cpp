@@ -8,36 +8,38 @@ namespace SysCmdLine {
 
     ArgumentData::ArgumentData(const std::string &name, const std::string &desc,
                                const std::vector<std::string> &expectedValues,
-                               const std::string &defaultValue, bool required,
-                               const std::string &displayName)
+                               const Value &defaultValue, bool required,
+                               const std::string &displayName, const Argument::Validator &validator)
         : SymbolData(Symbol::ST_Argument, name, desc), expectedValues(expectedValues),
-          defaultValue(defaultValue), required(required), displayName(displayName) {
+          defaultValue(defaultValue), required(required), displayName(displayName),
+          validator(validator) {
     }
 
     ArgumentData::~ArgumentData() {
     }
 
     SymbolData *ArgumentData::clone() const {
-        return new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName);
+        return new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName,
+                                validator);
     }
 
-    Argument::Argument() : Argument({}, {}) {
+    Argument::Argument() : Argument(std::string()) {
     }
 
-    Argument::Argument(const std::string &name, const std::string &desc, bool required,
-                       const std::string &displayName)
-        : Argument(name, desc, {}, required, displayName) {
+    Argument::Argument(const std::string &name, const std::string &desc)
+        : Argument(name, desc, Value()) {
     }
 
-    Argument::Argument(const std::string &name, const std::string &desc,
-                       const std::string &defaultValue, bool required, const std::string &displayName)
+    Argument::Argument(const std::string &name, const std::string &desc, const Value &defaultValue,
+                       bool required, const std::string &displayName)
         : Argument(name, desc, {}, defaultValue, required, displayName) {
     }
 
     Argument::Argument(const std::string &name, const std::string &desc,
-                       const std::vector<std::string> &expectedValues,
-                       const std::string &defaultValue, bool required, const std::string &displayName)
-        : Symbol(new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName)) {
+                       const std::vector<std::string> &expectedValues, const Value &defaultValue,
+                       bool required, const std::string &displayName)
+        : Symbol(new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName,
+                                  {})) {
     }
 
     Argument::~Argument() {
@@ -88,12 +90,12 @@ namespace SysCmdLine {
         d->expectedValues = expectedValues;
     }
 
-    std::string Argument::defaultValue() const {
+    Value Argument::defaultValue() const {
         SYSCMDLINE_GET_CONST_DATA(Argument);
         return d->defaultValue;
     }
 
-    void Argument::setDefaultValue(const std::string &defaultValue) {
+    void Argument::setDefaultValue(const Value &defaultValue) {
         if (defaultValue == this->defaultValue())
             return;
 
@@ -125,6 +127,16 @@ namespace SysCmdLine {
 
         SYSCMDLINE_GET_DATA(Argument);
         d->required = required;
+    }
+
+    Argument::Validator Argument::validator() const {
+        SYSCMDLINE_GET_CONST_DATA(Argument);
+        return d->validator;
+    }
+
+    void Argument::setValidator(const Argument::Validator &validator) {
+        SYSCMDLINE_GET_DATA(Argument);
+        d->validator = validator;
     }
 
     ArgumentData *Argument::d_func() {

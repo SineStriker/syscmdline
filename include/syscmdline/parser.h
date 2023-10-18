@@ -36,6 +36,8 @@ namespace SysCmdLine {
             InvalidOptionPosition,
             MissingRequiredOption,
             OptionOccurTooMuch,
+            ArgumentTypeMismatch,
+            ArgumentValidateFailed,
         };
 
         Command rootCommand() const;
@@ -65,8 +67,8 @@ namespace SysCmdLine {
         void showWarningAndHelpText(const std::string &message) const;
 
     public:
-        inline std::string valueForArgument(const Argument &arg) const;
-        std::string valueForArgument(const std::string &argName) const;
+        inline Value valueForArgument(const Argument &arg) const;
+        Value valueForArgument(const std::string &argName) const;
 
         inline int optionCount(const Option &opt) const;
         int optionCount(const std::string &optName) const;
@@ -74,12 +76,10 @@ namespace SysCmdLine {
         inline bool optionIsSet(const Option &opt) const;
         inline bool optionIsSet(const std::string &optName) const;
 
-        inline std::string valueForOption(const Option &opt, const Argument &arg,
-                                          int count = 0) const;
-        std::string valueForOption(const std::string &optName, const std::string &argName,
-                                   int count = 0) const;
-        std::string valueForOption(const std::string &optName, int argIndex = 0,
-                                   int count = 0) const;
+        inline Value valueForOption(const Option &opt, const Argument &arg, int count = 0) const;
+        Value valueForOption(const std::string &optName, const std::string &argName,
+                             int count = 0) const;
+        Value valueForOption(const std::string &optName, int argIndex = 0, int count = 0) const;
 
         std::vector<std::string> effectiveOptions() const;
         std::vector<std::string> effectiveArguments() const;
@@ -92,7 +92,7 @@ namespace SysCmdLine {
         ParserPrivate *d;
     };
 
-    inline std::string Parser::valueForArgument(const Argument &arg) const {
+    inline Value Parser::valueForArgument(const Argument &arg) const {
         return valueForArgument(arg.name());
     }
 
@@ -108,8 +108,7 @@ namespace SysCmdLine {
         return optionCount(optName) > 0;
     }
 
-    inline std::string Parser::valueForOption(const Option &opt, const Argument &arg,
-                                              int count) const {
+    inline Value Parser::valueForOption(const Option &opt, const Argument &arg, int count) const {
         return valueForOption(opt.name(), arg.name(), count);
     }
 
