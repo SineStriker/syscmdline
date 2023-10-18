@@ -213,7 +213,7 @@ namespace SysCmdLine {
         d->version = ver;
         addOption(Option("version", Strings::info_strings[Strings::Version],
                          tokens.empty() ? std::vector<std::string>{"-v", "--version"} : tokens,
-                         false, Option::IgnoreRedundantArgument, false));
+                         false, Option::IgnoreMissingArgument, false));
     }
 
     void Command::addHelpOption(bool showHelpIfNoArg, bool global,
@@ -221,7 +221,7 @@ namespace SysCmdLine {
         SYSCMDLINE_GET_DATA(Command);
         addOption(Option("help", Strings::info_strings[Strings::Help],
                          tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
-                         Option::IgnoreRedundantArgument, global));
+                         Option::IgnoreMissingArgument, global));
         d->showHelpIfNoArg = showHelpIfNoArg;
     }
 

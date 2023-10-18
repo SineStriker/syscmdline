@@ -67,7 +67,6 @@ namespace SysCmdLine {
         friend class ParserPrivate;
     };
 
-
 }
 
 #endif // COMMAND_H
