@@ -50,6 +50,7 @@ namespace SysCmdLine {
     protected:
         std::vector<Option> _options;
         std::unordered_map<std::string, size_t> _optionNameIndexes;
+        std::unordered_map<std::string, size_t> _optionTokenIndexes;
         std::vector<Command> _subCommands;
         std::unordered_map<std::string, size_t> _subCommandNameIndexes;
         std::string _version;

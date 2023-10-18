@@ -14,7 +14,7 @@ namespace SysCmdLine {
         Option(const std::string &name, const std::string &desc,
                const std::vector<std::string> &tokens, const std::vector<Argument> &arguments = {});
         Option(const std::string &name, const std::string &desc,
-               const std::vector<std::string> &tokens, bool is_short, bool global,
+               const std::vector<std::string> &tokens, bool is_short, bool prior, bool global,
                const std::vector<Argument> &arguments = {});
         ~Option();
 
@@ -25,6 +25,9 @@ namespace SysCmdLine {
         inline bool isShortOption() const;
         inline void setShortOption(bool on);
 
+        inline bool isPrior() const;
+        inline void setPrior(bool on);
+
         inline bool isGlobal() const;
         inline void setGlobal(bool on);
 
@@ -33,8 +36,12 @@ namespace SysCmdLine {
     protected:
         std::vector<std::string> _tokens;
         bool _short;
+        bool _prior;
+
+    protected:
         bool _global;
 
+        friend class Command;
         friend class Parser;
         friend class ParserPrivate;
     };
@@ -49,6 +56,13 @@ namespace SysCmdLine {
 
     inline void Option::setShortOption(bool on) {
         _short = on;
+    }
+
+    inline bool Option::isPrior() const {
+        return _prior;
+    }
+    inline void Option::setPrior(bool on) {
+        _prior = on;
     }
 
     inline bool Option::isGlobal() const {

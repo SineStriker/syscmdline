@@ -135,15 +135,18 @@ namespace SysCmdLine {
                 return nullptr;
             };
 
-            auto checkArgument = [&](const Argument *arg, const std::string &value) {
+            auto checkArgument = [&](const Argument *arg, const std::string &value,
+                                     bool setError = true) {
                 const auto &expectedValues = arg->_expectedValues;
                 if (expectedValues.empty()) {
                     return true;
                 }
                 if (std::find(expectedValues.begin(), expectedValues.end(), value) ==
                     expectedValues.end()) {
-                    result->error = Parser::InvalidArgumentValue;
-                    result->errorPlaceholders = {value, arg->name()};
+                    if (setError) {
+                        result->error = Parser::InvalidArgumentValue;
+                        result->errorPlaceholders = {value, arg->name()};
+                    }
                     return false;
                 }
                 return true;
@@ -151,6 +154,7 @@ namespace SysCmdLine {
 
             // Parse options
             size_t k = 0;
+            bool hasPrior = false;
             for (auto j = i; j < args.size(); ++j) {
                 const auto &token = args[j];
 
@@ -170,11 +174,14 @@ namespace SysCmdLine {
                             break;
                         }
 
-                        if (!checkArgument(&arg, nextToken)) {
+                        if (!checkArgument(&arg, nextToken, arg.isRequired())) {
                             break;
                         }
                         curArgResult.insert(std::make_pair(arg.name(), nextToken));
                     }
+
+                    if (result->error != Parser::NoError)
+                        break;
 
                     // Check required arguments
                     if (x < opt->_arguments.size()) {
@@ -188,6 +195,7 @@ namespace SysCmdLine {
 
                     result->optResult[opt->name()].emplace_back(curArgResult);
 
+                    hasPrior |= opt->isPrior();
                     j += x;
                     continue;
                 }
@@ -221,13 +229,19 @@ namespace SysCmdLine {
             }
 
             // Check required arguments
-            if (!cmd->_showHelpIfNoArg &&
-                (result->optResult.empty() && result->argResult.empty())) {
-                if (k < cmd->_arguments.size()) {
-                    const auto &arg = cmd->_arguments.at(k);
-                    if (arg.isRequired()) {
-                        result->error = Parser::MissingCommandArgument;
-                        result->errorPlaceholders = {arg.name()};
+            if (result->error == Parser::NoError) {
+                if (cmd->_showHelpIfNoArg &&
+                    (result->optResult.empty() && result->argResult.empty())) {
+                    // ...
+                } else if (hasPrior) {
+                    // ...
+                } else {
+                    if (k < cmd->_arguments.size()) {
+                        const auto &arg = cmd->_arguments.at(k);
+                        if (arg.isRequired()) {
+                            result->error = Parser::MissingCommandArgument;
+                            result->errorPlaceholders = {arg.name()};
+                        }
                     }
                 }
             }

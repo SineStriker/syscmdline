@@ -30,8 +30,16 @@ namespace SysCmdLine {
         if (_optionNameIndexes.count(option.name())) {
             throw std::runtime_error("option name \"" + option.name() + "\" duplicated");
         }
+        for (const auto &token : option._tokens) {
+            if (_optionTokenIndexes.count(token)) {
+                throw std::runtime_error("option token \"" + token + "\" duplicated");
+            }
+        }
         _options.push_back(option);
         _optionNameIndexes.insert(std::make_pair(option.name(), _options.size() - 1));
+        for (const auto &token : option._tokens) {
+            _optionTokenIndexes.insert(std::make_pair(token, _options.size() - 1));
+        }
     }
 
     void Command::setCommands(const std::vector<Command> &commands) {
@@ -50,6 +58,7 @@ namespace SysCmdLine {
     void Command::setOptions(const std::vector<Option> &options) {
         _options.clear();
         _optionNameIndexes.clear();
+        _optionTokenIndexes.clear();
         if (options.empty())
             return;
 
@@ -64,14 +73,14 @@ namespace SysCmdLine {
         _version = ver;
         addOption(Option("version", Strings::info_strings[Strings::Version],
                          tokens.empty() ? std::vector<std::string>{"-v", "--version"} : tokens,
-                         false, false));
+                         false, true, false));
     }
 
     void Command::addHelpOption(bool showHelpIfNoArg, const std::vector<std::string> &tokens,
                                 bool global) {
         addOption(Option("help", Strings::info_strings[Strings::Help],
                          tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
-                         global));
+                         true, global));
         _showHelpIfNoArg = showHelpIfNoArg;
     }
 

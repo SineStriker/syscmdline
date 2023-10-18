@@ -12,6 +12,8 @@ namespace SysCmdLine {
     class Parser;
     class ParserPrivate;
 
+    class Command;
+
     class SYSCMDLINE_EXPORT Argument : public Symbol {
     public:
         Argument();
@@ -40,6 +42,7 @@ namespace SysCmdLine {
         std::string _defaultValue;
         bool _required;
 
+        friend class Command;
         friend class Parser;
         friend class ParserPrivate;
     };
