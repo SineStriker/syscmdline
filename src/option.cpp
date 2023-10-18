@@ -88,6 +88,20 @@ namespace SysCmdLine {
         return *this;
     }
 
+    std::string Option::displayedTokens() const {
+        SYSCMDLINE_GET_CONST_DATA(Option);
+
+        const auto &_arguments = d->arguments;
+        const auto &_tokens = d->tokens;
+
+        std::stringstream ss;
+        ss << Strings::join<char>(_tokens, ", ");
+        if (!_arguments.empty()) {
+            ss << " " << displayedArguments();
+        }
+        return ss.str();
+    }
+
     const std::vector<std::string> &Option::tokens() const {
         SYSCMDLINE_GET_CONST_DATA(Option);
         return d->tokens;
@@ -129,20 +143,6 @@ namespace SysCmdLine {
     void Option::setGlobal(bool on) {
         SYSCMDLINE_GET_DATA(Option);
         d->global = on;
-    }
-
-    std::string Option::displayedTokens() const {
-        SYSCMDLINE_GET_CONST_DATA(Option);
-
-        const auto &_arguments = d->arguments;
-        const auto &_tokens = d->tokens;
-
-        std::stringstream ss;
-        ss << Strings::join<char>(_tokens, ", ");
-        if (!_arguments.empty()) {
-            ss << " " << displayedArguments();
-        }
-        return ss.str();
     }
 
     OptionData *Option::d_func() {

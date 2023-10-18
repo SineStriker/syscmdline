@@ -16,6 +16,9 @@ namespace SysCmdLine {
         Parser(const Command &rootCommand);
         ~Parser();
 
+        Parser(const Parser &other) = delete;
+        Parser &operator=(const Parser &other) = delete;
+
     public:
         enum Side {
             Top,
@@ -40,16 +43,16 @@ namespace SysCmdLine {
 
         bool parse(const std::vector<std::string> &args);
         int invoke(const std::vector<std::string> &args, int errorCode = -1);
-        int invoke() const;
 
         bool parsed() const;
         Error error() const;
         std::string errorText() const;
 
-        const Command *targetCommand() const;
-        const std::vector<const Option *> &targetGlobalOptions() const;
-        std::vector<std::pair<int, std::string>> targetStack() const;
+        Command targetCommand() const;
+        std::vector<Option> targetGlobalOptions() const;
+        std::vector<int> targetStack() const;
 
+        void showError() const;
         void showHelpText() const;
         void showErrorAndHelpText(const std::string &message) const;
         void showWarningAndHelpText(const std::string &message) const;

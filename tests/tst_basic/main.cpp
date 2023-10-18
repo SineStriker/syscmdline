@@ -43,11 +43,13 @@ int main(int argc, char *argv[]) {
         return 0;
     });
 
+    CommandCatalogue cc;
+    cc.addCommandCatalogue("Special Commands", {"clone"});
+    rootCommand.setCatalogue(cc);
+
     Parser parser(rootCommand);
     parser.setText(Parser::Top, "Git Version 0.0.1.1");
     parser.setText(Parser::Bottom, "Checkout https://github.com/git/git for more information.");
 
-    parser.invoke(commandLineArguments());
-
-    return 0;
+    return parser.invoke(commandLineArguments());
 }

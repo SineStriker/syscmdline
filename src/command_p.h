@@ -12,7 +12,7 @@ namespace SysCmdLine {
                     const std::vector<Option> &options, const std::vector<Command> &subCommands,
                     const std::vector<Argument> &args, const std::string &version,
                     const std::string &detailedDescription, bool showHelpIfNoArg,
-                    const Command::Handler &handler);
+                    const Command::Handler &handler, const CommandCatalogue &catalogue);
         ~CommandData();
 
         SymbolData *clone() const override;
@@ -33,6 +33,8 @@ namespace SysCmdLine {
         std::string detailedDescription;
         bool showHelpIfNoArg;
         Command::Handler handler;
+
+        CommandCatalogue catalogue;
     };
 
 }

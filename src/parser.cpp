@@ -337,7 +337,7 @@ namespace SysCmdLine {
             const Command *p = &rootCommand;
             for (const auto &item : std::as_const(result->stack)) {
                 parentCommands.push_back(p->name());
-                p = p->command(item);
+                p = &p->d_func()->subCommands[item];
             }
 
             if (!texts[Parser::Top].empty()) {
@@ -394,24 +394,11 @@ namespace SysCmdLine {
 
     int Parser::invoke(const std::vector<std::string> &args, int errorCode) {
         if (!parse(args)) {
-            auto errCallback = [this]() {
-                u8error("%s: %s\n\n", Strings::common_strings[Strings::Error], errorText().data());
-            };
-
-            if (d->result->command->d_func()->optionNameIndexes.count("help")) {
-                d->showHelp(errCallback);
-            } else {
-                errCallback();
-            }
+            showError();
             return errorCode;
         }
-        return invoke();
-    }
 
-    int Parser::invoke() const {
-        d->checkResult();
-
-        const auto &cmd = *targetCommand();
+        const auto &cmd = *d->result->command;
         const auto &handler = cmd.handler();
 
         if (d->result->versionSet) {
@@ -453,28 +440,25 @@ namespace SysCmdLine {
                                          d->result->errorPlaceholders);
     }
 
-    const Command *Parser::targetCommand() const {
+    Command Parser::targetCommand() const {
         d->checkResult();
-        return d->result->command;
+        return *d->result->command;
     }
 
-    const std::vector<const Option *> &Parser::targetGlobalOptions() const {
-        d->checkResult();
-        return d->result->globalOptions;
-    }
-
-    std::vector<std::pair<int, std::string>> Parser::targetStack() const {
+    std::vector<Option> Parser::targetGlobalOptions() const {
         d->checkResult();
 
-        std::vector<std::pair<int, std::string>> res;
-        res.reserve(d->result->stack.size());
-
-        const Command *p = &d->rootCommand;
-        for (const auto &item : std::as_const(d->result->stack)) {
-            p = p->command(item);
-            res.emplace_back(item, p->name());
+        std::vector<Option> res;
+        res.reserve(d->result->globalOptions.size());
+        for (const auto &item : d->result->globalOptions) {
+            res.push_back(*item);
         }
         return res;
+    }
+
+    std::vector<int> Parser::targetStack() const {
+        d->checkResult();
+        return d->result->stack;
     }
 
     std::string Parser::value(const std::string &argName) const {
@@ -549,6 +533,18 @@ namespace SysCmdLine {
         return d->result->argResult.empty() && d->result->optResult.empty();
     }
 
+    void Parser::showError() const {
+        auto errCallback = [this]() {
+            u8error("%s: %s\n\n", Strings::common_strings[Strings::Error], errorText().data());
+        };
+
+        if (d->result->command->d_func()->optionNameIndexes.count("help")) {
+            d->showHelp(errCallback);
+        } else {
+            errCallback();
+        }
+    }
+
     void Parser::showHelpText() const {
         d->showHelp();
     }
@@ -564,5 +560,5 @@ namespace SysCmdLine {
             u8warning("%s\n\n", message.data()); //
         });
     }
-    
+
 }

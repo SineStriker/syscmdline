@@ -8,7 +8,7 @@ namespace SysCmdLine::Strings {
         R"(Unknown command or argument "%1".)",
         R"(Missing required argument "%1" of option "%2".)",
         R"(Missing required argument "%1".)",
-        "Too many arguments.",
+        R"(Too many arguments.)",
         R"(Invalid value "%1" of argument "%2".)",
     };
 

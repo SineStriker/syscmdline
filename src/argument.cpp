@@ -133,8 +133,8 @@ namespace SysCmdLine {
             throw std::runtime_error(
                 "adding required argument after optional arguments is prohibited");
         }
+        argumentNameIndexes.insert(std::make_pair(arg.name(), arguments.size()));
         arguments.push_back(arg);
-        argumentNameIndexes.insert(std::make_pair(arg.name(), arguments.size() - 1));
     }
 
     void ArgumentHolderData::setArguments(const std::vector<Argument> &args) {
@@ -151,21 +151,6 @@ namespace SysCmdLine {
     }
 
     ArgumentHolder::~ArgumentHolder() {
-    }
-
-    const std::vector<Argument> &ArgumentHolder::arguments() const {
-        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
-        return d->arguments;
-    }
-
-    void ArgumentHolder::addArgument(const Argument &argument) {
-        SYSCMDLINE_GET_DATA(ArgumentHolder);
-        d->addArgument(argument);
-    }
-
-    void ArgumentHolder::setArguments(const std::vector<Argument> &arguments) {
-        SYSCMDLINE_GET_DATA(ArgumentHolder);
-        d->setArguments(arguments);
     }
 
     std::string ArgumentHolder::displayedArguments() const {
@@ -198,6 +183,49 @@ namespace SysCmdLine {
         }
 
         return ss.str();
+    }
+
+    Argument ArgumentHolder::argument(const std::string &name) const {
+        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        auto it = d->argumentNameIndexes.find(name);
+        if (it == d->argumentNameIndexes.end())
+            return {};
+        return d->arguments[it->second];
+    }
+
+    Argument ArgumentHolder::argument(int index) const {
+        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        if (index < 0 || index >= d->arguments.size())
+            return {};
+        return d->arguments[index];
+    }
+
+    const std::vector<Argument> &ArgumentHolder::arguments() const {
+        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        return d->arguments;
+    }
+
+    int ArgumentHolder::indexOfArgument(const std::string &name) const {
+        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        auto it = d->argumentNameIndexes.find(name);
+        if (it == d->argumentNameIndexes.end())
+            return -1;
+        return it->second;
+    }
+
+    bool ArgumentHolder::hasArgument(const std::string &name) const {
+        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        return d->argumentNameIndexes.count(name);
+    }
+
+    void ArgumentHolder::addArgument(const Argument &argument) {
+        SYSCMDLINE_GET_DATA(ArgumentHolder);
+        d->addArgument(argument);
+    }
+
+    void ArgumentHolder::setArguments(const std::vector<Argument> &arguments) {
+        SYSCMDLINE_GET_DATA(ArgumentHolder);
+        d->setArguments(arguments);
     }
 
     ArgumentHolder::ArgumentHolder(ArgumentHolderData *d) : Symbol(d) {

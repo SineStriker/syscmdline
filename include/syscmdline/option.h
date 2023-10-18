@@ -31,6 +31,8 @@ namespace SysCmdLine {
         Option &operator=(const Option &other);
         Option &operator=(Option &&other) noexcept;
 
+        std::string displayedTokens() const;
+
     public:
         const std::vector<std::string> &tokens() const;
         void setTokens(const std::vector<std::string> &tokens);
@@ -43,8 +45,6 @@ namespace SysCmdLine {
 
         bool isGlobal() const;
         void setGlobal(bool on);
-
-        std::string displayedTokens() const;
 
     protected:
         OptionData *d_func();

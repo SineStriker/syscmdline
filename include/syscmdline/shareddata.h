@@ -168,7 +168,7 @@ namespace SysCmdLine {
     T##Data *const d = reinterpret_cast<T##Data *>(d_ptr.data())
 
 #define SYSCMDLINE_GET_CONST_DATA(T)                                                               \
-    const T##Data *const d = reinterpret_cast<const T##Data *>(d_ptr.constData());
+    const T##Data *const d = reinterpret_cast<const T##Data *>(d_ptr.constData())
 
 }
 
