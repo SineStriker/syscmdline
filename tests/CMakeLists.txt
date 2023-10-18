@@ -1,1 +1,3 @@
 add_subdirectory(tst_basic)
+
+add_subdirectory(tst_correction)

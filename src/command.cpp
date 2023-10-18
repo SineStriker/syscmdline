@@ -370,8 +370,6 @@ namespace SysCmdLine {
         d->showHelpIfNoArg = showHelpIfNoArg;
     }
 
-    static const char INDENT[] = "    ";
-
     static void listItems(std::stringstream &ss, const std::string &title,
                           const std::vector<std::pair<std::string, std::string>> &contents) {
         if (contents.empty())
@@ -386,8 +384,8 @@ namespace SysCmdLine {
 
         ss << title << ": " << std::endl;
         for (const auto &item : contents) {
-            ss << INDENT << std::left << std::setw(widest) << item.first << INDENT << item.second
-               << std::endl;
+            ss << Strings::INDENT << std::left << std::setw(widest) << item.first << Strings::INDENT
+               << item.second << std::endl;
         }
     }
 
@@ -445,14 +443,14 @@ namespace SysCmdLine {
         const auto &desc = d->detailedDescription.empty() ? d->desc : d->detailedDescription;
         if (!desc.empty()) {
             ss << Strings::common_strings[Strings::Description] << ": " << std::endl;
-            ss << INDENT << desc << std::endl;
+            ss << Strings::INDENT << desc << std::endl;
             ss << std::endl;
         }
 
         // Usage
         ss << Strings::common_strings[Strings::Usage] << ": " << std::endl;
         {
-            ss << INDENT;
+            ss << Strings::INDENT;
             for (const auto &item : parentCommands) {
                 ss << item << " ";
             }

@@ -3,6 +3,7 @@
 #include <list>
 #include <map>
 #include <stdexcept>
+#include <sstream>
 
 #include "strings.h"
 #include "system.h"
@@ -17,6 +18,7 @@ namespace SysCmdLine {
         std::vector<std::string> errorPlaceholders;
         std::vector<int> stack;
         std::vector<const Option *> globalOptions;
+
         const Command *command;
 
         using ArgResult = std::unordered_map<std::string, std::string>;
@@ -29,6 +31,56 @@ namespace SysCmdLine {
 
         ParseResult()
             : error(Parser::NoError), command(nullptr), versionSet(false), helpSet(false) {
+        }
+
+        std::string correctionText() const {
+            std::vector<std::string> expectedValues;
+            switch (error) {
+                case Parser::UnknownOption: {
+                    for (const auto &opt : globalOptions) {
+                        for (const auto &token : opt->tokens()) {
+                            expectedValues.push_back(token);
+                        }
+                    }
+                    for (const auto &opt : command->options()) {
+                        for (const auto &token : opt.tokens()) {
+                            expectedValues.push_back(token);
+                        }
+                    }
+                    break;
+                }
+
+                case Parser::InvalidArgumentValue: {
+                    const auto &arg = command->argument(errorPlaceholders[1]);
+                    for (const auto &item : arg.expectedValues()) {
+                        expectedValues.push_back(item);
+                    }
+
+                    // Fallback as unknown command case
+                }
+                case Parser::UnknownCommand: {
+                    for (const auto &cmd : command->commands()) {
+                        expectedValues.push_back(cmd.name());
+                    }
+                    break;
+                }
+                default:
+                    return {};
+            }
+
+            auto input = errorPlaceholders[0];
+            auto suggestions =
+                Strings::getClosestTexts(expectedValues, input, std::max(2, int(input.size()) / 2));
+            if (suggestions.empty())
+                return {};
+
+            std::stringstream ss;
+            ss << Strings::formatText(Strings::helper_strings[Strings::MatchCommand], {input})
+               << std::endl;
+            for (const auto &item : std::as_const(suggestions)) {
+                ss << Strings::INDENT << item << std::endl;
+            }
+            return ss.str();
         }
     };
 
@@ -262,7 +314,7 @@ namespace SysCmdLine {
                             break;
                         }
 
-                        result->error = Parser::UnknownArgument;
+                        result->error = Parser::UnknownCommand;
                         result->errorPlaceholders = {token};
                         break;
                     }
@@ -312,20 +364,6 @@ namespace SysCmdLine {
         inline void checkResult() const {
             if (!result)
                 throw std::runtime_error("no valid parse result");
-        }
-
-        static std::string formatText(const std::string &format,
-                                      const std::vector<std::string> &args) {
-            std::string result = format;
-            for (size_t i = 0; i < args.size(); i++) {
-                std::string placeholder = "%" + std::to_string(i + 1);
-                size_t pos = result.find(placeholder);
-                while (pos != std::string::npos) {
-                    result.replace(pos, placeholder.length(), args[i]);
-                    pos = result.find(placeholder, pos + args[i].size());
-                }
-            }
-            return result;
         }
 
         void showHelp(const std::function<void()> &messageCaller = {}) {
@@ -436,8 +474,9 @@ namespace SysCmdLine {
 
         if (d->result->error == NoError)
             return {};
-        return ParserPrivate::formatText(Strings::error_strings[d->result->error],
-                                         d->result->errorPlaceholders);
+
+        return Strings::formatText(Strings::error_strings[d->result->error],
+                                   d->result->errorPlaceholders);
     }
 
     Command Parser::targetCommand() const {
@@ -535,12 +574,16 @@ namespace SysCmdLine {
 
     void Parser::showError() const {
         auto errCallback = [this]() {
+            if (auto correction = d->result->correctionText(); !correction.empty()) {
+                u8printf("%s", correction.data());
+            }
             u8error("%s: %s\n\n", Strings::common_strings[Strings::Error], errorText().data());
         };
 
         if (d->result->command->d_func()->optionNameIndexes.count("help")) {
             d->showHelp(errCallback);
         } else {
+            d->checkResult();
             errCallback();
         }
     }

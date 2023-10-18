@@ -28,7 +28,7 @@ namespace SysCmdLine {
         enum Error {
             NoError,
             UnknownOption,
-            UnknownArgument,
+            UnknownCommand,
             MissingOptionArgument,
             MissingCommandArgument,
             TooManyArguments,

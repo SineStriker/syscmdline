@@ -20,11 +20,19 @@ namespace SysCmdLine::Strings {
         Help,
     };
 
+    enum HelperString {
+        MatchCommand,
+    };
+
+    extern const char INDENT[];
+
     extern const char *error_strings[];
 
     extern const char *common_strings[];
 
     extern const char *info_strings[];
+
+    extern const char *helper_strings[];
 
     template <class T>
     std::vector<std::basic_string<T>> split(const std::basic_string<T> &s,
@@ -55,6 +63,13 @@ namespace SysCmdLine::Strings {
         res.append(v.back());
         return res;
     }
+
+    std::string formatText(const std::string &format, const std::vector<std::string> &args);
+
+    int levenshteinDistance(const std::string &s1, const std::string &s2);
+
+    std::vector<std::string> getClosestTexts(const std::vector<std::string> &texts,
+                                             const std::string &input, int threshold);
 
 }
 
