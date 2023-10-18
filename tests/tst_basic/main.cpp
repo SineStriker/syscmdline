@@ -31,11 +31,13 @@ int main(int argc, char *argv[]) {
     });
 
     Argument arg1("wangwenx190", "You know who");
+    Argument arg2("name", "Your name", false);
+    Argument arg3("age", "Your age", false);
     arg1.setExpectedValues({"genius"});
 
     Command rootCommand("git", "Git is a distributed version management system.");
     rootCommand.setCommands({cloneCommand, commitCommand, mergeCommand});
-    rootCommand.setArguments({arg1});
+    rootCommand.setArguments({arg1, arg2, arg3});
     rootCommand.addVersionOption("0.0.1.1");
     rootCommand.addHelpOption(true, true);
     rootCommand.setHandler([](const Parser &parser) -> int {

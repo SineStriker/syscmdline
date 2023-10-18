@@ -179,7 +179,7 @@ namespace SysCmdLine {
             for (std::string::size_type i = optionalIdx; i < _arguments.size() - 1; ++i) {
                 ss << "<" << _arguments[i].name() << "> ";
             }
-            ss << "<" << _arguments[_arguments.size()].name() << ">]";
+            ss << "<" << _arguments[_arguments.size() - 1].name() << ">]";
         }
 
         return ss.str();
