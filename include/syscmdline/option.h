@@ -20,7 +20,7 @@ namespace SysCmdLine {
 
         Option();
         Option(const std::string &name, const std::string &desc,
-               const std::vector<std::string> &tokens, bool required = false,
+               const std::vector<std::string> &tokens = {}, bool required = false,
                const std::vector<Argument> &arguments = {});
         Option(const std::string &name, const std::string &desc,
                const std::vector<std::string> &tokens, bool required, bool is_short,
@@ -38,6 +38,7 @@ namespace SysCmdLine {
     public:
         const std::vector<std::string> &tokens() const;
         void setTokens(const std::vector<std::string> &tokens);
+        inline void setToken(const std::string &token);
 
         bool isRequired() const;
         void setRequired(bool required);
@@ -63,6 +64,10 @@ namespace SysCmdLine {
         friend class Parser;
         friend class ParserPrivate;
     };
+
+    inline void Option::setToken(const std::string &token) {
+        setTokens({token});
+    }
 
 }
 

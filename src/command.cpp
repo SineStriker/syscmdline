@@ -169,11 +169,8 @@ namespace SysCmdLine {
 
     void CommandData::addOption(const Option &option) {
         const auto &name = option.name();
-        if (name.empty()) {
-            throw std::runtime_error("empty option name");
-        }
-        if (option.d_func()->tokens.empty()) {
-            throw std::runtime_error("option \"" + name + "\" has no tokens");
+        if (name.empty() || name == "-" || name == "--") {
+            throw std::runtime_error("null option name");
         }
         if (optionNameIndexes.count(name)) {
             throw std::runtime_error("option name \"" + name + "\" duplicated");
@@ -184,10 +181,23 @@ namespace SysCmdLine {
             }
         }
 
+        Option newOption = option;
+        if (option.d_func()->tokens.empty()) {
+            if (name.front() == '-') {
+                newOption.setToken(name);
+            } else {
+                if (name.size() == 1) {
+                    newOption.setToken("-" + name);
+                } else {
+                    newOption.setToken("--" + name);
+                }
+            }
+        }
+
         auto last = options.size();
         optionNameIndexes.insert(std::make_pair(name, last));
-        options.push_back(option);
-        for (const auto &token : option.d_func()->tokens) {
+        options.push_back(newOption);
+        for (const auto &token : newOption.d_func()->tokens) {
             optionTokenIndexes.insert(std::make_pair(token, last));
         }
     }

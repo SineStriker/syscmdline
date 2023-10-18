@@ -40,7 +40,7 @@ namespace SysCmdLine {
         using Handler = std::function<int(const Parser &)>;
 
         Command();
-        Command(const std::string &name, const std::string &desc,
+        Command(const std::string &name, const std::string &desc = {},
                 const std::vector<Option> &options = {},
                 const std::vector<Command> &subCommands = {},
                 const std::vector<Argument> &args = {}, const std::string &detailedDescription = {},

@@ -62,14 +62,19 @@ namespace SysCmdLine {
         void showWarningAndHelpText(const std::string &message) const;
 
     public:
-        inline std::string value(const Argument &arg) const;
-        std::string value(const std::string &argName) const;
+        inline std::string valueForArgument(const Argument &arg) const;
+        std::string valueForArgument(const std::string &argName) const;
 
-        inline int count(const Option &opt) const;
-        int count(const std::string &optName) const;
+        inline int optionCount(const Option &opt) const;
+        int optionCount(const std::string &optName) const;
 
-        inline std::string value(const Option &opt, const Argument &arg, int count = 0);
-        std::string value(const std::string &optName, const std::string &argName, int count = 0);
+        inline bool optionIsSet(const Option &opt) const;
+        inline bool optionIsSet(const std::string &optName) const;
+
+        inline std::string valueForOption(const Option &opt, const Argument &arg = {},
+                                          int count = 0) const;
+        std::string valueForOption(const std::string &optName, const std::string &argName = {},
+                                   int count = 0) const;
 
         std::vector<std::string> effectiveOptions() const;
         std::vector<std::string> effectiveArguments() const;
@@ -83,16 +88,25 @@ namespace SysCmdLine {
         ParserPrivate *d;
     };
 
-    inline std::string Parser::value(const Argument &arg) const {
-        return value(arg.name());
+    inline std::string Parser::valueForArgument(const Argument &arg) const {
+        return valueForArgument(arg.name());
     }
 
-    inline int Parser::count(const Option &opt) const {
-        return count(opt.name());
+    inline int Parser::optionCount(const Option &opt) const {
+        return optionCount(opt.name());
     }
 
-    inline std::string Parser::value(const Option &opt, const Argument &arg, int count) {
-        return value(opt.name(), arg.name(), count);
+    bool Parser::optionIsSet(const Option &opt) const {
+        return optionCount(opt) > 0;
+    }
+
+    bool Parser::optionIsSet(const std::string &optName) const {
+        return optionCount(optName) > 0;
+    }
+
+    inline std::string Parser::valueForOption(const Option &opt, const Argument &arg,
+                                              int count) const {
+        return valueForOption(opt.name(), arg.name(), count);
     }
 
 }

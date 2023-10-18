@@ -270,7 +270,7 @@ namespace SysCmdLine {
                 // Consider option
                 if (auto opt = searchOption(token); opt) {
                     size_t x = 0;
-                    size_t max = std::min(args.size() - j, opt->d_func()->arguments.size());
+                    size_t max = std::min(args.size() - j - 1, opt->d_func()->arguments.size());
 
                     auto &resVec = result->optResult[opt->name()];
 
@@ -287,7 +287,7 @@ namespace SysCmdLine {
 
                     ParseResult::ArgResult curArgResult;
                     for (; x < max; ++x) {
-                        const auto &nextToken = args[x + j];
+                        const auto &nextToken = args[x + j + 1];
                         const auto &arg = opt->d_func()->arguments.at(x);
 
                         // Break by next option
@@ -461,10 +461,15 @@ namespace SysCmdLine {
     }
 
     void Parser::setRootCommand(const Command &rootCommand) {
+        if (rootCommand.d_func()->name.empty()) {
+            throw std::runtime_error("empty root command name");
+        }
+
         if (d->result) {
             delete d->result;
             d->result = nullptr;
         }
+
         d->rootCommand = rootCommand;
     }
 
@@ -557,7 +562,7 @@ namespace SysCmdLine {
         return d->result->stack;
     }
 
-    std::string Parser::value(const std::string &argName) const {
+    std::string Parser::valueForArgument(const std::string &argName) const {
         d->checkResult();
 
         auto it = d->result->argResult.find(argName);
@@ -567,7 +572,7 @@ namespace SysCmdLine {
         return it->second;
     }
 
-    int Parser::count(const std::string &optName) const {
+    int Parser::optionCount(const std::string &optName) const {
         d->checkResult();
 
         const auto &map = d->result->optResult;
@@ -578,7 +583,8 @@ namespace SysCmdLine {
         return it->second.size();
     }
 
-    std::string Parser::value(const std::string &optName, const std::string &argName, int count) {
+    std::string Parser::valueForOption(const std::string &optName, const std::string &argName,
+                                       int count) const {
         d->checkResult();
 
         auto it = d->result->optResult.find(optName);
@@ -586,8 +592,19 @@ namespace SysCmdLine {
             return {};
         }
 
+        std::string newArgName;
+        if (argName.empty()) {
+            const Option &opt = d->result->command->option(optName);
+            const auto &args = opt.arguments();
+            if (args.empty())
+                return {};
+            newArgName = args.front().name();
+        } else {
+            newArgName = argName;
+        }
+
         const auto &map = it->second.at(count);
-        auto it2 = map.find(argName);
+        auto it2 = map.find(newArgName);
         if (it2 == map.end()) {
             return {};
         }

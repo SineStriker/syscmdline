@@ -13,7 +13,7 @@ namespace SysCmdLine::Strings {
         R"(Missing required argument "%1" of option "%2".)",
         R"(Missing required argument "%1".)",
         R"(Too many arguments.)",
-        R"(Invalid value "%1" of argument "%2".)",
+        R"(Invalid valueForArgument "%1" of argument "%2".)",
         R"(Invalid occurrence of option "%1", which should be argument "%2".)",
         R"(Missing required option "%1".)",
         R"(Option "%1" occurs too much, at most %2.)",

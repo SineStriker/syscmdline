@@ -22,7 +22,7 @@ namespace SysCmdLine {
     class SYSCMDLINE_EXPORT Argument : public Symbol {
     public:
         Argument();
-        Argument(const std::string &name, const std::string &desc, bool required = true,
+        Argument(const std::string &name, const std::string &desc = {}, bool required = true,
                  const std::string &displayName = {});
         Argument(const std::string &name, const std::string &desc, const std::string &defaultValue,
                  bool required = true, const std::string &displayName = {});
