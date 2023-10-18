@@ -35,8 +35,6 @@ namespace SysCmdLine {
         inline bool isRequired() const;
         inline void setRequired(bool required);
 
-        static std::string displayArgumentList(const std::vector<Argument> &args);
-
     protected:
         std::vector<std::string> _expectedValues;
         std::string _defaultValue;
@@ -83,6 +81,8 @@ namespace SysCmdLine {
 
         void addArgument(const Argument &argument);
         void setArguments(const std::vector<Argument> &arguments);
+
+        std::string displayArgumentList() const;
 
     protected:
         std::vector<Argument> _arguments;

@@ -48,7 +48,7 @@ namespace SysCmdLine {
         std::stringstream ss;
         ss << Strings::join<char>(_tokens, ", ");
         if (!_arguments.empty()) {
-            ss << " " << Argument::displayArgumentList(_arguments);
+            ss << " " << displayArgumentList();
         }
         return ss.str();
     }

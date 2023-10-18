@@ -1,5 +1,6 @@
 #include "system.h"
 
+#include <iostream>
 #include <filesystem>
 
 #ifdef _WIN32
@@ -122,69 +123,111 @@ namespace SysCmdLine {
         return res;
     }
 
-    int u8printf(const char *fmt, ...) {
+    class PrintScopeGuard {
+    public:
+        enum Color {
+            NoColor,
+            Red,
+            Green,
+            Yellow,
+        };
+
+        explicit PrintScopeGuard(Color color = NoColor) : _color(color) {
 #ifdef _WIN32
-        auto codepage = ::GetConsoleOutputCP();
-        ::SetConsoleOutputCP(CP_UTF8);
+            _codepage = ::GetConsoleOutputCP();
+            ::SetConsoleOutputCP(CP_UTF8);
+
+            if (color != NoColor) {
+                WORD winColor = FOREGROUND_INTENSITY;
+                switch (color) {
+                    case Red:
+                        winColor |= FOREGROUND_RED;
+                        break;
+                    case Green:
+                        winColor |= FOREGROUND_GREEN;
+                        break;
+                    case Yellow:
+                        winColor |= FOREGROUND_RED | FOREGROUND_GREEN;
+                        break;
+                    default:
+                        break;
+                }
+                _hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+                GetConsoleScreenBufferInfo(_hConsole, &_csbi);
+                SetConsoleTextAttribute(_hConsole, winColor);
+            }
+#else
+            if (color != NoColor) {
+                // ANSI escape code to set text color to red
+                const char *colorStr;
+                switch (color) {
+                    case Red:
+                        colorStr = "\033[91m";
+                        break;
+                    case Green:
+                        colorStr = "\033[92m";
+                        break;
+                    case Yellow:
+                        colorStr = "\033[93m";
+                        break;
+                }
+                std::cout << colorStr;
+            }
 #endif
+        }
+
+        ~PrintScopeGuard() {
+#ifdef _WIN32
+            ::SetConsoleOutputCP(_codepage);
+
+            if (_color != NoColor) {
+                SetConsoleTextAttribute(_hConsole, _csbi.wAttributes);
+            }
+#else
+            if (_color != NoColor) {
+                // ANSI escape code to reset text color to default
+                const char *resetColor = "\033[0m";
+                std::cout << resetColor;
+            }
+#endif
+        }
+
+    private:
+#ifdef _WIN32
+        Color _color;
+        UINT _codepage;
+        HANDLE _hConsole;
+        CONSOLE_SCREEN_BUFFER_INFO _csbi;
+#endif
+    };
+
+    int u8printf(const char *fmt, ...) {
+        PrintScopeGuard _guard;
+
         va_list args;
         va_start(args, fmt);
         int res = vprintf(fmt, args);
         va_end(args);
-
-#ifdef _WIN32
-        ::SetConsoleOutputCP(codepage);
-#endif
         return res;
     }
 
     int u8error(const char *fmt, ...) {
-#ifdef _WIN32
-        auto codepage = ::GetConsoleOutputCP();
-        ::SetConsoleOutputCP(CP_UTF8);
-#endif
-
-        // ANSI escape code to set text color to red
-        const char* redColor = "\033[91m";
-        printf("%s", redColor);
+        PrintScopeGuard _guard(PrintScopeGuard::Red);
 
         va_list args;
         va_start(args, fmt);
         int res = vprintf(fmt, args);
         va_end(args);
-
-        // ANSI escape code to reset text color to default
-        const char* resetColor = "\033[0m";
-        printf("%s", resetColor);
-
-#ifdef _WIN32
-        ::SetConsoleOutputCP(codepage);
-#endif
         return res;
     }
 
     int u8warning(const char *fmt, ...) {
-#ifdef _WIN32
-        auto codepage = ::GetConsoleOutputCP();
-        ::SetConsoleOutputCP(CP_UTF8);
-#endif
-
-        // ANSI escape code to set text color to red
-        const char* redColor = "\033[93m";
-        printf("%s", redColor);
+        PrintScopeGuard _guard(PrintScopeGuard::Yellow);
 
         va_list args;
         va_start(args, fmt);
         int res = vprintf(fmt, args);
         va_end(args);
-
-        // ANSI escape code to reset text color to default
-        const char* resetColor = "\033[0m";
-        printf("%s", resetColor);
-
-#ifdef _WIN32
-        ::SetConsoleOutputCP(codepage);
-#endif
         return res;
     }
 

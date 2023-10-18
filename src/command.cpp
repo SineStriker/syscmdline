@@ -108,7 +108,7 @@ namespace SysCmdLine {
             ss << _name;
 
             if (!_arguments.empty()) {
-                ss << " " << Argument::displayArgumentList(_arguments);
+                ss << " " << displayArgumentList();
             }
 
             if (!_subCommands.empty()) {

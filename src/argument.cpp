@@ -27,35 +27,6 @@ namespace SysCmdLine {
     Argument::~Argument() {
     }
 
-    std::string Argument::displayArgumentList(const std::vector<Argument> &args) {
-        std::stringstream ss;
-
-        std::string::size_type optionalIdx = args.size();
-        for (std::string::size_type i = 0; i < args.size(); ++i) {
-            if (!args.at(i).isRequired()) {
-                optionalIdx = i;
-                break;
-            }
-        }
-
-        if (optionalIdx > 0) {
-            for (std::string::size_type i = 0; i < optionalIdx - 1; ++i) {
-                ss << "<" << args[i].name() << "> ";
-            }
-            ss << "<" << args[optionalIdx - 1].name() << ">";
-        }
-
-        if (optionalIdx < args.size()) {
-            ss << " [";
-            for (std::string::size_type i = optionalIdx; i < args.size() - 1; ++i) {
-                ss << "<" << args[i].name() << "> ";
-            }
-            ss << "<" << args[args.size()].name() << ">]";
-        }
-
-        return ss.str();
-    }
-
     ArgumentHolder::ArgumentHolder(const std::vector<Argument> &arguments) {
         setArguments(arguments);
     }
@@ -86,6 +57,35 @@ namespace SysCmdLine {
         for (const auto &arg : arguments) {
             addArgument(arg);
         }
+    }
+
+    std::string ArgumentHolder::displayArgumentList() const {
+        std::stringstream ss;
+
+        std::string::size_type optionalIdx = _arguments.size();
+        for (std::string::size_type i = 0; i < _arguments.size(); ++i) {
+            if (!_arguments.at(i).isRequired()) {
+                optionalIdx = i;
+                break;
+            }
+        }
+
+        if (optionalIdx > 0) {
+            for (std::string::size_type i = 0; i < optionalIdx - 1; ++i) {
+                ss << "<" << _arguments[i].name() << "> ";
+            }
+            ss << "<" << _arguments[optionalIdx - 1].name() << ">";
+        }
+
+        if (optionalIdx < _arguments.size()) {
+            ss << " [";
+            for (std::string::size_type i = optionalIdx; i < _arguments.size() - 1; ++i) {
+                ss << "<" << _arguments[i].name() << "> ";
+            }
+            ss << "<" << _arguments[_arguments.size()].name() << ">]";
+        }
+
+        return ss.str();
     }
 
 }
