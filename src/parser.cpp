@@ -397,7 +397,8 @@ namespace SysCmdLine {
             auto errCallback = [this]() {
                 u8error("%s: %s\n\n", Strings::common_strings[Strings::Error], errorText().data());
             };
-            if (d->result->helpSet) {
+
+            if (d->result->command->d_func()->optionNameIndexes.count("help")) {
                 d->showHelp(errCallback);
             } else {
                 errCallback();
