@@ -35,8 +35,10 @@ namespace SysCmdLine {
 
         std::string correctionText() const {
             std::vector<std::string> expectedValues;
+
             switch (error) {
-                case Parser::UnknownOption: {
+                case Parser::UnknownOption:
+                case Parser::InvalidOptionPosition: {
                     for (const auto &opt : globalOptions) {
                         for (const auto &token : opt->tokens()) {
                             expectedValues.push_back(token);
@@ -47,14 +49,20 @@ namespace SysCmdLine {
                             expectedValues.push_back(token);
                         }
                     }
-                    break;
-                }
 
+                    if (error == Parser::UnknownOption)
+                        break;
+
+                    // Fallback as invalid argument case
+                }
                 case Parser::InvalidArgumentValue: {
                     const auto &arg = command->argument(errorPlaceholders[1]);
                     for (const auto &item : arg.expectedValues()) {
                         expectedValues.push_back(item);
                     }
+
+                    if (!command->hasArgument(arg.name())) // option argument?
+                        break;
 
                     // Fallback as unknown command case
                 }
@@ -240,8 +248,13 @@ namespace SysCmdLine {
                 if (std::find(expectedValues.begin(), expectedValues.end(), value) ==
                     expectedValues.end()) {
                     if (setError) {
-                        result->error = Parser::InvalidArgumentValue;
-                        result->errorPlaceholders = {value, arg->name()};
+                        if (value.front() == '-') {
+                            result->error = Parser::InvalidOptionPosition;
+                            result->errorPlaceholders = {value, arg->name()};
+                        } else {
+                            result->error = Parser::InvalidArgumentValue;
+                            result->errorPlaceholders = {value, arg->name()};
+                        }
                     }
                     return false;
                 }

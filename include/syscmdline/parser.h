@@ -33,6 +33,7 @@ namespace SysCmdLine {
             MissingCommandArgument,
             TooManyArguments,
             InvalidArgumentValue,
+            InvalidOptionPosition,
         };
 
         const Command &rootCommand() const;

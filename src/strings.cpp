@@ -14,6 +14,7 @@ namespace SysCmdLine::Strings {
         R"(Missing required argument "%1".)",
         R"(Too many arguments.)",
         R"(Invalid value "%1" of argument "%2".)",
+        R"(Invalid occurrence of option "%1", which should be argument "%2".)",
     };
 
     const char *common_strings[] = {
