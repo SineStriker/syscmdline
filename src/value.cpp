@@ -108,6 +108,20 @@ namespace SysCmdLine {
         return *this;
     }
 
+    bool Value::isEmpty() const {
+        switch (_type) {
+            case String:
+                return data.s->empty();
+            case Double:
+                return data.d == 0;
+            case Int:
+                return data.i == 0;
+            default:
+                break;
+        }
+        return true;
+    }
+
     int Value::toInt() const {
         return _type == Int ? data.i : int(toDouble());
     }
@@ -148,6 +162,37 @@ namespace SysCmdLine {
 
     bool Value::operator!=(const Value &other) const {
         return !(*this == other);
+    }
+
+    Value Value::fromString(const std::string &s, Value::Type type) {
+        Value res;
+        switch (type) {
+            case Value::Int: {
+                try {
+                    res = std::stoi(s);
+                } catch (...) {
+                }
+                break;
+            }
+
+            case Value::Double: {
+                try {
+                    res = std::stod(s);
+                } catch (...) {
+                }
+                break;
+            }
+
+            case Value::String: {
+                if (!s.empty()) {
+                    res = s;
+                }
+                break;
+            }
+            default:
+                break;
+        }
+        return res;
     }
 
 }

@@ -59,7 +59,7 @@ namespace SysCmdLine {
                 case Parser::InvalidArgumentValue: {
                     const auto &arg = command->argument(errorPlaceholders[1]);
                     for (const auto &item : arg.expectedValues()) {
-                        expectedValues.push_back(item);
+                        expectedValues.push_back(item.toString());
                     }
 
                     if (!command->hasArgument(arg.name())) // option argument?
@@ -246,21 +246,23 @@ namespace SysCmdLine {
                 const auto &d = arg->d_func();
                 const auto &expectedValues = d->expectedValues;
                 if (!expectedValues.empty()) {
-                    if (std::find(expectedValues.begin(), expectedValues.end(), token) ==
-                        expectedValues.end()) {
-                        if (setError) {
-                            if (token.front() == '-') {
-                                result->error = Parser::InvalidOptionPosition;
-                                result->errorPlaceholders = {token, arg->name()};
-                            } else {
-                                result->error = Parser::InvalidArgumentValue;
-                                result->errorPlaceholders = {token, arg->name()};
-                            }
+                    for (const auto &item : expectedValues) {
+                        auto val = Value::fromString(token, item.type());
+                        if (val == item) {
+                            *out = val;
+                            return true;
                         }
-                        return false;
                     }
-                    *out = token;
-                    return true;
+                    if (setError) {
+                        if (token.front() == '-') {
+                            result->error = Parser::InvalidOptionPosition;
+                            result->errorPlaceholders = {token, arg->name()};
+                        } else {
+                            result->error = Parser::InvalidArgumentValue;
+                            result->errorPlaceholders = {token, arg->name()};
+                        }
+                    }
+                    return false;
                 }
 
                 if (d->validator) {
@@ -274,32 +276,29 @@ namespace SysCmdLine {
                 }
 
                 const char *expected;
-                switch (d->defaultValue.type()) {
+                const auto &type = d->defaultValue.type();
+                switch (type) {
                     case Value::Int: {
                         expected = "int";
-                        try {
-                            *out = std::stoi(token);
-                        } catch (...) {
-                            break;
-                        }
-                        return true;
+                        break;
                     }
-
                     case Value::Double: {
                         expected = "double";
-                        try {
-                            *out = std::stod(token);
-                        } catch (...) {
-                            break;
-                        }
+                        break;
+                    }
+                    case Value::String: {
+                        expected = "string";
+                        break;
+                    }
+                    default: {
+                        *out = token; // no default value
                         return true;
                     }
-
-                    default:
-                        *out = token;
-                        return true;
                 }
-
+                if (auto val = Value::fromString(token, type); val.type() != Value::Null) {
+                    *out = val;
+                    return true;
+                }
                 result->error = Parser::ArgumentTypeMismatch;
                 result->errorPlaceholders = {token, arg->name(), expected};
                 return false;
@@ -313,7 +312,6 @@ namespace SysCmdLine {
 
                 // Consider option
                 if (auto opt = searchOption(token); opt) {
-                    size_t x = 0;
                     size_t max = std::min(args.size() - j - 1, opt->d_func()->arguments.size());
 
                     auto &resVec = result->optResult[opt->name()];
@@ -329,6 +327,7 @@ namespace SysCmdLine {
                     }
 
                     ParseResult::ArgResult curArgResult;
+                    size_t x = 0;
                     for (; x < max; ++x) {
                         const auto &nextToken = args[x + j + 1];
                         const auto &arg = opt->d_func()->arguments.at(x);

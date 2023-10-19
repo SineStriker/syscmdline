@@ -15,6 +15,10 @@ namespace SysCmdLine {
 
     class ParserPrivate;
 
+    class ArgumentHolder;
+
+    class ArgumentHolderData;
+
     class Command;
 
     class CommandData;
@@ -31,7 +35,7 @@ namespace SysCmdLine {
         Argument(const std::string &name, const std::string &desc, const Value &defaultValue,
                  bool required = true, const std::string &displayName = {});
         Argument(const std::string &name, const std::string &desc,
-                 const std::vector<std::string> &expectedValues, const Value &defaultValue,
+                 const std::vector<Value> &expectedValues, const Value &defaultValue,
                  bool required = true, const std::string &displayName = {});
         ~Argument();
 
@@ -43,8 +47,8 @@ namespace SysCmdLine {
         std::string displayedText() const;
 
     public:
-        const std::vector<std::string> &expectedValues() const;
-        void setExpectedValues(const std::vector<std::string> &expectedValues);
+        const std::vector<Value> &expectedValues() const;
+        void setExpectedValues(const std::vector<Value> &expectedValues);
 
         Value defaultValue() const;
         void setDefaultValue(const Value &defaultValue);
@@ -62,13 +66,13 @@ namespace SysCmdLine {
         ArgumentData *d_func();
         const ArgumentData *d_func() const;
 
+        friend class ArgumentHolder;
+        friend class ArgumentHolderData;
         friend class Command;
         friend class CommandData;
         friend class Parser;
         friend class ParserPrivate;
     };
-
-    class ArgumentHolderData;
 
     class SYSCMDLINE_EXPORT ArgumentHolder : public Symbol {
     public:

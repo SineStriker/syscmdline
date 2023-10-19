@@ -29,13 +29,16 @@ namespace SysCmdLine {
         Value &operator=(Value &&other) noexcept;
 
         inline Type type() const;
-        
+        bool isEmpty() const;
+
         int toInt() const;
         double toDouble() const;
         std::string toString() const;
 
         bool operator==(const Value &other) const;
         bool operator!=(const Value &other) const;
+
+        static Value fromString(const std::string &s, Type type);
 
     protected:
         union {

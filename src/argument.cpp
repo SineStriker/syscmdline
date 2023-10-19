@@ -7,12 +7,13 @@
 namespace SysCmdLine {
 
     ArgumentData::ArgumentData(const std::string &name, const std::string &desc,
-                               const std::vector<std::string> &expectedValues,
-                               const Value &defaultValue, bool required,
-                               const std::string &displayName, const Argument::Validator &validator)
-        : SymbolData(Symbol::ST_Argument, name, desc), expectedValues(expectedValues),
-          defaultValue(defaultValue), required(required), displayName(displayName),
-          validator(validator) {
+                               const std::vector<Value> &expectedValues, const Value &defaultValue,
+                               bool required, const std::string &displayName,
+                               const Argument::Validator &validator)
+        : SymbolData(Symbol::ST_Argument, name, desc), defaultValue(defaultValue),
+          required(required), displayName(displayName), validator(validator) {
+        if (!expectedValues.empty())
+            setExpectedValues(expectedValues);
     }
 
     ArgumentData::~ArgumentData() {
@@ -21,6 +22,15 @@ namespace SysCmdLine {
     SymbolData *ArgumentData::clone() const {
         return new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName,
                                 validator);
+    }
+
+    void ArgumentData::setExpectedValues(const std::vector<Value> &values) {
+        for (const auto &val : values) {
+            if (val.toString().empty()) {
+                throw std::runtime_error("candidate value cannot be null");
+            }
+        }
+        expectedValues = values;
     }
 
     Argument::Argument() : Argument(std::string()) {
@@ -36,7 +46,7 @@ namespace SysCmdLine {
     }
 
     Argument::Argument(const std::string &name, const std::string &desc,
-                       const std::vector<std::string> &expectedValues, const Value &defaultValue,
+                       const std::vector<Value> &expectedValues, const Value &defaultValue,
                        bool required, const std::string &displayName)
         : Symbol(new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName,
                                   {})) {
@@ -77,12 +87,12 @@ namespace SysCmdLine {
         return d->displayName;
     }
 
-    const std::vector<std::string> &Argument::expectedValues() const {
+    const std::vector<Value> &Argument::expectedValues() const {
         SYSCMDLINE_GET_CONST_DATA(Argument);
         return d->expectedValues;
     }
 
-    void Argument::setExpectedValues(const std::vector<std::string> &expectedValues) {
+    void Argument::setExpectedValues(const std::vector<Value> &expectedValues) {
         if (expectedValues == this->expectedValues())
             return;
 
@@ -172,6 +182,19 @@ namespace SysCmdLine {
             throw std::runtime_error(
                 "adding required argument after optional arguments is prohibited");
         }
+
+        // check if default value is valid
+        {
+            const auto &expectedValues = arg.d_func()->expectedValues;
+            const auto &defaultValue = arg.d_func()->defaultValue;
+            if (!expectedValues.empty() && defaultValue.type() != Value::Null &&
+                std::find(expectedValues.begin(), expectedValues.end(), defaultValue) ==
+                    expectedValues.end()) {
+                throw std::runtime_error("default value \"" + defaultValue.toString() +
+                                         "\" is not in expected values");
+            }
+        }
+
         argumentNameIndexes.insert(std::make_pair(name, arguments.size()));
         arguments.push_back(arg);
     }
