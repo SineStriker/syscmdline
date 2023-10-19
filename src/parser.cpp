@@ -241,9 +241,18 @@ namespace SysCmdLine {
             // Build case-insensitive option indexes if needed
             std::map<std::string, const Option *> lowerCaseOptionIndexes;
             if (parserOptions & Parser::IgnoreOptionCase) {
-                for (const auto &pair : std::as_const(allOptionIndexes)) {
-                    lowerCaseOptionIndexes.insert(
-                        std::make_pair(Strings::toLower(pair.first), pair.second));
+                std::map<std::string, const Option *> allOptionIndexes;
+                for (const auto &item : std::as_const(globalOptions)) {
+                    for (const auto &token : item->d_func()->tokens) {
+                        lowerCaseOptionIndexes.insert(
+                            std::make_pair(Strings::toLower(token), item));
+                    }
+                }
+                for (const auto &item : std::as_const(cmd->d_func()->options)) {
+                    for (const auto &token : item.d_func()->tokens) {
+                        lowerCaseOptionIndexes.insert(
+                            std::make_pair(Strings::toLower(token), &item));
+                    }
                 }
             }
 
@@ -691,10 +700,10 @@ namespace SysCmdLine {
         return handler(*this);
     }
 
-    int Parser::invoke(const std::vector<std::string> &args, int errorCode, int options) {
+    int Parser::invoke(const std::vector<std::string> &args, int errCode, int options) {
         if (!parse(args, options)) {
             showError();
-            return errorCode;
+            return errCode;
         }
         return invoke();
     }

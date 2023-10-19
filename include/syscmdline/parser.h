@@ -41,7 +41,7 @@ namespace SysCmdLine {
         };
 
         enum ParserOption {
-            NoParseSetting = 0,
+            Standard = 0,
             IgnoreCommandCase = 1,
             IgnoreOptionCase = 2,
         };
@@ -55,9 +55,8 @@ namespace SysCmdLine {
         bool showHelpOnError() const;
         void setShowHelpOnError(bool on);
 
-        bool parse(const std::vector<std::string> &args, int options = NoParseSetting);
-        int invoke(const std::vector<std::string> &args, int errorCode = -1,
-                   int options = NoParseSetting);
+        bool parse(const std::vector<std::string> &args, int options = Standard);
+        int invoke(const std::vector<std::string> &args, int errCode = -1, int options = Standard);
         int invoke() const;
 
         bool parsed() const;
