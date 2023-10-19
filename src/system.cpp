@@ -50,20 +50,26 @@ namespace SysCmdLine {
 
     std::string appPath() {
 #ifdef _WIN32
-        wchar_t buf[MAX_PATH];
-        if (!::GetModuleFileNameW(nullptr, buf, MAX_PATH)) {
-            return {};
+        UINT bufferSize = MAX_PATH;
+        std::vector<wchar_t> buffer(bufferSize + 1);
+        const HMODULE hModule = ::GetModuleHandleW(nullptr);
+        bufferSize = ::GetModuleFileNameW(hModule, &buffer[0], bufferSize);
+        if (bufferSize > MAX_PATH) {
+            buffer.resize(bufferSize);
+            ::GetModuleFileNameW(hModule, &buffer[0], bufferSize);
         }
-        std::wstring wstr = buf;
-        std::replace(wstr.begin(), wstr.end(), L'\\', L'/');
-        return wideToUtf8(wstr);
+        std::replace(buffer.begin(), buffer.end(), L'\\', L'/');
+        return wideToUtf8(&buffer[0]);
 #elif defined(__APPLE__)
-        char buf[PATH_MAX];
-        uint32_t size = sizeof(buf);
-        if (_NSGetExecutablePath(buf, &size) != 0) {
-            return {};
+        unsigned int bufferSize = PATH_MAX;
+        std::vector<char> buffer(bufferSize + 1);
+        // "_NSGetExecutablePath" will return "-1" if the buffer is not large enough
+        // and "*bufferSize" will be set to the size required.
+        if (_NSGetExecutablePath(&buffer[0], &bufferSize) != 0) {
+            buffer.resize(bufferSize);
+            _NSGetExecutablePath(&buffer[0], &bufferSize);
         }
-        return buf;
+        return std::string(&buffer[0]);
 #else
         char buf[PATH_MAX];
         if (!realpath("/proc/self/exe", buf)) {
