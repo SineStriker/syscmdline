@@ -46,5 +46,6 @@ int main(int argc, char *argv[]) {
     rootCommand.setHandler(routine);
 
     Parser parser(rootCommand);
+    parser.setDisplayOptions(Parser::ShowOptionalOptionsOnUsage);
     return parser.invoke(commandLineArguments(), -1, Parser::ConsiderShortFlags);
 }

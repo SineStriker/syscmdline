@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <iostream>
 
 #include "option_p.h"
 #include "strings.h"
@@ -607,7 +608,10 @@ namespace SysCmdLine {
         const auto &desc = d->detailedDescription.empty() ? d->desc : d->detailedDescription;
         if (!desc.empty()) {
             ss << Strings::common_strings[Strings::Description] << ": " << std::endl;
-            ss << Strings::INDENT << desc << std::endl;
+
+            auto lines = Strings::split<char>(desc, "\n");
+            for (const auto &line : std::as_const(lines))
+                ss << Strings::INDENT << line << std::endl;
             ss << std::endl;
         }
 
@@ -624,23 +628,28 @@ namespace SysCmdLine {
 
             // required options
             std::unordered_set<std::string> printedOptions;
-            auto printExclusiveOptions = [&](const Option &opt) {
+            auto printExclusiveOptions = [&](const Option &opt, bool needParen) {
                 auto it = d->exclusiveGroupIndexes.find(opt.name());
                 const decltype(d->exclusiveGroups.find(it->second)->second) *arr;
                 if (it == d->exclusiveGroupIndexes.end() ||
                     (arr = &d->exclusiveGroups.find(it->second)->second)->size() <= 1) {
                     ss << opt.displayedText(false);
+                    printedOptions.insert(opt.name());
                     return;
                 }
 
-                ss << "(";
+                if (needParen)
+                    ss << "(";
                 std::vector<std::string> exclusiveOptions;
                 for (const auto &item : *arr) {
                     const auto &curOpt = d->options[item];
                     exclusiveOptions.push_back(curOpt.displayedText(false));
                     printedOptions.insert(curOpt.name());
                 }
-                ss << Strings::join<char>(exclusiveOptions, " | ") << ")";
+
+                ss << Strings::join<char>(exclusiveOptions, " | ");
+                if (needParen)
+                    ss << ")";
             };
 
             if (!(parserOptions & Parser::DontShowRequiredOptionsOnUsage)) {
@@ -654,15 +663,12 @@ namespace SysCmdLine {
 
                     // check exclusive
                     ss << " ";
-                    printExclusiveOptions(opt);
+                    printExclusiveOptions(opt, true);
                 }
             }
 
             if ((parserOptions & Parser::ShowOptionalOptionsOnUsage) &&
                 printedOptions.size() < options.size()) {
-                ss << " [";
-
-                bool first = true;
                 for (const auto &opt : options) {
                     if (opt.isRequired()) {
                         continue;
@@ -672,14 +678,10 @@ namespace SysCmdLine {
                         continue;
 
                     // check exclusive
-                    if (first) {
-                        first = false;
-                        ss << " ";
-                    }
-                    printExclusiveOptions(opt);
+                    ss << " [";
+                    printExclusiveOptions(opt, false);
+                    ss << "]";
                 }
-
-                ss << "]";
             }
 
             // arguments
