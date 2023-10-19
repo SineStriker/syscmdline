@@ -2,12 +2,12 @@
 #define GLOBAL_H
 
 // Export define
-#ifdef _WIN32
+#ifdef _MSC_VER
 #  define SYSCMDLINE_DECL_EXPORT __declspec(dllexport)
 #  define SYSCMDLINE_DECL_IMPORT __declspec(dllimport)
 #else
-#  define SYSCMDLINE_DECL_EXPORT
-#  define SYSCMDLINE_DECL_IMPORT
+#  define SYSCMDLINE_DECL_EXPORT __attribute__((visibility("default")))
+#  define SYSCMDLINE_DECL_IMPORT __attribute__((visibility("default")))
 #endif
 
 #ifdef SYSCMDLINE_STATIC
