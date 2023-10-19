@@ -2,6 +2,7 @@
 #define VALUE_H
 
 #include <string>
+#include <vector>
 
 #include <syscmdline/global.h>
 
@@ -39,6 +40,7 @@ namespace SysCmdLine {
         bool operator!=(const Value &other) const;
 
         static Value fromString(const std::string &s, Type type);
+        static std::vector<std::string> toStringList(const std::vector<Value> &values);
 
     protected:
         union {

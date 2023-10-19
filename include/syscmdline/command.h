@@ -52,6 +52,8 @@ namespace SysCmdLine {
         Command &operator=(const Command &other);
         Command &operator=(Command &&other) noexcept;
 
+        std::string displayedArguments() const override;
+
     public:
         Command command(const std::string &name) const;
         Command command(int index) const;
@@ -73,6 +75,9 @@ namespace SysCmdLine {
 
         std::string detailedDescription() const;
         void setDetailedDescription(const std::string &detailedDescription);
+
+        bool multipleArgumentsEnabled() const;
+        void setMultipleArgumentsEnabled(bool on);
 
         void addVersionOption(const std::string &ver, const std::vector<std::string> &tokens = {});
         void addHelpOption(bool showHelpIfNoArg = false, bool global = false,

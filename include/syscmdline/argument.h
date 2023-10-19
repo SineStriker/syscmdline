@@ -78,7 +78,7 @@ namespace SysCmdLine {
     public:
         ~ArgumentHolder();
 
-        std::string displayedArguments() const;
+        virtual std::string displayedArguments() const;
 
     public:
         Argument argument(const std::string &name) const;

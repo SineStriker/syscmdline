@@ -111,10 +111,11 @@ namespace SysCmdLine {
                              const std::vector<Command> &subCommands,
                              const std::vector<Argument> &args, const std::string &version,
                              const std::string &detailedDescription, bool showHelpIfNoArg,
-                             const Command::Handler &handler, const CommandCatalogue &catalogue)
+                             bool multipleArguments, const Command::Handler &handler,
+                             const CommandCatalogue &catalogue)
         : ArgumentHolderData(Symbol::ST_Command, name, desc, args), version(version),
           detailedDescription(detailedDescription), showHelpIfNoArg(showHelpIfNoArg),
-          handler(handler), catalogue(catalogue) {
+          multipleArguments(multipleArguments), handler(handler), catalogue(catalogue) {
         if (!options.empty())
             setOptions(options);
         if (!subCommands.empty())
@@ -125,7 +126,8 @@ namespace SysCmdLine {
 
     SymbolData *CommandData::clone() const {
         return new CommandData(name, desc, options, subCommands, arguments, version,
-                               detailedDescription, showHelpIfNoArg, handler, catalogue);
+                               detailedDescription, showHelpIfNoArg, multipleArguments, handler,
+                               catalogue);
     }
 
     void CommandData::setCommands(const std::vector<Command> &commands) {
@@ -172,7 +174,7 @@ namespace SysCmdLine {
         if (name.empty()) {
             throw std::runtime_error("null option name");
         }
-        if (name == "-" || name == "--") {
+        if (name == "-" || name == "--" || name == "/") {
             throw std::runtime_error("invalid option name \"" + name + "\"");
         }
         if (optionNameIndexes.count(name)) {
@@ -181,7 +183,7 @@ namespace SysCmdLine {
 
         Option newOption = option;
         if (std::as_const(newOption).d_func()->tokens.empty()) {
-            if (name.front() == '-') {
+            if (name.front() == '-' || name.front() == '/') {
                 newOption.setToken(name);
             } else {
                 if (name.size() == 1) {
@@ -215,7 +217,7 @@ namespace SysCmdLine {
                      const std::vector<Argument> &args, const std::string &detailedDescription,
                      const Command::Handler &handler)
         : ArgumentHolder(new CommandData(name, desc, options, subCommands, args, {},
-                                         detailedDescription, false, handler, {})) {
+                                         detailedDescription, false, false, handler, {})) {
     }
 
     Command::~Command() {
@@ -243,6 +245,43 @@ namespace SysCmdLine {
         }
         d_ptr.swap(other.d_ptr);
         return *this;
+    }
+
+    std::string Command::displayedArguments() const {
+        SYSCMDLINE_GET_CONST_DATA(Command);
+        auto &_arguments = d->arguments;
+
+        std::stringstream ss;
+
+        std::string::size_type optionalIdx = _arguments.size();
+        for (std::string::size_type i = 0; i < _arguments.size(); ++i) {
+            if (!_arguments.at(i).isRequired()) {
+                optionalIdx = i;
+                break;
+            }
+        }
+
+        if (optionalIdx > 0) {
+            for (std::string::size_type i = 0; i < optionalIdx - 1; ++i) {
+                ss << _arguments[i].displayedText() << " ";
+            }
+            ss << _arguments[optionalIdx - 1].displayedText();
+        }
+
+        if (optionalIdx < _arguments.size()) {
+            ss << " [";
+            for (std::string::size_type i = optionalIdx; i < _arguments.size() - 1; ++i) {
+                ss << _arguments[i].displayedText() << " ";
+            }
+            ss << _arguments[_arguments.size() - 1].displayedText();
+            if (d->multipleArguments)
+                ss << "...";
+            ss << "]";
+        } else if (d->multipleArguments) {
+            ss << "...";
+        }
+
+        return ss.str();
     }
 
     Command Command::command(const std::string &name) const {
@@ -382,6 +421,19 @@ namespace SysCmdLine {
         return d->version;
     }
 
+    bool Command::multipleArgumentsEnabled() const {
+        SYSCMDLINE_GET_CONST_DATA(Command);
+        return d->multipleArguments;
+    }
+
+    void Command::setMultipleArgumentsEnabled(bool on) {
+        if (on == multipleArgumentsEnabled())
+            return;
+
+        SYSCMDLINE_GET_DATA(Command);
+        d->multipleArguments = on;
+    }
+
     void Command::addVersionOption(const std::string &ver, const std::vector<std::string> &tokens) {
         SYSCMDLINE_GET_DATA(Command);
         d->version = ver;
@@ -413,8 +465,16 @@ namespace SysCmdLine {
 
         ss << title << ": " << std::endl;
         for (const auto &item : contents) {
+            auto lines = Strings::split<char>(item.second, "\n");
+            if (lines.empty())
+                lines.emplace_back();
+
             ss << Strings::INDENT << std::left << std::setw(widest) << item.first << Strings::INDENT
-               << item.second << std::endl;
+               << lines.front() << std::endl;
+            for (int i = 1; i < lines.size(); ++i) {
+                ss << Strings::INDENT << std::left << std::setw(widest) << " " << Strings::INDENT
+                   << lines.at(i) << std::endl;
+            }
         }
     }
 
@@ -531,7 +591,7 @@ namespace SysCmdLine {
             collectItems(
                 ss, dd->_arg, dd->_argIndexes, d->arguments, d->argumentNameIndexes,
                 Strings::common_strings[Strings::Arguments],
-                [](const Argument &arg) { return arg.name(); },
+                [](const Argument &arg) { return arg.displayedText(); },
                 [](const Argument &arg) { return arg.description(); });
         }
 

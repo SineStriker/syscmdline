@@ -24,7 +24,7 @@ namespace SysCmdLine {
 
         using ArgResult = std::unordered_map<std::string, Value>;
 
-        ArgResult argResult;
+        std::unordered_map<std::string, std::vector<Value>> argResult;
         std::unordered_map<std::string, std::vector<ArgResult>> optResult;
 
         bool versionSet;
@@ -419,20 +419,32 @@ namespace SysCmdLine {
                 {
                     const auto &cmdArgs = cmd->d_func()->arguments;
                     if (k == cmdArgs.size()) {
-                        if (token.front() == '-') {
-                            result->error = Parser::UnknownOption;
+                        // Too many
+                        if (cmdArgs.empty() || !cmd->multipleArgumentsEnabled()) {
+                            if (token.front() == '-') {
+                                result->error = Parser::UnknownOption;
+                                result->errorPlaceholders = {token};
+                                break;
+                            }
+
+                            if (cmdArgs.empty()) {
+                                result->error = Parser::TooManyArguments;
+                                break;
+                            }
+
+                            result->error = Parser::UnknownCommand;
                             result->errorPlaceholders = {token};
                             break;
                         }
 
-                        if (cmdArgs.empty()) {
-                            result->error = Parser::TooManyArguments;
+                        // Consider multiple arguments
+                        const auto &arg = cmdArgs.back();
+                        Value val;
+                        if (!checkArgument(&arg, token, &val)) {
                             break;
                         }
-
-                        result->error = Parser::UnknownCommand;
-                        result->errorPlaceholders = {token};
-                        break;
+                        result->argResult[arg.name()].push_back(val);
+                        continue;
                     }
 
                     const auto &arg = cmdArgs.at(k);
@@ -440,7 +452,7 @@ namespace SysCmdLine {
                     if (!checkArgument(&arg, token, &val)) {
                         break;
                     }
-                    result->argResult.insert(std::make_pair(arg.name(), val));
+                    result->argResult[arg.name()].push_back(val);
                     k++;
                 }
             }
@@ -687,10 +699,18 @@ namespace SysCmdLine {
 
     Value Parser::valueForArgument(const std::string &argName) const {
         d->checkResult();
-
         auto it = d->result->argResult.find(argName);
         if (it == d->result->argResult.end()) {
             return d->getDefaultResult(d->result->command, argName);
+        }
+        return it->second.front();
+    }
+
+    std::vector<Value> Parser::valuesForArgument(const std::string &argName) const {
+        d->checkResult();
+        auto it = d->result->argResult.find(argName);
+        if (it == d->result->argResult.end()) {
+            return {};
         }
         return it->second;
     }

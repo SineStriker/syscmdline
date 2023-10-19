@@ -40,8 +40,8 @@ namespace SysCmdLine {
             if (token.empty()) {
                 throw std::runtime_error("empty token");
             }
-            if (token.front() != '-') {
-                throw std::runtime_error("token must start with \"-\"");
+            if (token.front() != '-' && token.front() != '/') {
+                throw std::runtime_error(R"(token must start with "-" or "/")");
             }
             _tokens.push_back(token);
         }

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "value.h"
 
 namespace SysCmdLine {
@@ -200,6 +201,14 @@ namespace SysCmdLine {
             default:
                 break;
         }
+        return res;
+    }
+
+    std::vector<std::string> Value::toStringList(const std::vector<Value> &values) {
+        std::vector<std::string> res(values.size());
+        std::transform(values.begin(), values.end(), res.begin(), [](const Value &val) {
+            return val.toString(); //
+        });
         return res;
     }
 

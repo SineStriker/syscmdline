@@ -69,6 +69,8 @@ namespace SysCmdLine {
     public:
         inline Value valueForArgument(const Argument &arg) const;
         Value valueForArgument(const std::string &argName) const;
+        inline std::vector<Value> valuesForArgument(const Argument &arg) const;
+        std::vector<Value> valuesForArgument(const std::string &argName) const;
 
         inline int optionCount(const Option &opt) const;
         int optionCount(const std::string &optName) const;
@@ -94,6 +96,10 @@ namespace SysCmdLine {
 
     inline Value Parser::valueForArgument(const Argument &arg) const {
         return valueForArgument(arg.name());
+    }
+
+    inline std::vector<Value> Parser::valuesForArgument(const Argument &arg) const {
+        return valuesForArgument(arg.name());
     }
 
     inline int Parser::optionCount(const Option &opt) const {

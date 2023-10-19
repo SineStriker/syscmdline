@@ -22,17 +22,19 @@ namespace SysCmdLine {
         if (utf16Str.empty()) {
             return {};
         }
-        const auto utf16Length = static_cast<int>(utf16Str.length());
+        const auto utf16Length = static_cast<int>(utf16Str.size());
         if (utf16Length >= (std::numeric_limits<int>::max)()) {
             return {};
         }
-        const int utf8Length = ::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, utf16Str.data(), utf16Length, nullptr, 0, nullptr, nullptr);
+        const int utf8Length = ::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, utf16Str.data(),
+                                                     utf16Length, nullptr, 0, nullptr, nullptr);
         if (utf8Length <= 0) {
             return {};
         }
         std::string utf8Str;
         utf8Str.resize(utf8Length);
-        ::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, utf16Str.data(), utf16Length, &utf8Str[0], utf8Length, nullptr, nullptr);
+        ::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, utf16Str.data(), utf16Length,
+                              &utf8Str[0], utf8Length, nullptr, nullptr);
         return utf8Str;
 #else
         return std::filesystem::path(s).string();
@@ -44,17 +46,19 @@ namespace SysCmdLine {
         if (utf8Str.empty()) {
             return {};
         }
-        const auto utf8Length = static_cast<int>(utf8Str.length());
+        const auto utf8Length = static_cast<int>(utf8Str.size());
         if (utf8Length >= (std::numeric_limits<int>::max)()) {
             return {};
         }
-        const int utf16Length = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8Str.data(), utf8Length, nullptr, 0);
+        const int utf16Length = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8Str.data(),
+                                                      utf8Length, nullptr, 0);
         if (utf16Length <= 0) {
             return {};
         }
         std::wstring utf16Str;
         utf16Str.resize(utf16Length);
-        ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8Str.data(), utf8Length, &utf16Str[0], utf16Length);
+        ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8Str.data(), utf8Length,
+                              &utf16Str[0], utf16Length);
         return utf16Str;
 #else
         return std::filesystem::path(s).wstring();
