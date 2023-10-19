@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
         cpuOnlyOption,
         deviceIndexOption,
     });
+
     rootCommand.addVersionOption("0.0.0.1");
     rootCommand.addHelpOption(true);
     rootCommand.setHandler(routine);

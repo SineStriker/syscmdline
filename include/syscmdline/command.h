@@ -41,7 +41,7 @@ namespace SysCmdLine {
 
         Command();
         Command(const std::string &name, const std::string &desc = {},
-                const std::vector<Option> &options = {},
+                const std::vector<std::pair<Option, int>> &options = {},
                 const std::vector<Command> &subCommands = {},
                 const std::vector<Argument> &args = {}, const std::string &detailedDescription = {},
                 const Handler &handler = {});
@@ -70,8 +70,12 @@ namespace SysCmdLine {
         int indexOfOption(const std::string &name) const;
         bool hasOption(const std::string &name) const;
         bool hasOptionToken(const std::string &token) const;
-        void addOption(const Option &option);
+        void addOption(const Option &option, int exclusiveGroup = -1);
         void setOptions(const std::vector<Option> &options);
+        void setOptions(const std::vector<std::pair<Option, int /* exclusiveGroup */>> &options);
+
+        std::vector<int> exclusiveGroups() const;
+        std::vector<Option> exclusiveGroupOptions(int group) const;
 
         std::string detailedDescription() const;
         void setDetailedDescription(const std::string &detailedDescription);
@@ -91,7 +95,8 @@ namespace SysCmdLine {
 
         std::string version() const;
         std::string helpText(const std::vector<std::string> &cmd = {},
-                             const std::vector<const Option *> &globalOptions = {}) const;
+                             const std::vector<const Option *> &globalOptions = {},
+                             int parserOptions = 0) const;
 
     protected:
         CommandData *d_func();

@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <iostream>
+#include <regex>
 
 #include "strings.h"
 #include "system.h"
@@ -98,9 +99,9 @@ namespace SysCmdLine {
         Command rootCommand;
         std::string texts[2];
         ParseResult *result;
-        bool showHelpOnError;
+        int displayOptions;
 
-        ParserPrivate() : result(nullptr), showHelpOnError(true) {
+        ParserPrivate() : result(nullptr), displayOptions(Parser::Normal) {
         }
 
         ~ParserPrivate() {
@@ -241,7 +242,6 @@ namespace SysCmdLine {
             // Build case-insensitive option indexes if needed
             std::map<std::string, const Option *> lowerCaseOptionIndexes;
             if (parserOptions & Parser::IgnoreOptionCase) {
-                std::map<std::string, const Option *> allOptionIndexes;
                 for (const auto &item : std::as_const(globalOptions)) {
                     for (const auto &token : item->d_func()->tokens) {
                         lowerCaseOptionIndexes.insert(
@@ -282,7 +282,7 @@ namespace SysCmdLine {
                 }
 
                 const auto &prefix = it->first;
-                if (it != indexes.end() && token.find(prefix) == 0) {
+                if (it != indexes.end() && Strings::starts_with(token, prefix)) {
                     const auto &opt = it->second;
                     const auto &args = opt->d_func()->arguments;
                     if (args.size() != 1 || !args.front().isRequired()) {
@@ -313,6 +313,24 @@ namespace SysCmdLine {
                     return searchOptionImpl(lowerCaseOptionIndexes, Strings::toLower(token), pos);
                 }
                 return nullptr;
+            };
+
+            auto searchShortFlagOption =
+                [&](const std::string &flags) -> std::vector<const Option *> {
+                std::vector<const Option *> res;
+                for (const auto &flag : flags) {
+                    auto it = allOptionIndexes.find(std::string("-") + flag);
+                    if (it == allOptionIndexes.end()) {
+                        return {};
+                    }
+                    const auto &opt = it->second;
+                    const auto &d = opt->d_func();
+                    if (!d->arguments.empty()) {
+                        return {};
+                    }
+                    res.push_back(opt);
+                }
+                return res;
             };
 
             auto checkArgument = [&](const Argument *arg, const std::string &token, Value *out,
@@ -378,6 +396,61 @@ namespace SysCmdLine {
                 return false;
             };
 
+            std::unordered_map<int, const Option *> encounteredExclusiveGroups;
+            auto searchExclusiveOption = [&](const Option *opt,
+                                             int *outGroup = nullptr) -> const Option * {
+                if (outGroup) {
+                    *outGroup = -1;
+                }
+
+                const auto &map = cmd->d_func()->exclusiveGroupIndexes;
+                auto it = map.find(opt->name());
+                if (it != map.end()) {
+                    const auto &group = it->second;
+                    if (outGroup) {
+                        *outGroup = group;
+                    }
+
+                    auto it2 = encounteredExclusiveGroups.find(group);
+                    if (it2 != encounteredExclusiveGroups.end()) {
+                        return it2->second;
+                    }
+                }
+                return nullptr;
+            };
+
+            auto checkOptionCommon =
+                [&](const Option *opt, const std::vector<ParseResult::ArgResult> &resVec) -> bool {
+                // Check max occurrence
+                if (opt->maxOccurrence() > 0 && resVec.size() == opt->maxOccurrence()) {
+                    result->error = Parser::OptionOccurTooMuch;
+                    result->errorPlaceholders = {
+                        opt->displayedTokens(),
+                        std::to_string(opt->maxOccurrence()),
+                    };
+                    return false;
+                }
+
+                // Check exclusive
+                {
+                    int group;
+                    const auto &exclusiveOpt = searchExclusiveOption(opt, &group);
+                    if (exclusiveOpt) {
+                        result->error = Parser::MutuallyExclusiveOptions;
+                        result->errorPlaceholders = {
+                            exclusiveOpt->displayedText(),
+                            opt->displayedText(),
+                        };
+                        return false;
+                    }
+
+                    // Note current option
+                    if (group >= 0)
+                        encounteredExclusiveGroups.insert(std::make_pair(group, opt));
+                }
+                return true;
+            };
+
             // Parse options
             size_t k = 0;
             Option::PriorLevel priorLevel = Option::NoPrior;
@@ -403,13 +476,8 @@ namespace SysCmdLine {
                         x = 1;
                     }
 
-                    // Check max occurrence
-                    if (opt->maxOccurrence() > 0 && resVec.size() == opt->maxOccurrence()) {
-                        result->error = Parser::OptionOccurTooMuch;
-                        result->errorPlaceholders = {
-                            opt->displayedTokens(),
-                            std::to_string(opt->maxOccurrence()),
-                        };
+                    // Check option common
+                    if (!checkOptionCommon(opt, resVec)) {
                         break;
                     }
 
@@ -463,6 +531,29 @@ namespace SysCmdLine {
                     priorLevel = std::max(priorLevel, opt->priorLevel());
                     j = start - 1 + x;
                     continue;
+                }
+
+                // Consider short flags
+                if ((parserOptions & Parser::ConsiderShortFlags) &&
+                    std::regex_match(token, std::regex("^-[a-zA-Z]+$"))) {
+                    auto opts = searchShortFlagOption(token.substr(1));
+                    if (!opts.empty()) {
+                        bool failed = false;
+                        for (const auto &opt : std::as_const(opts)) {
+                            auto &resVec = result->optResult[opt->name()];
+                            // Check option common
+                            if (!checkOptionCommon(opt, resVec)) {
+                                failed = true;
+                                break;
+                            }
+                            resVec.emplace_back();
+                        }
+
+                        if (failed) {
+                            break;
+                        }
+                        continue;
+                    }
                 }
 
                 // Consider argument
@@ -527,7 +618,8 @@ namespace SysCmdLine {
                     // Required options
                     const Option *missingOpt = nullptr;
                     for (const auto &opt : cmd->d_func()->options) {
-                        if (opt.isRequired() && !result->optResult.count(opt.name())) {
+                        if (opt.isRequired() && !searchExclusiveOption(&opt) &&
+                            !result->optResult.count(opt.name())) {
                             missingOpt = &opt;
                             break;
                         }
@@ -614,7 +706,8 @@ namespace SysCmdLine {
                 u8printf("\n");
             }
 
-            u8printf("%s", p->helpText(parentCommands, result->globalOptions).data());
+            u8printf("%s",
+                     p->helpText(parentCommands, result->globalOptions, displayOptions).data());
 
             if (!texts[Parser::Bottom].empty()) {
                 u8printf("\n%s\n", texts[Parser::Bottom].data());
@@ -658,12 +751,12 @@ namespace SysCmdLine {
         d->texts[side] = text;
     }
 
-    bool Parser::showHelpOnError() const {
-        return d->showHelpOnError;
+    int Parser::displayOptions() const {
+        return d->displayOptions;
     }
 
-    void Parser::setShowHelpOnError(bool on) {
-        d->showHelpOnError = on;
+    void Parser::setDisplayOptions(int options) {
+        d->displayOptions = options;
     }
 
     bool Parser::parse(const std::vector<std::string> &args, int options) {
@@ -860,14 +953,20 @@ namespace SysCmdLine {
         if (!d->result)
             return;
 
+        if (d->result->error == NoError)
+            return;
+
         auto errCallback = [this]() {
-            if (auto correction = d->result->correctionText(); !correction.empty()) {
-                u8printf("%s", correction.data());
+            if (!(d->displayOptions & SkipCorrection)) {
+                if (auto correction = d->result->correctionText(); !correction.empty()) {
+                    u8printf("%s", correction.data());
+                }
             }
             u8error("%s: %s\n", Strings::common_strings[Strings::Error], errorText().data());
         };
 
-        if (d->showHelpOnError && d->result->command->d_func()->optionNameIndexes.count("help")) {
+        if (!(d->displayOptions & DontShowHelpOnError) &&
+            d->result->command->d_func()->optionNameIndexes.count("help")) {
             d->showHelp(errCallback);
         } else {
             errCallback();

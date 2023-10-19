@@ -5,34 +5,24 @@
 #include <stdexcept>
 #include <sstream>
 #include <iomanip>
-#include <unordered_set>
+#include <algorithm>
 
 #include "option_p.h"
 #include "strings.h"
+#include "parser.h"
 
 namespace SysCmdLine {
 
-    class CommandCatalogueData : public SharedData {
-    public:
-        std::vector<std::unordered_set<std::string>> _arg;
-        std::vector<std::unordered_set<std::string>> _opt;
-        std::vector<std::unordered_set<std::string>> _cmd;
-
-        std::unordered_map<std::string, size_t> _argIndexes;
-        std::unordered_map<std::string, size_t> _optIndexes;
-        std::unordered_map<std::string, size_t> _cmdIndexes;
-
-        CommandCatalogueData *clone() const {
-            auto cc = new CommandCatalogueData();
-            cc->_arg = _arg;
-            cc->_opt = _opt;
-            cc->_cmd = _cmd;
-            cc->_argIndexes = _argIndexes;
-            cc->_optIndexes = _optIndexes;
-            cc->_cmdIndexes = _cmdIndexes;
-            return cc;
-        }
-    };
+    CommandCatalogueData *CommandCatalogueData::clone() const {
+        auto cc = new CommandCatalogueData();
+        cc->_arg = _arg;
+        cc->_opt = _opt;
+        cc->_cmd = _cmd;
+        cc->_argIndexes = _argIndexes;
+        cc->_optIndexes = _optIndexes;
+        cc->_cmdIndexes = _cmdIndexes;
+        return cc;
+    }
 
     CommandCatalogue::CommandCatalogue() : d(new CommandCatalogueData()) {
     }
@@ -107,7 +97,7 @@ namespace SysCmdLine {
     }
 
     CommandData::CommandData(const std::string &name, const std::string &desc,
-                             const std::vector<Option> &options,
+                             const std::vector<std::pair<Option, int>> &options,
                              const std::vector<Command> &subCommands,
                              const std::vector<Argument> &args, const std::string &version,
                              const std::string &detailedDescription, bool showHelpIfNoArg,
@@ -125,7 +115,13 @@ namespace SysCmdLine {
     }
 
     SymbolData *CommandData::clone() const {
-        return new CommandData(name, desc, options, subCommands, arguments, version,
+        std::vector<std::pair<Option, int>> _options;
+        _options.reserve(options.size());
+        for (const auto &opt : options) {
+            auto it = exclusiveGroupIndexes.find(opt.name());
+            _options.emplace_back(opt, it == exclusiveGroupIndexes.end() ? -1 : it->second);
+        }
+        return new CommandData(name, desc, _options, subCommands, arguments, version,
                                detailedDescription, showHelpIfNoArg, multipleArguments, handler,
                                catalogue);
     }
@@ -147,6 +143,8 @@ namespace SysCmdLine {
         options.clear();
         optionNameIndexes.clear();
         optionTokenIndexes.clear();
+        exclusiveGroups.clear();
+        exclusiveGroupIndexes.clear();
         if (opts.empty())
             return;
 
@@ -154,6 +152,22 @@ namespace SysCmdLine {
         optionNameIndexes.reserve(opts.size());
         for (const auto &opt : opts) {
             addOption(opt);
+        }
+    }
+
+    void CommandData::setOptions(const std::vector<std::pair<Option, int>> &opts) {
+        options.clear();
+        optionNameIndexes.clear();
+        optionTokenIndexes.clear();
+        exclusiveGroups.clear();
+        exclusiveGroupIndexes.clear();
+        if (opts.empty())
+            return;
+
+        options.reserve(opts.size());
+        optionNameIndexes.reserve(opts.size());
+        for (const auto &pair : opts) {
+            addOption(pair.first, pair.second);
         }
     }
 
@@ -169,7 +183,7 @@ namespace SysCmdLine {
         subCommands.push_back(command);
     }
 
-    void CommandData::addOption(const Option &option) {
+    void CommandData::addOption(const Option &option, int exclusiveGroup) {
         const auto &name = option.name();
         if (name.empty()) {
             throw std::runtime_error("null option name");
@@ -201,11 +215,32 @@ namespace SysCmdLine {
             }
         }
 
+        if (exclusiveGroup >= 0 && newOption.isGlobal()) {
+            throw std::runtime_error("global option \"" + name +
+                                     "\" cannot be in any exclusive group");
+        }
+
         auto last = options.size();
         optionNameIndexes.insert(std::make_pair(name, last));
         options.push_back(newOption);
         for (const auto &token : d->tokens) {
             optionTokenIndexes.insert(std::make_pair(token, last));
+        }
+
+        // Add exclusive group
+        if (exclusiveGroup >= 0) {
+            auto it = exclusiveGroups.find(exclusiveGroup);
+            if (it == exclusiveGroups.end()) {
+                exclusiveGroups.insert(std::make_pair(exclusiveGroup, std::vector<size_t>{last}));
+            } else if (options[it->second.front()].isRequired() != newOption.isRequired()) {
+                throw std::runtime_error("option \"" + name + "\" is " +
+                                         (newOption.isRequired() ? "required" : "optional") +
+                                         ", but exclusive group " + std::to_string(exclusiveGroup) +
+                                         " isn't");
+            } else {
+                it->second.push_back(last);
+            }
+            exclusiveGroupIndexes.insert(std::make_pair(name, exclusiveGroup));
         }
     }
 
@@ -213,9 +248,9 @@ namespace SysCmdLine {
     }
 
     Command::Command(const std::string &name, const std::string &desc,
-                     const std::vector<Option> &options, const std::vector<Command> &subCommands,
-                     const std::vector<Argument> &args, const std::string &detailedDescription,
-                     const Command::Handler &handler)
+                     const std::vector<std::pair<Option, int>> &options,
+                     const std::vector<Command> &subCommands, const std::vector<Argument> &args,
+                     const std::string &detailedDescription, const Command::Handler &handler)
         : ArgumentHolder(new CommandData(name, desc, options, subCommands, args, {},
                                          detailedDescription, false, false, handler, {})) {
     }
@@ -373,14 +408,42 @@ namespace SysCmdLine {
         return d->optionTokenIndexes.count(token);
     }
 
-    void Command::addOption(const Option &option) {
+    void Command::addOption(const Option &option, int exclusiveGroup) {
         SYSCMDLINE_GET_DATA(Command);
-        d->addOption(option);
+        d->addOption(option, exclusiveGroup);
     }
 
     void Command::setOptions(const std::vector<Option> &options) {
         SYSCMDLINE_GET_DATA(Command);
         d->setOptions(options);
+    }
+
+    void Command::setOptions(const std::vector<std::pair<Option, int>> &options) {
+        SYSCMDLINE_GET_DATA(Command);
+        d->setOptions(options);
+    }
+
+    std::vector<int> Command::exclusiveGroups() const {
+        SYSCMDLINE_GET_CONST_DATA(Command);
+        std::set<int> groups;
+        for (const auto &item : d->exclusiveGroups) {
+            groups.insert(item.first);
+        }
+        return {groups.begin(), groups.end()};
+    }
+
+    std::vector<Option> Command::exclusiveGroupOptions(int group) const {
+        SYSCMDLINE_GET_CONST_DATA(Command);
+        auto it = d->exclusiveGroups.find(group);
+        if (it == d->exclusiveGroups.end())
+            return {};
+
+        std::vector<Option> res;
+        res.reserve(it->second.size());
+        for (const auto &item : it->second) {
+            res.push_back(d->options.at(item));
+        }
+        return res;
     }
 
     std::string Command::detailedDescription() const {
@@ -394,6 +457,19 @@ namespace SysCmdLine {
 
         SYSCMDLINE_GET_DATA(Command);
         d->detailedDescription = detailedDescription;
+    }
+
+    bool Command::multipleArgumentsEnabled() const {
+        SYSCMDLINE_GET_CONST_DATA(Command);
+        return d->multipleArguments;
+    }
+
+    void Command::setMultipleArgumentsEnabled(bool on) {
+        if (on == multipleArgumentsEnabled())
+            return;
+
+        SYSCMDLINE_GET_DATA(Command);
+        d->multipleArguments = on;
     }
 
     Command::Handler Command::handler() const {
@@ -419,19 +495,6 @@ namespace SysCmdLine {
     std::string Command::version() const {
         SYSCMDLINE_GET_CONST_DATA(Command);
         return d->version;
-    }
-
-    bool Command::multipleArgumentsEnabled() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
-        return d->multipleArguments;
-    }
-
-    void Command::setMultipleArgumentsEnabled(bool on) {
-        if (on == multipleArgumentsEnabled())
-            return;
-
-        SYSCMDLINE_GET_DATA(Command);
-        d->multipleArguments = on;
     }
 
     void Command::addVersionOption(const std::string &ver, const std::vector<std::string> &tokens) {
@@ -522,7 +585,8 @@ namespace SysCmdLine {
     }
 
     std::string Command::helpText(const std::vector<std::string> &parentCommands,
-                                  const std::vector<const Option *> &globalOptions) const {
+                                  const std::vector<const Option *> &globalOptions,
+                                  int parserOptions) const {
         SYSCMDLINE_GET_CONST_DATA(Command);
         const auto &dd = d->catalogue.d.constData();
 
@@ -558,19 +622,69 @@ namespace SysCmdLine {
             // name
             ss << d->name;
 
+            // required options
+            std::unordered_set<std::string> printedOptions;
+            auto printExclusiveOptions = [&](const Option &opt) {
+                auto it = d->exclusiveGroupIndexes.find(opt.name());
+                const decltype(d->exclusiveGroups.find(it->second)->second) *arr;
+                if (it == d->exclusiveGroupIndexes.end() ||
+                    (arr = &d->exclusiveGroups.find(it->second)->second)->size() <= 1) {
+                    ss << opt.displayedText(false);
+                    return;
+                }
+
+                ss << "(";
+                std::vector<std::string> exclusiveOptions;
+                for (const auto &item : *arr) {
+                    const auto &curOpt = d->options[item];
+                    exclusiveOptions.push_back(curOpt.displayedText(false));
+                    printedOptions.insert(curOpt.name());
+                }
+                ss << Strings::join<char>(exclusiveOptions, " | ") << ")";
+            };
+
+            if (!(parserOptions & Parser::DontShowRequiredOptionsOnUsage)) {
+                for (const auto &opt : options) {
+                    if (!opt.isRequired()) {
+                        continue;
+                    }
+
+                    if (printedOptions.count(opt.name()))
+                        continue;
+
+                    // check exclusive
+                    ss << " ";
+                    printExclusiveOptions(opt);
+                }
+            }
+
+            if ((parserOptions & Parser::ShowOptionalOptionsOnUsage) &&
+                printedOptions.size() < options.size()) {
+                ss << " [";
+
+                bool first = true;
+                for (const auto &opt : options) {
+                    if (opt.isRequired()) {
+                        continue;
+                    }
+
+                    if (printedOptions.count(opt.name()))
+                        continue;
+
+                    // check exclusive
+                    if (first) {
+                        first = false;
+                        ss << " ";
+                    }
+                    printExclusiveOptions(opt);
+                }
+
+                ss << "]";
+            }
+
             // arguments
             if (!d->arguments.empty()) {
                 ss << " " << displayedArguments();
-            }
-
-            // required options
-            size_t requiredCount = 0;
-            for (const auto &opt : options) {
-                if (!opt.isRequired()) {
-                    continue;
-                }
-                requiredCount++;
-                ss << " " << opt.displayedText(false);
             }
 
             // command
@@ -579,7 +693,7 @@ namespace SysCmdLine {
             }
 
             // options
-            if (requiredCount < options.size() || !d->subCommands.empty()) {
+            if (printedOptions.size() < options.size() || !d->subCommands.empty()) {
                 ss << " [options]";
             }
 

@@ -38,12 +38,22 @@ namespace SysCmdLine {
             OptionOccurTooMuch,
             ArgumentTypeMismatch,
             ArgumentValidateFailed,
+            MutuallyExclusiveOptions,
         };
 
         enum ParserOption {
             Standard = 0,
             IgnoreCommandCase = 1,
             IgnoreOptionCase = 2,
+            ConsiderShortFlags = 4,
+        };
+
+        enum DisplayOption {
+            Normal = 0,
+            DontShowHelpOnError = 1,
+            SkipCorrection = 2,
+            DontShowRequiredOptionsOnUsage = 4,
+            ShowOptionalOptionsOnUsage = 8,
         };
 
         Command rootCommand() const;
@@ -52,8 +62,8 @@ namespace SysCmdLine {
         std::string text(Side side) const;
         void setText(Side side, const std::string &text);
 
-        bool showHelpOnError() const;
-        void setShowHelpOnError(bool on);
+        int displayOptions() const;
+        void setDisplayOptions(int options);
 
         bool parse(const std::vector<std::string> &args, int options = Standard);
         int invoke(const std::vector<std::string> &args, int errCode = -1, int options = Standard);

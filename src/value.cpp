@@ -1,5 +1,8 @@
-#include <algorithm>
 #include "value.h"
+
+#include <algorithm>
+
+#include "strings.h"
 
 namespace SysCmdLine {
 
@@ -171,8 +174,35 @@ namespace SysCmdLine {
             case Value::Int: {
                 std::string::size_type idx;
                 try {
-                    res = std::stoi(s, &idx);
-                    if (idx < s.size()) {
+                    int base = 10;
+                    std::string s1 = s;
+                    if (s.size() > 2 && s.front() == '0') {
+                        switch (s.at(1)) {
+                            case 'x':
+                            case 'X':
+                                s1 = s1.substr(2);
+                                base = 16;
+                                break;
+                            case 'b':
+                            case 'B':
+                                s1 = s1.substr(2);
+                                base = 2;
+                                break;
+                            case 'o':
+                            case 'O':
+                                s1 = s1.substr(2);
+                                base = 8;
+                                break;
+                            case 'd':
+                            case 'D':
+                                s1 = s1.substr(2);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    res = std::stoi(s1, &idx, base);
+                    if (idx < s1.size()) {
                         res = {};
                     }
                 } catch (...) {

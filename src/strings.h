@@ -77,6 +77,11 @@ namespace SysCmdLine::Strings {
 
     std::string toLower(std::string s);
 
+    template <class T>
+    constexpr bool starts_with(const std::basic_string<T> &s, const std::basic_string<T> &prefix) {
+        return s.substr(0, prefix.size()) == prefix;
+    }
+
 }
 
 #endif // SYSCMDLINE_STRINGS_H
