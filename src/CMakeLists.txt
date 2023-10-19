@@ -17,6 +17,12 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_include_directories(${PROJECT_NAME} PRIVATE . ../include/syscmdline)
 
+if(WIN32)
+    set(RC_DESCRIPTION "Command Line Parser For Mordern C++")
+    set(RC_COPYRIGHT "Copyright 2023 SineStriker")
+    include("../cmake/winrc.cmake")
+endif()
+
 if(SYSCMDLINE_INSTALL)
     target_include_directories(${PROJECT_NAME} PUBLIC
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
