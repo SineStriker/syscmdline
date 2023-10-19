@@ -73,13 +73,26 @@ namespace SysCmdLine {
 #endif
     }
 
-    std::string appName() {
+    std::string appDirectory() {
+        auto appDir = appPath();
+        auto slashIdx = appDir.find_last_of('/');
+        if (slashIdx != std::string::npos) {
+            appDir = appDir.substr(0, slashIdx);
+        }
+        return appDir;
+    }
+
+    std::string appFileName() {
         auto appName = appPath();
         auto slashIdx = appName.find_last_of('/');
         if (slashIdx != std::string::npos) {
             appName = appName.substr(slashIdx + 1);
         }
+        return appName;
+    }
 
+    std::string appName() {
+        auto appName = appFileName();
 #ifdef _WIN32
         auto dotIdx = appName.find_last_of('.');
         if (dotIdx != std::string::npos) {

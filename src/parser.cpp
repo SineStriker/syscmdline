@@ -319,8 +319,7 @@ namespace SysCmdLine {
                     auto &resVec = result->optResult[opt->name()];
 
                     // Check max occurrence
-                    if (opt->maxOccurrence() > 0 && resVec.size() == opt->maxOccurrence() &&
-                        priorLevel < Option::IgnoreRedundantArgument) {
+                    if (opt->maxOccurrence() > 0 && resVec.size() == opt->maxOccurrence()) {
                         result->error = Parser::OptionOccurTooMuch;
                         result->errorPlaceholders = {
                             opt->displayedTokens(),
@@ -384,10 +383,6 @@ namespace SysCmdLine {
                 // Consider argument
                 {
                     if (k == cmd->d_func()->arguments.size()) {
-                        if (priorLevel >= Option::IgnoreRedundantArgument) {
-                            break;
-                        }
-
                         if (token.front() == '-') {
                             result->error = Parser::UnknownOption;
                             result->errorPlaceholders = {token};

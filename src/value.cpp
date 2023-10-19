@@ -30,6 +30,10 @@ namespace SysCmdLine {
         data.s = new std::string(s);
     }
 
+    Value::Value(const char *ch, int size) : _type(String) {
+        data.s = size >= 0 ? new std::string(ch) : new std::string(ch, size);
+    }
+
     Value::~Value() {
         if (_type == String)
             delete data.s;

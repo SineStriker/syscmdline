@@ -20,6 +20,7 @@ namespace SysCmdLine {
         Value(int i);
         Value(double d);
         Value(const std::string &s);
+        Value(const char *ch, int size = -1);
         ~Value();
 
         Value(const Value &other);

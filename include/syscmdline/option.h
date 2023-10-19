@@ -15,7 +15,6 @@ namespace SysCmdLine {
         enum PriorLevel {
             NoPrior,
             IgnoreMissingArgument,
-            IgnoreRedundantArgument,
         };
 
         Option();
