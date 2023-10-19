@@ -33,10 +33,10 @@ namespace SysCmdLine {
         Argument();
         Argument(const std::string &name, const std::string &desc = {});
         Argument(const std::string &name, const std::string &desc, const Value &defaultValue,
-                 bool required = true, const std::string &displayName = {});
+                 bool required = true, const std::string &displayName = {}, bool multipleEnabled = false);
         Argument(const std::string &name, const std::string &desc,
                  const std::vector<Value> &expectedValues, const Value &defaultValue,
-                 bool required = true, const std::string &displayName = {});
+                 bool required = true, const std::string &displayName = {}, bool multipleEnabled = false);
         ~Argument();
 
         Argument(const Argument &other);
@@ -59,6 +59,12 @@ namespace SysCmdLine {
         bool isRequired() const;
         void setRequired(bool required);
 
+        inline bool isOptional() const;
+        inline void setOptional(bool optional);
+
+        bool multiValueEnabled() const;
+        void setMultiValueEnabled(bool on);
+
         Validator validator() const;
         void setValidator(const Validator &validator);
 
@@ -73,6 +79,15 @@ namespace SysCmdLine {
         friend class Parser;
         friend class ParserPrivate;
     };
+
+    inline bool Argument::isOptional() const {
+        return !isRequired();
+    }
+
+    inline void Argument::setOptional(bool optional) {
+        setRequired(!optional);
+    }
+
 
     class SYSCMDLINE_EXPORT ArgumentHolder : public Symbol {
     public:

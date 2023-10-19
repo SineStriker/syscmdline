@@ -10,7 +10,7 @@ namespace SysCmdLine {
     public:
         ArgumentData(const std::string &name, const std::string &desc,
                      const std::vector<Value> &expectedValues, const Value &defaultValue,
-                     bool required, const std::string &displayName,
+                     bool required, const std::string &displayName, bool multipleEnabled,
                      const Argument::Validator &validator);
         ~ArgumentData();
 
@@ -23,6 +23,7 @@ namespace SysCmdLine {
         Value defaultValue;
         bool required;
         std::string displayName;
+        bool multiple;
         Argument::Validator validator;
     };
 
@@ -36,6 +37,7 @@ namespace SysCmdLine {
         void addArgument(const Argument &arg);
         void setArguments(const std::vector<Argument> &args);
 
+        int multiValueIndex;
         std::vector<Argument> arguments;
         std::unordered_map<std::string, size_t> argumentNameIndexes;
     };

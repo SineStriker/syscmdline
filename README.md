@@ -10,6 +10,7 @@ Inspired by Qt `QCommandLineParser` and C# `Systeme.CommandLine`.
 + Support case-insensitive parsing
 + Support mutually exclusive options
 + Support short options and flags
++ Simple tips for typo correction
 + Highly configurable
 
 ## Integrate

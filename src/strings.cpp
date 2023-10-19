@@ -35,25 +35,6 @@ namespace SysCmdLine::Strings {
         R"("%1" is not matched. Do you mean one of the following?)",
     };
 
-    // const char *error_strings[] = {
-    //     "",
-    //     R"(未定义的选项 "%1"。)",
-    //     R"(未定义的参数或命令 "%1"。)",
-    //     R"(选项 "%2" 缺少必选参数 "%1"。)",
-    //     R"(缺少必选参数 "%1"。)",
-    //     "参数 数量过多。",
-    //     R"(参数 "%2" 指定为非法值 "%1"。)",
-    // };
-
-    // const char *common_strings[] = {
-    //     "错误", "用法", "简介", "参数", "选项", "命令",
-    // };
-
-    // const char *info_strings[] = {
-    //     "显示版本信息",
-    //     "显示帮助信息",
-    // };
-
     std::string formatText(const std::string &format, const std::vector<std::string> &args) {
         std::string result = format;
         for (size_t i = 0; i < args.size(); i++) {

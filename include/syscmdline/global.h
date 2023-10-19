@@ -20,4 +20,7 @@
 #  endif
 #endif
 
+// Utils
+#define SYSCMDLINE_UNUSED(X) (void) X;
+
 #endif // GLOBAL_H

@@ -8,10 +8,11 @@ namespace SysCmdLine {
 
     ArgumentData::ArgumentData(const std::string &name, const std::string &desc,
                                const std::vector<Value> &expectedValues, const Value &defaultValue,
-                               bool required, const std::string &displayName,
+                               bool required, const std::string &displayName, bool multipleEnabled,
                                const Argument::Validator &validator)
         : SymbolData(Symbol::ST_Argument, name, desc), defaultValue(defaultValue),
-          required(required), displayName(displayName), validator(validator) {
+          required(required), displayName(displayName), multiple(multipleEnabled),
+          validator(validator) {
         if (!expectedValues.empty())
             setExpectedValues(expectedValues);
     }
@@ -21,7 +22,7 @@ namespace SysCmdLine {
 
     SymbolData *ArgumentData::clone() const {
         return new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName,
-                                validator);
+                                multiple, validator);
     }
 
     void ArgumentData::setExpectedValues(const std::vector<Value> &values) {
@@ -41,15 +42,15 @@ namespace SysCmdLine {
     }
 
     Argument::Argument(const std::string &name, const std::string &desc, const Value &defaultValue,
-                       bool required, const std::string &displayName)
-        : Argument(name, desc, {}, defaultValue, required, displayName) {
+                       bool required, const std::string &displayName, bool multipleEnabled)
+        : Argument(name, desc, {}, defaultValue, required, displayName, multipleEnabled) {
     }
 
     Argument::Argument(const std::string &name, const std::string &desc,
                        const std::vector<Value> &expectedValues, const Value &defaultValue,
-                       bool required, const std::string &displayName)
+                       bool required, const std::string &displayName, bool multipleEnabled)
         : Symbol(new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName,
-                                  {})) {
+                                  multipleEnabled, {})) {
     }
 
     Argument::~Argument() {
@@ -81,10 +82,10 @@ namespace SysCmdLine {
 
     std::string Argument::displayedText() const {
         SYSCMDLINE_GET_CONST_DATA(Argument);
-        if (d->displayName.empty()) {
-            return "<" + d->name + ">";
-        }
-        return d->displayName;
+        std::string res = d->displayName.empty() ? ("<" + d->name + ">") : d->displayName;
+        if (d->multiple)
+            res += "...";
+        return res;
     }
 
     const std::vector<Value> &Argument::expectedValues() const {
@@ -139,6 +140,19 @@ namespace SysCmdLine {
         d->required = required;
     }
 
+    bool Argument::multiValueEnabled() const {
+        SYSCMDLINE_GET_CONST_DATA(Argument);
+        return d->multiple;
+    }
+
+    void Argument::setMultiValueEnabled(bool on) {
+        if (on == multiValueEnabled())
+            return;
+
+        SYSCMDLINE_GET_DATA(Argument);
+        d->multiple = on;
+    }
+
     Argument::Validator Argument::validator() const {
         SYSCMDLINE_GET_CONST_DATA(Argument);
         return d->validator;
@@ -162,7 +176,7 @@ namespace SysCmdLine {
     ArgumentHolderData::ArgumentHolderData(Symbol::SymbolType type, const std::string &name,
                                            const std::string &desc,
                                            const std::vector<Argument> &args)
-        : SymbolData(type, name, desc) {
+        : SymbolData(type, name, desc), multiValueIndex(-1) {
         if (!args.empty())
             setArguments(args);
     }
@@ -181,6 +195,20 @@ namespace SysCmdLine {
         if (!arguments.empty() && !arguments.back().isRequired() && arg.isRequired()) {
             throw std::runtime_error(
                 "adding required argument after optional arguments is prohibited");
+        }
+
+        if (arg.multiValueEnabled()) {
+            if (type < Symbol::ST_Command) {
+                throw std::runtime_error(
+                    "adding multi-value argument to non-command symbol is prohibited");
+            }
+            if (multiValueIndex >= 0) {
+                throw std::runtime_error("there can be at most one multi-value argument");
+            }
+            multiValueIndex = arguments.size();
+        } else if (multiValueIndex >= 0 && !arg.isRequired()) {
+            throw std::runtime_error(
+                "adding optional argument after multi-value argument is prohibited");
         }
 
         // check if default value is valid
@@ -202,6 +230,7 @@ namespace SysCmdLine {
     void ArgumentHolderData::setArguments(const std::vector<Argument> &args) {
         arguments.clear();
         argumentNameIndexes.clear();
+        multiValueIndex = -1;
         if (args.empty())
             return;
 

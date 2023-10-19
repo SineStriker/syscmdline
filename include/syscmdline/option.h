@@ -42,6 +42,9 @@ namespace SysCmdLine {
         bool isRequired() const;
         void setRequired(bool required);
 
+        inline bool isOptional() const;
+        inline void setOptional(bool optional);
+
         bool isShortOption() const;
         void setShortOption(bool on);
 
@@ -66,6 +69,14 @@ namespace SysCmdLine {
 
     inline void Option::setToken(const std::string &token) {
         setTokens({token});
+    }
+
+    inline bool Option::isOptional() const {
+        return !isRequired();
+    }
+
+    inline void Option::setOptional(bool optional) {
+        setRequired(!optional);
     }
 
 }

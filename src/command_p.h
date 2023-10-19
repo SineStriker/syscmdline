@@ -27,7 +27,7 @@ namespace SysCmdLine {
                     const std::vector<std::pair<Option, int>> &options,
                     const std::vector<Command> &subCommands, const std::vector<Argument> &args,
                     const std::string &version, const std::string &detailedDescription,
-                    bool showHelpIfNoArg, bool multipleArguments, const Command::Handler &handler,
+                    bool showHelpIfNoArg, const Command::Handler &handler,
                     const CommandCatalogue &catalogue);
         ~CommandData();
 
@@ -53,7 +53,6 @@ namespace SysCmdLine {
         std::string version;
         std::string detailedDescription;
         bool showHelpIfNoArg;
-        bool multipleArguments;
         Command::Handler handler;
 
         CommandCatalogue catalogue;

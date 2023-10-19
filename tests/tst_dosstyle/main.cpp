@@ -20,6 +20,8 @@ static int routine(const Parser &parser) {
     bool subdir = parser.optionIsSet("/S");
     bool quiet = parser.optionIsSet("/Q");
 
+    std::cout << "Dir: " << parser.valueForArgument("dir").toString() << std::endl;
+
     std::cout << "Modes: " << std::endl;
     if (prompt) {
         std::cout << INDENT << "prompt" << std::endl;
@@ -48,11 +50,21 @@ int main(int argc, char *argv[]) {
               "the names \nof the files as they are being deleted.");
     Option quietOption("/Q", "Specifies quiet mode. You are not prompted for delete confirmation.");
 
+
+    Argument urlArg("url", "url");
+    urlArg.setDisplayName("url");
+
     Argument fileArg("files", "File names to be removed");
     fileArg.setDisplayName("files");
+    fileArg.setMultiValueEnabled(true);
+
+    Argument dirArg("dir", "Directory destination");
+    dirArg.setDisplayName("dir");
 
     Command rootCommand("del");
+    rootCommand.addArgument(urlArg);
     rootCommand.addArgument(fileArg);
+    rootCommand.addArgument(dirArg);
     rootCommand.setOptions({
         promptOption,
         forceOption,
@@ -60,7 +72,6 @@ int main(int argc, char *argv[]) {
         quietOption,
     });
     rootCommand.addHelpOption(false, false, {"/?"});
-    rootCommand.setMultipleArgumentsEnabled(true);
     rootCommand.setHandler(routine);
 
     Parser parser(rootCommand);

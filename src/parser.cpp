@@ -452,7 +452,7 @@ namespace SysCmdLine {
             };
 
             // Parse options
-            size_t k = 0;
+            std::vector<std::string> positionalArguments;
             Option::PriorLevel priorLevel = Option::NoPrior;
             for (auto j = i; j < args.size(); ++j) {
                 const auto &token = args[j];
@@ -514,18 +514,6 @@ namespace SysCmdLine {
                         }
                     }
 
-                    // Set default values
-                    // for (auto y = x; y < optArgs.size(); ++y) {
-                    //     const auto &arg = optArgs.at(y);
-                    //     const auto &defaultValue = arg.d_func()->defaultValue;
-                    //     if (defaultValue.type() == Value::Null)
-                    //         continue;
-
-                    //     if (curArgResult.count(arg.name()))
-                    //         continue;
-                    //     curArgResult.insert(std::make_pair(arg.name(), defaultValue));
-                    // }
-
                     resVec.emplace_back(curArgResult);
 
                     priorLevel = std::max(priorLevel, opt->priorLevel());
@@ -557,46 +545,97 @@ namespace SysCmdLine {
                 }
 
                 // Consider argument
-                {
-                    const auto &cmdArgs = cmd->d_func()->arguments;
-                    if (k == cmdArgs.size()) {
-                        // Too many
-                        if (cmdArgs.empty() || !cmd->multipleArgumentsEnabled()) {
-                            if (token.front() == '-') {
-                                result->error = Parser::UnknownOption;
-                                result->errorPlaceholders = {token};
-                                break;
-                            }
+                positionalArguments.push_back(token);
+            }
 
-                            if (cmdArgs.empty()) {
-                                result->error = Parser::TooManyArguments;
-                                break;
-                            }
+            // Parse arguments
+            const Argument *missingArgument = nullptr;
+            {
+                const auto &d = cmd->d_func();
+                const auto &cmdArgs = d->arguments;
 
-                            result->error = Parser::UnknownCommand;
-                            result->errorPlaceholders = {token};
-                            break;
-                        }
+                // Parse forward
+                size_t end = cmdArgs.size();
+                if (d->multiValueIndex >= 0) {
+                    end = d->multiValueIndex + 1; // Stop after multi-value arg
+                }
 
-                        // Consider multiple arguments
-                        const auto &arg = cmdArgs.back();
+                size_t k = 0;
+                for (size_t max = std::min(positionalArguments.size(), end); k < max; ++k) {
+                    const auto &arg = cmdArgs.at(k);
+                    Value val;
+                    if (!checkArgument(&arg, positionalArguments.at(k), &val)) {
+                        goto out_parse_arguments;
+                    }
+                    result->argResult[arg.name()].push_back(val);
+                }
+
+                if (k < end) {
+                    const auto &arg = cmdArgs.at(k);
+                    if (arg.isRequired()) {
+                        missingArgument = &arg;
+                    }
+                    goto out_parse_arguments;
+                }
+
+                // Parse backward
+                end = positionalArguments.size();
+                if (d->multiValueIndex >= 0 && d->multiValueIndex < cmdArgs.size() - 1) {
+                    size_t backwardStart = d->multiValueIndex + 1;
+                    size_t backwardCount = cmdArgs.size() - d->multiValueIndex - 1;
+                    if (positionalArguments.size() < backwardCount + k) {
+                        missingArgument = &cmdArgs.at(d->multiValueIndex + 1);
+                        goto out_parse_arguments;
+                    }
+                    end -= backwardCount;
+
+                    for (size_t j = 0; j < backwardCount; ++j) {
+                        const auto &arg = cmdArgs.at(d->multiValueIndex + j + 1);
                         Value val;
-                        if (!checkArgument(&arg, token, &val)) {
-                            break;
+                        if (!checkArgument(&arg, positionalArguments.at(end + j), &val)) {
+                            goto out_parse_arguments;
                         }
                         result->argResult[arg.name()].push_back(val);
-                        continue;
+                    }
+                }
+
+                if (end <= k) {
+                    goto out_parse_arguments;
+                }
+
+                // Too many
+                if (d->multiValueIndex < 0) {
+                    const auto &token = positionalArguments.at(k);
+                    if (token.front() == '-') {
+                        result->error = Parser::UnknownOption;
+                        result->errorPlaceholders = {token};
+                        goto out_parse_arguments;
                     }
 
-                    const auto &arg = cmdArgs.at(k);
+                    if (cmdArgs.empty()) {
+                        result->error = Parser::TooManyArguments;
+                        goto out_parse_arguments;
+                    }
+
+                    result->error = Parser::UnknownCommand;
+                    result->errorPlaceholders = {token};
+                    goto out_parse_arguments;
+                }
+
+                // Consider multiple arguments
+                const auto &arg = cmdArgs.at(d->multiValueIndex);
+                auto &resVec = result->argResult[arg.name()];
+                for (size_t j = k; j < end; ++j) {
+                    const auto &token = positionalArguments.at(j);
                     Value val;
                     if (!checkArgument(&arg, token, &val)) {
                         break;
                     }
-                    result->argResult[arg.name()].push_back(val);
-                    k++;
+                    resVec.push_back(val);
                 }
             }
+
+        out_parse_arguments:
 
             // Check required arguments
             if (result->error == Parser::NoError) {
@@ -605,16 +644,11 @@ namespace SysCmdLine {
                     // ...
                 } else if (priorLevel >= Option::IgnoreMissingArgument) {
                     // ...
-                } else {
+                } else if (missingArgument) {
                     // Required arguments
-                    if (k < cmd->d_func()->arguments.size()) {
-                        const auto &arg = cmd->d_func()->arguments.at(k);
-                        if (arg.isRequired()) {
-                            result->error = Parser::MissingCommandArgument;
-                            result->errorPlaceholders = {arg.name()};
-                        }
-                    }
-
+                    result->error = Parser::MissingCommandArgument;
+                    result->errorPlaceholders = {missingArgument->name()};
+                } else {
                     // Required options
                     const Option *missingOpt = nullptr;
                     for (const auto &opt : cmd->d_func()->options) {
@@ -646,17 +680,6 @@ namespace SysCmdLine {
                 result->optResult.clear();
                 return;
             }
-
-            // Set default values
-            // for (const auto &arg : std::as_const(cmd->d_func()->arguments)) {
-            //     const auto &defaultValue = arg.d_func()->defaultValue;
-            //     if (defaultValue.type() == Value::Null)
-            //         continue;
-
-            //     if (result->argResult.count(arg.name()))
-            //         continue;
-            //     result->argResult.insert(std::make_pair(arg.name(), defaultValue));
-            // }
 
             if (result->optResult.count("version")) {
                 result->versionSet = true;

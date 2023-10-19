@@ -80,9 +80,6 @@ namespace SysCmdLine {
         std::string detailedDescription() const;
         void setDetailedDescription(const std::string &detailedDescription);
 
-        bool multipleArgumentsEnabled() const;
-        void setMultipleArgumentsEnabled(bool on);
-
         void addVersionOption(const std::string &ver, const std::vector<std::string> &tokens = {});
         void addHelpOption(bool showHelpIfNoArg = false, bool global = false,
                            const std::vector<std::string> &tokens = {});

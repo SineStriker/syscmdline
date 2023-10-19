@@ -54,6 +54,7 @@ namespace SysCmdLine {
             SkipCorrection = 2,
             DontShowRequiredOptionsOnUsage = 4,
             ShowOptionalOptionsOnUsage = 8,
+            ShowOptionsBehindArguments = 16,
         };
 
         Command rootCommand() const;

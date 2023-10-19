@@ -102,11 +102,10 @@ namespace SysCmdLine {
                              const std::vector<Command> &subCommands,
                              const std::vector<Argument> &args, const std::string &version,
                              const std::string &detailedDescription, bool showHelpIfNoArg,
-                             bool multipleArguments, const Command::Handler &handler,
-                             const CommandCatalogue &catalogue)
+                             const Command::Handler &handler, const CommandCatalogue &catalogue)
         : ArgumentHolderData(Symbol::ST_Command, name, desc, args), version(version),
           detailedDescription(detailedDescription), showHelpIfNoArg(showHelpIfNoArg),
-          multipleArguments(multipleArguments), handler(handler), catalogue(catalogue) {
+          handler(handler), catalogue(catalogue) {
         if (!options.empty())
             setOptions(options);
         if (!subCommands.empty())
@@ -123,8 +122,7 @@ namespace SysCmdLine {
             _options.emplace_back(opt, it == exclusiveGroupIndexes.end() ? -1 : it->second);
         }
         return new CommandData(name, desc, _options, subCommands, arguments, version,
-                               detailedDescription, showHelpIfNoArg, multipleArguments, handler,
-                               catalogue);
+                               detailedDescription, showHelpIfNoArg, handler, catalogue);
     }
 
     void CommandData::setCommands(const std::vector<Command> &commands) {
@@ -253,7 +251,7 @@ namespace SysCmdLine {
                      const std::vector<Command> &subCommands, const std::vector<Argument> &args,
                      const std::string &detailedDescription, const Command::Handler &handler)
         : ArgumentHolder(new CommandData(name, desc, options, subCommands, args, {},
-                                         detailedDescription, false, false, handler, {})) {
+                                         detailedDescription, false, handler, {})) {
     }
 
     Command::~Command() {
@@ -310,11 +308,7 @@ namespace SysCmdLine {
                 ss << _arguments[i].displayedText() << " ";
             }
             ss << _arguments[_arguments.size() - 1].displayedText();
-            if (d->multipleArguments)
-                ss << "...";
             ss << "]";
-        } else if (d->multipleArguments) {
-            ss << "...";
         }
 
         return ss.str();
@@ -458,19 +452,6 @@ namespace SysCmdLine {
 
         SYSCMDLINE_GET_DATA(Command);
         d->detailedDescription = detailedDescription;
-    }
-
-    bool Command::multipleArgumentsEnabled() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
-        return d->multipleArguments;
-    }
-
-    void Command::setMultipleArgumentsEnabled(bool on) {
-        if (on == multipleArgumentsEnabled())
-            return;
-
-        SYSCMDLINE_GET_DATA(Command);
-        d->multipleArguments = on;
     }
 
     Command::Handler Command::handler() const {
@@ -626,6 +607,13 @@ namespace SysCmdLine {
             // name
             ss << d->name;
 
+            if (parserOptions & Parser::ShowOptionsBehindArguments) {
+                // arguments
+                if (!d->arguments.empty()) {
+                    ss << " " << displayedArguments();
+                }
+            }
+
             // required options
             std::unordered_set<std::string> printedOptions;
             auto printExclusiveOptions = [&](const Option &opt, bool needParen) {
@@ -684,9 +672,11 @@ namespace SysCmdLine {
                 }
             }
 
-            // arguments
-            if (!d->arguments.empty()) {
-                ss << " " << displayedArguments();
+            if (!(parserOptions & Parser::ShowOptionsBehindArguments)) {
+                // arguments
+                if (!d->arguments.empty()) {
+                    ss << " " << displayedArguments();
+                }
             }
 
             // command
