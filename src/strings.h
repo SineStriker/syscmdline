@@ -71,7 +71,11 @@ namespace SysCmdLine::Strings {
     std::vector<std::string> getClosestTexts(const std::vector<std::string> &texts,
                                              const std::string &input, int threshold);
 
-    std::string removeSideQuotes(const std::string& s);
+    std::string removeSideQuotes(const std::string &s);
+
+    std::string toUpper(std::string s);
+
+    std::string toLower(std::string s);
 
 }
 

@@ -107,7 +107,7 @@ namespace SysCmdLine {
             delete result;
         }
 
-        void parse(const std::vector<std::string> &args) {
+        void parse(const std::vector<std::string> &args, int parserOptions) {
             delete result;
             result = new ParseResult();
 
@@ -165,12 +165,35 @@ namespace SysCmdLine {
             for (; i < args.size(); ++i) {
                 auto lastCmd = cmd;
                 {
-                    auto it = cmd->d_func()->subCommandNameIndexes.find(args[i]);
-                    if (it == cmd->d_func()->subCommandNameIndexes.end()) {
-                        break;
+                    const auto &d = cmd->d_func();
+                    const auto &arg = args[i];
+
+                    auto it = d->subCommandNameIndexes.find(arg);
+                    if (it == d->subCommandNameIndexes.end()) {
+                        if (parserOptions & Parser::IgnoreCommandCase) {
+                            // Search
+                            bool found = false;
+                            for (int j = 0; j < d->subCommands.size(); ++j) {
+                                const auto &subCmd = d->subCommands.at(j);
+                                if (Strings::toLower(subCmd.name()) == Strings::toLower(arg)) {
+                                    result->stack.push_back(j);
+                                    cmd = &subCmd;
+
+                                    found = true;
+                                    break;
+                                }
+                            }
+
+                            if (!found)
+                                break;
+
+                        } else {
+                            break;
+                        }
+                    } else {
+                        result->stack.push_back(int(it->second));
+                        cmd = &cmd->d_func()->subCommands.at(it->second);
                     }
-                    result->stack.push_back(int(it->second));
-                    cmd = &cmd->d_func()->subCommands.at(it->second);
                 }
 
                 // Collect global options
@@ -209,24 +232,32 @@ namespace SysCmdLine {
                     allOptionIndexes.insert(std::make_pair(token, item));
                 }
             }
-
             for (const auto &item : std::as_const(cmd->d_func()->options)) {
                 for (const auto &token : item.d_func()->tokens) {
                     allOptionIndexes.insert(std::make_pair(token, &item));
                 }
             }
 
-            auto searchOption = [&](const std::string &token,
-                                    int *pos = nullptr) -> const Option * {
+            // Build case-insensitive option indexes if needed
+            std::map<std::string, const Option *> lowerCaseOptionIndexes;
+            if (parserOptions & Parser::IgnoreOptionCase) {
+                for (const auto &pair : std::as_const(allOptionIndexes)) {
+                    lowerCaseOptionIndexes.insert(
+                        std::make_pair(Strings::toLower(pair.first), pair.second));
+                }
+            }
+
+            auto searchOptionImpl = [](const std::map<std::string, const Option *> &indexes,
+                                       const std::string &token, int *pos) -> const Option * {
                 if (pos)
                     *pos = -1;
 
-                if (allOptionIndexes.empty())
+                if (indexes.empty())
                     return nullptr;
 
                 {
-                    auto it = allOptionIndexes.find(token);
-                    if (it != allOptionIndexes.end()) {
+                    auto it = indexes.find(token);
+                    if (it != indexes.end()) {
                         return it->second;
                     }
                 }
@@ -236,14 +267,13 @@ namespace SysCmdLine {
                 }
 
                 // Search for short option
-                auto it = allOptionIndexes.lower_bound(token);
-                if (it != allOptionIndexes.begin() && it != allOptionIndexes.end() &&
-                    token.find(it->first) != 0) {
+                auto it = indexes.lower_bound(token);
+                if (it != indexes.begin() && it != indexes.end() && token.find(it->first) != 0) {
                     --it;
                 }
 
                 const auto &prefix = it->first;
-                if (it != allOptionIndexes.end() && token.find(prefix) == 0) {
+                if (it != indexes.end() && token.find(prefix) == 0) {
                     const auto &opt = it->second;
                     const auto &args = opt->d_func()->arguments;
                     if (args.size() != 1 || !args.front().isRequired()) {
@@ -261,6 +291,17 @@ namespace SysCmdLine {
                             *pos = prefix.size() + 1;
                         return opt;
                     }
+                }
+                return nullptr;
+            };
+
+            auto searchOption = [&](const std::string &token,
+                                    int *pos = nullptr) -> const Option * {
+                auto opt = searchOptionImpl(allOptionIndexes, token, pos);
+                if (opt)
+                    return opt;
+                if (parserOptions & Parser::IgnoreOptionCase) {
+                    return searchOptionImpl(lowerCaseOptionIndexes, Strings::toLower(token), pos);
                 }
                 return nullptr;
             };
@@ -616,15 +657,14 @@ namespace SysCmdLine {
         d->showHelpOnError = on;
     }
 
-    bool Parser::parse(const std::vector<std::string> &args) {
-        d->parse(args);
+    bool Parser::parse(const std::vector<std::string> &args, int options) {
+        d->parse(args, options);
         return d->result->error == NoError;
     }
 
-    int Parser::invoke(const std::vector<std::string> &args, int errorCode) {
-        if (!parse(args)) {
-            showError();
-            return errorCode;
+    int Parser::invoke() const {
+        if (!d->result || d->result->error != NoError) {
+            throw std::runtime_error("cannot invoke handler when parser failed");
         }
 
         const auto &cmd = *d->result->command;
@@ -649,6 +689,14 @@ namespace SysCmdLine {
             throw std::runtime_error("command \"" + cmd.name() + "\" doesn't have a valid handler");
         }
         return handler(*this);
+    }
+
+    int Parser::invoke(const std::vector<std::string> &args, int errorCode, int options) {
+        if (!parse(args, options)) {
+            showError();
+            return errorCode;
+        }
+        return invoke();
     }
 
     bool Parser::parsed() const {

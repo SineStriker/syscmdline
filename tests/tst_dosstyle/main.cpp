@@ -6,12 +6,34 @@
 
 using namespace SysCmdLine;
 
+static const char INDENT[] = "    ";
+
 static int routine(const Parser &parser) {
     auto fileValues = Value::toStringList(parser.valuesForArgument("files"));
     std::cout << "Files to be removed:" << std::endl;
     for (const auto &item : std::as_const(fileValues)) {
-        std::cout << "    " << item << std::endl;
+        std::cout << INDENT << item << std::endl;
     }
+
+    bool prompt = parser.optionIsSet("/P");
+    bool force = parser.optionIsSet("/F");
+    bool subdir = parser.optionIsSet("/S");
+    bool quiet = parser.optionIsSet("/Q");
+
+    std::cout << "Modes: " << std::endl;
+    if (prompt) {
+        std::cout << INDENT << "prompt" << std::endl;
+    }
+    if (force) {
+        std::cout << INDENT << "force" << std::endl;
+    }
+    if (subdir) {
+        std::cout << INDENT << "subdir" << std::endl;
+    }
+    if (quiet) {
+        std::cout << INDENT << "quiet" << std::endl;
+    }
+
     return 0;
 }
 
@@ -42,5 +64,5 @@ int main(int argc, char *argv[]) {
     rootCommand.setHandler(routine);
 
     Parser parser(rootCommand);
-    return parser.invoke(commandLineArguments());
+    return parser.invoke(commandLineArguments(), -1, Parser::IgnoreOptionCase);
 }

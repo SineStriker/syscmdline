@@ -350,6 +350,11 @@ namespace SysCmdLine {
         return d->options[it->second];
     }
 
+    const std::vector<Option> &Command::options() const {
+        SYSCMDLINE_GET_CONST_DATA(Command);
+        return d->options;
+    }
+
     int Command::indexOfOption(const std::string &name) const {
         SYSCMDLINE_GET_CONST_DATA(Command);
         auto it = d->optionNameIndexes.find(name);
@@ -366,11 +371,6 @@ namespace SysCmdLine {
     bool Command::hasOptionToken(const std::string &token) const {
         SYSCMDLINE_GET_CONST_DATA(Command);
         return d->optionTokenIndexes.count(token);
-    }
-
-    const std::vector<Option> &Command::options() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
-        return d->options;
     }
 
     void Command::addOption(const Option &option) {

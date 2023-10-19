@@ -66,10 +66,10 @@ namespace SysCmdLine {
         Option option(const std::string &name) const;
         Option option(int index) const;
         Option optionFromToken(const std::string &token) const;
+        const std::vector<Option> &options() const;
         int indexOfOption(const std::string &name) const;
         bool hasOption(const std::string &name) const;
         bool hasOptionToken(const std::string &token) const;
-        const std::vector<Option> &options() const;
         void addOption(const Option &option);
         void setOptions(const std::vector<Option> &options);
 

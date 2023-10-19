@@ -102,11 +102,21 @@ namespace SysCmdLine::Strings {
         return suggestions;
     }
 
-    std::string removeSideQuotes(const std::string& s) {
+    std::string removeSideQuotes(const std::string &s) {
         if (s.size() < 2)
             return s;
-        if ((s.front() == '\'' && s.back()=='\'') || (s.front() == '\"' && s.back()=='\"'))
+        if ((s.front() == '\'' && s.back() == '\'') || (s.front() == '\"' && s.back() == '\"'))
             return s.substr(1, s.size() - 2);
+        return s;
+    }
+
+    std::string toUpper(std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+        return s;
+    }
+
+    std::string toLower(std::string s) {
+        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
         return s;
     }
 

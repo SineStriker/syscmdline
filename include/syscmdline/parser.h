@@ -40,6 +40,12 @@ namespace SysCmdLine {
             ArgumentValidateFailed,
         };
 
+        enum ParserOption {
+            NoParseSetting = 0,
+            IgnoreCommandCase = 1,
+            IgnoreOptionCase = 2,
+        };
+
         Command rootCommand() const;
         void setRootCommand(const Command &rootCommand);
 
@@ -49,8 +55,10 @@ namespace SysCmdLine {
         bool showHelpOnError() const;
         void setShowHelpOnError(bool on);
 
-        bool parse(const std::vector<std::string> &args);
-        int invoke(const std::vector<std::string> &args, int errorCode = -1);
+        bool parse(const std::vector<std::string> &args, int options = NoParseSetting);
+        int invoke(const std::vector<std::string> &args, int errorCode = -1,
+                   int options = NoParseSetting);
+        int invoke() const;
 
         bool parsed() const;
         Error error() const;
