@@ -1,14 +1,16 @@
 # SysCmdLine
 
-Command Line Argument Parser for Mordern C++.
+Command Line Parser for Mordern C++.
 
 Inspired by Qt `QCommandLineParser` and C# `Systeme.CommandLine`.
 
-## Highlights
+## Features
 
 + Support sub-commands
 + Support case-insensitive parsing
-+ Highly customizable
++ Support mutually exclusive options
++ Support short options and flags
++ Highly configurable
 
 ## Integrate
 
