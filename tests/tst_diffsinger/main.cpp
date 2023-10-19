@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
 
     Option depthOption("--depth", "Shallow diffusion depth (needs acoustic model support)");
     depthOption.addArgument(Argument("depth", {}, 1000));
+    depthOption.setShortOption(true);
 
     Option cpuOnlyOption("--cpu-only", "Use CPU for audio inference");
 

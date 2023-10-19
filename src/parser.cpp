@@ -209,13 +209,21 @@ namespace SysCmdLine {
                     allOptionIndexes.insert(std::make_pair(token, item));
                 }
             }
+
             for (const auto &item : std::as_const(cmd->d_func()->options)) {
                 for (const auto &token : item.d_func()->tokens) {
                     allOptionIndexes.insert(std::make_pair(token, &item));
                 }
             }
 
-            auto searchOption = [&](const std::string &token) -> const Option * {
+            auto searchOption = [&](const std::string &token,
+                                    int *pos = nullptr) -> const Option * {
+                if (pos)
+                    *pos = -1;
+
+                if (allOptionIndexes.empty())
+                    return nullptr;
+
                 {
                     auto it = allOptionIndexes.find(token);
                     if (it != allOptionIndexes.end()) {
@@ -233,10 +241,26 @@ namespace SysCmdLine {
                     token.find(it->first) != 0) {
                     --it;
                 }
-                if (it != allOptionIndexes.end() && token.find(it->first) == 0) {
+
+                const auto &prefix = it->first;
+                if (it != allOptionIndexes.end() && token.find(prefix) == 0) {
                     const auto &opt = it->second;
-                    if (opt->isShortOption())
+                    const auto &args = opt->d_func()->arguments;
+                    if (args.size() != 1 || !args.front().isRequired()) {
+                        return nullptr;
+                    }
+
+                    if (opt->isShortOption()) {
+                        if (pos)
+                            *pos = prefix.size();
                         return opt;
+                    }
+
+                    if (token.at(prefix.size()) == '=') {
+                        if (pos)
+                            *pos = prefix.size() + 1;
+                        return opt;
+                    }
                 }
                 return nullptr;
             };
@@ -311,10 +335,23 @@ namespace SysCmdLine {
                 const auto &token = args[j];
 
                 // Consider option
-                if (auto opt = searchOption(token); opt) {
-                    size_t max = std::min(args.size() - j - 1, opt->d_func()->arguments.size());
-
+                int pos;
+                if (auto opt = searchOption(token, &pos); opt) {
                     auto &resVec = result->optResult[opt->name()];
+                    const auto &optArgs = opt->d_func()->arguments;
+                    ParseResult::ArgResult curArgResult;
+
+                    // Check following argument
+                    size_t x = 0;
+                    if (pos >= 0) {
+                        const auto &arg = optArgs.front();
+                        Value val;
+                        if (!checkArgument(&arg, token.substr(pos), &val, false)) {
+                            break;
+                        }
+                        curArgResult.insert(std::make_pair(arg.name(), val));
+                        x = 1;
+                    }
 
                     // Check max occurrence
                     if (opt->maxOccurrence() > 0 && resVec.size() == opt->maxOccurrence()) {
@@ -326,11 +363,11 @@ namespace SysCmdLine {
                         break;
                     }
 
-                    ParseResult::ArgResult curArgResult;
-                    size_t x = 0;
+                    size_t start = j + 1 - x;
+                    size_t max = std::min(args.size() - start, optArgs.size());
                     for (; x < max; ++x) {
-                        const auto &nextToken = args[x + j + 1];
-                        const auto &arg = opt->d_func()->arguments.at(x);
+                        const auto &nextToken = args[x + start];
+                        const auto &arg = optArgs.at(x);
 
                         // Break by next option
                         if (nextToken.front() == '-' && !arg.isRequired() &&
@@ -350,7 +387,6 @@ namespace SysCmdLine {
                         break;
 
                     // Check required arguments
-                    const auto &optArgs = opt->d_func()->arguments;
                     if (x < optArgs.size()) {
                         const auto &arg = optArgs.at(x);
                         if (arg.isRequired()) {
@@ -375,20 +411,21 @@ namespace SysCmdLine {
                     resVec.emplace_back(curArgResult);
 
                     priorLevel = std::max(priorLevel, opt->priorLevel());
-                    j += x;
+                    j = start - 1 + x;
                     continue;
                 }
 
                 // Consider argument
                 {
-                    if (k == cmd->d_func()->arguments.size()) {
+                    const auto &cmdArgs = cmd->d_func()->arguments;
+                    if (k == cmdArgs.size()) {
                         if (token.front() == '-') {
                             result->error = Parser::UnknownOption;
                             result->errorPlaceholders = {token};
                             break;
                         }
 
-                        if (cmd->d_func()->arguments.empty()) {
+                        if (cmdArgs.empty()) {
                             result->error = Parser::TooManyArguments;
                             break;
                         }
@@ -398,7 +435,7 @@ namespace SysCmdLine {
                         break;
                     }
 
-                    const auto &arg = cmd->d_func()->arguments.at(k);
+                    const auto &arg = cmdArgs.at(k);
                     Value val;
                     if (!checkArgument(&arg, token, &val)) {
                         break;

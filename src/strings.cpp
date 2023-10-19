@@ -102,4 +102,12 @@ namespace SysCmdLine::Strings {
         return suggestions;
     }
 
+    std::string removeSideQuotes(const std::string& s) {
+        if (s.size() < 2)
+            return s;
+        if ((s.front() == '\'' && s.back()=='\'') || (s.front() == '\"' && s.back()=='\"'))
+            return s.substr(1, s.size() - 2);
+        return s;
+    }
+
 }

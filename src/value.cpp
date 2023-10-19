@@ -168,16 +168,24 @@ namespace SysCmdLine {
         Value res;
         switch (type) {
             case Value::Int: {
+                std::string::size_type idx;
                 try {
-                    res = std::stoi(s);
+                    res = std::stoi(s, &idx);
+                    if (idx < s.size()) {
+                        res = {};
+                    }
                 } catch (...) {
                 }
                 break;
             }
 
             case Value::Double: {
+                std::string::size_type idx;
                 try {
-                    res = std::stod(s);
+                    res = std::stod(s, &idx);
+                    if (idx < s.size()) {
+                        res = {};
+                    }
                 } catch (...) {
                 }
                 break;
