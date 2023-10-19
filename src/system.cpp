@@ -37,7 +37,7 @@ namespace SysCmdLine {
                               &utf8Str[0], utf8Length, nullptr, nullptr);
         return utf8Str;
 #else
-        return std::filesystem::path(s).string();
+        return std::filesystem::path(utf16Str).string();
 #endif
     }
 
@@ -61,7 +61,7 @@ namespace SysCmdLine {
                               &utf16Str[0], utf16Length);
         return utf16Str;
 #else
-        return std::filesystem::path(s).wstring();
+        return std::filesystem::path(utf8Str).wstring();
 #endif
     }
 
