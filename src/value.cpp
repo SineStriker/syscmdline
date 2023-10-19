@@ -32,7 +32,7 @@ namespace SysCmdLine {
     }
 
     Value::Value(const char *ch, int size) : _type(String) {
-        data.s = size >= 0 ? new std::string(ch) : new std::string(ch, size);
+        data.s = size >= 0 ? new std::string(ch, size) : new std::string(ch);
     }
 
     Value::~Value() {

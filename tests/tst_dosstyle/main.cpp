@@ -8,8 +8,9 @@ using namespace SysCmdLine;
 
 static int routine(const Parser &parser) {
     auto fileValues = Value::toStringList(parser.valuesForArgument("files"));
+    std::cout << "Files to be removed:" << std::endl;
     for (const auto &item : std::as_const(fileValues)) {
-        std::cout << item << std::endl;
+        std::cout << "    " << item << std::endl;
     }
     return 0;
 }
@@ -25,7 +26,7 @@ int main(int argc, char *argv[]) {
               "the names \nof the files as they are being deleted.");
     Option quietOption("/Q", "Specifies quiet mode. You are not prompted for delete confirmation.");
 
-    Argument fileArg("files", "File name");
+    Argument fileArg("files", "File names to be removed");
     fileArg.setDisplayName("files");
 
     Command rootCommand("del");
@@ -36,7 +37,7 @@ int main(int argc, char *argv[]) {
         subdirOption,
         quietOption,
     });
-    rootCommand.addHelpOption(true, false, {"/?"});
+    rootCommand.addHelpOption(false, false, {"/?"});
     rootCommand.setMultipleArgumentsEnabled(true);
     rootCommand.setHandler(routine);
 
