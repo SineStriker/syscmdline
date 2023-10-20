@@ -6,16 +6,16 @@
 
 using namespace SysCmdLine;
 
-static int routine(const Parser &parser) {
-    auto dsPath = parser.valueForOption("--ds-file").toString();
-    auto dsConfigPath = parser.valueForOption("--acoustic-config").toString();
-    auto vocoderConfigPath = parser.valueForOption("--vocoder-config").toString();
-    auto spkMixStr = parser.valueForOption("--spk").toString();
-    auto outputAudioTitle = parser.valueForOption("--out").toString();
-    auto speedup = parser.valueForOption("--speedup").toInt();
-    auto depth = parser.valueForOption("--depth").toInt();
-    auto cpuOnly = parser.optionIsSet("--cpu-only");
-    auto deviceIndex = parser.valueForOption("--device-index").toInt();
+static int routine(const ParseResult &result) {
+    auto dsPath = result.valueForOption("--ds-file").toString();
+    auto dsConfigPath = result.valueForOption("--acoustic-config").toString();
+    auto vocoderConfigPath = result.valueForOption("--vocoder-config").toString();
+    auto spkMixStr = result.valueForOption("--spk").toString();
+    auto outputAudioTitle = result.valueForOption("--out").toString();
+    auto speedup = result.valueForOption("--speedup").toInt();
+    auto depth = result.valueForOption("--depth").toInt();
+    auto cpuOnly = result.optionIsSet("--cpu-only");
+    auto deviceIndex = result.valueForOption("--device-index").toInt();
 
     std::cout << "dsPath: " << dsPath << std::endl;
     std::cout << "dsConfigPath: " << dsConfigPath << std::endl;

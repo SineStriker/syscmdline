@@ -1,30 +1,31 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <string>
-#include <vector>
-
 #include <syscmdline/command.h>
 
 namespace SysCmdLine {
 
-    class ParserPrivate;
+    class ParseResultData;
 
-    class SYSCMDLINE_EXPORT Parser {
+    class SYSCMDLINE_EXPORT ParseResult {
     public:
-        Parser();
-        Parser(const Command &rootCommand);
-        ~Parser();
+        ParseResult();
+        ~ParseResult();
 
-        Parser(const Parser &other) = delete;
-        Parser &operator=(const Parser &other) = delete;
+        ParseResult(const ParseResult &other);
+        ParseResult(ParseResult &&other) noexcept;
+        ParseResult &operator=(const ParseResult &other);
+        ParseResult &operator=(ParseResult &&other) noexcept;
+
+        inline bool isValid() const;
 
     public:
-        enum Side {
-            Top,
-            Bottom,
-        };
+        const std::vector<std::string> &arguments() const;
 
+        int invoke(int errCode = -1) const;
+        int dispatch() const;
+
+    public:
         enum Error {
             NoError,
             UnknownOption,
@@ -41,38 +42,6 @@ namespace SysCmdLine {
             MutuallyExclusiveOptions,
         };
 
-        enum ParserOption {
-            Standard = 0,
-            IgnoreCommandCase = 1,
-            IgnoreOptionCase = 2,
-            ConsiderShortFlags = 4,
-            AllowDosStyleOptions = 8,
-            DontAllowUnixStyleOptions = 16,
-        };
-
-        enum DisplayOption {
-            Normal = 0,
-            DontShowHelpOnError = 1,
-            SkipCorrection = 2,
-            DontShowRequiredOptionsOnUsage = 4,
-            ShowOptionalOptionsOnUsage = 8,
-            ShowOptionsBehindArguments = 16,
-        };
-
-        Command rootCommand() const;
-        void setRootCommand(const Command &rootCommand);
-
-        std::string text(Side side) const;
-        void setText(Side side, const std::string &text);
-
-        int displayOptions() const;
-        void setDisplayOptions(int options);
-
-        bool parse(const std::vector<std::string> &args, int options = Standard);
-        int invoke(const std::vector<std::string> &args, int errCode = -1, int options = Standard);
-        int invoke() const;
-
-        bool parsed() const;
         Error error() const;
         std::string errorText() const;
         std::string correctionText() const;
@@ -111,31 +80,99 @@ namespace SysCmdLine {
         bool isResultNull() const;
 
     protected:
-        ParserPrivate *d;
+        SharedDataPointer<ParseResultData> d_ptr;
+
+        ParseResult(ParseResultData *d);
+
+        friend class Parser;
+        friend class ParserData;
     };
 
-    inline Value Parser::valueForArgument(const Argument &arg) const {
+    inline bool ParseResult::isValid() const {
+        return d_ptr.data() != nullptr;
+    }
+
+    inline Value ParseResult::valueForArgument(const Argument &arg) const {
         return valueForArgument(arg.name());
     }
 
-    inline std::vector<Value> Parser::valuesForArgument(const Argument &arg) const {
+    inline std::vector<Value> ParseResult::valuesForArgument(const Argument &arg) const {
         return valuesForArgument(arg.name());
     }
 
-    inline int Parser::optionCount(const Option &opt) const {
+    inline int ParseResult::optionCount(const Option &opt) const {
         return optionCount(opt.name());
     }
 
-    bool Parser::optionIsSet(const Option &opt) const {
+    bool ParseResult::optionIsSet(const Option &opt) const {
         return optionCount(opt) > 0;
     }
 
-    bool Parser::optionIsSet(const std::string &optName) const {
+    bool ParseResult::optionIsSet(const std::string &optName) const {
         return optionCount(optName) > 0;
     }
 
-    inline Value Parser::valueForOption(const Option &opt, const Argument &arg, int count) const {
+    inline Value ParseResult::valueForOption(const Option &opt, const Argument &arg,
+                                             int count) const {
         return valueForOption(opt.name(), arg.name(), count);
+    }
+
+    class ParserData;
+
+    class SYSCMDLINE_EXPORT Parser {
+    public:
+        Parser();
+        Parser(const Command &rootCommand);
+        ~Parser();
+
+        Parser(const Parser &other);
+        Parser(Parser &&other) noexcept;
+        Parser &operator=(const Parser &other);
+        Parser &operator=(Parser &&other) noexcept;
+
+    public:
+        enum Side {
+            Top,
+            Bottom,
+        };
+
+        enum ParseOption {
+            Standard = 0,
+            IgnoreCommandCase = 1,
+            IgnoreOptionCase = 2,
+            ConsiderContinuousFlags = 4,
+            AllowDosStyleOptions = 8,
+            DontAllowUnixStyleOptions = 16,
+        };
+
+        enum DisplayOption {
+            Normal = 0,
+            DontShowHelpOnError = 1,
+            SkipCorrection = 2,
+            DontShowRequiredOptionsOnUsage = 4,
+            ShowOptionalOptionsOnUsage = 8,
+            ShowOptionsBehindArguments = 16,
+        };
+
+        Command rootCommand() const;
+        void setRootCommand(const Command &rootCommand);
+
+        std::string text(Side side) const;
+        void setText(Side side, const std::string &text);
+
+        int displayOptions() const;
+        void setDisplayOptions(int displayOptions);
+
+        ParseResult parse(const std::vector<std::string> &args, int parseOptions = Standard);
+        inline int invoke(const std::vector<std::string> &args, int errCode = -1,
+                          int parseOptions = Standard);
+
+    protected:
+        SharedDataPointer<ParserData> d_ptr;
+    };
+
+    inline int Parser::invoke(const std::vector<std::string> &args, int errCode, int parseOptions) {
+        return parse(args, parseOptions).invoke(errCode);
     }
 
 }

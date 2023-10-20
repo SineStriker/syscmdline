@@ -6,11 +6,11 @@
 
 using namespace SysCmdLine;
 
-static int routine(const Parser &parser) {
-    std::cout << "A: " << parser.optionIsSet("a") << std::endl;
-    std::cout << "B: " << parser.optionIsSet("b") << std::endl;
-    std::cout << "C: " << parser.optionIsSet("c") << std::endl;
-    std::cout << "D: " << parser.optionIsSet("d") << std::endl;
+static int routine(const ParseResult &result) {
+    std::cout << "A: " << result.optionIsSet("a") << std::endl;
+    std::cout << "B: " << result.optionIsSet("b") << std::endl;
+    std::cout << "C: " << result.optionIsSet("c") << std::endl;
+    std::cout << "D: " << result.optionIsSet("d") << std::endl;
     return 0;
 }
 
@@ -47,5 +47,5 @@ int main(int argc, char *argv[]) {
 
     Parser parser(rootCommand);
     parser.setDisplayOptions(Parser::ShowOptionalOptionsOnUsage);
-    return parser.invoke(commandLineArguments(), -1, Parser::ConsiderShortFlags);
+    return parser.invoke(commandLineArguments(), -1, Parser::ConsiderContinuousFlags);
 }

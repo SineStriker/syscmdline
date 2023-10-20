@@ -1,10 +1,6 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-#include <string>
-#include <vector>
-#include <functional>
-
 #include <syscmdline/option.h>
 
 namespace SysCmdLine {
@@ -27,7 +23,7 @@ namespace SysCmdLine {
         void addCommandCatalogue(const std::string &name, const std::vector<std::string> &commands);
 
     protected:
-        SharedDataPointer<CommandCatalogueData> d;
+        SharedDataPointer<CommandCatalogueData> d_ptr;
 
         friend class Command;
         friend class CommandData;
@@ -37,7 +33,7 @@ namespace SysCmdLine {
 
     class SYSCMDLINE_EXPORT Command : public ArgumentHolder {
     public:
-        using Handler = std::function<int /* code */ (const Parser & /* parser */)>;
+        using Handler = std::function<int /* code */ (const ParseResult & /* parser */)>;
 
         Command();
         Command(const std::string &name, const std::string &desc = {},
@@ -93,14 +89,16 @@ namespace SysCmdLine {
         std::string version() const;
         std::string helpText(const std::vector<std::string> &cmd = {},
                              const std::vector<const Option *> &globalOptions = {},
-                             int parserOptions = 0) const;
+                             int displayOptions = 0) const;
 
     protected:
         CommandData *d_func();
         const CommandData *d_func() const;
 
         friend class Parser;
-        friend class ParserPrivate;
+        friend class ParserData;
+        friend class ParseResult;
+        friend class ParseResultData;
     };
 
 }

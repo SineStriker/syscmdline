@@ -1,9 +1,6 @@
 #ifndef OPTION_H
 #define OPTION_H
 
-#include <string>
-#include <vector>
-
 #include <syscmdline/argument.h>
 
 namespace SysCmdLine {
@@ -71,7 +68,9 @@ namespace SysCmdLine {
         friend class Command;
         friend class CommandData;
         friend class Parser;
-        friend class ParserPrivate;
+        friend class ParserData;
+        friend class ParseResult;
+        friend class ParseResultData;
     };
 
     inline void Option::setToken(const std::string &token) {

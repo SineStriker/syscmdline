@@ -8,19 +8,19 @@ using namespace SysCmdLine;
 
 static const char INDENT[] = "    ";
 
-static int routine(const Parser &parser) {
-    auto fileValues = Value::toStringList(parser.valuesForArgument("files"));
+static int routine(const ParseResult &result) {
+    auto fileValues = Value::toStringList(result.valuesForArgument("files"));
     std::cout << "Files to be removed:" << std::endl;
     for (const auto &item : std::as_const(fileValues)) {
         std::cout << INDENT << item << std::endl;
     }
 
-    bool prompt = parser.optionIsSet("/P");
-    bool force = parser.optionIsSet("/F");
-    bool subdir = parser.optionIsSet("/S");
-    bool quiet = parser.optionIsSet("/Q");
+    bool prompt = result.optionIsSet("/P");
+    bool force = result.optionIsSet("/F");
+    bool subdir = result.optionIsSet("/S");
+    bool quiet = result.optionIsSet("/Q");
 
-    std::cout << "Dir: " << parser.valueForArgument("dir").toString() << std::endl;
+    std::cout << "Dir: " << result.valueForArgument("dir").toString() << std::endl;
 
     std::cout << "Modes: " << std::endl;
     if (prompt) {

@@ -1,38 +1,10 @@
-#ifndef SYSCMDLINE_STRINGS_H
-#define SYSCMDLINE_STRINGS_H
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <string>
 #include <vector>
 
-namespace SysCmdLine::Strings {
-
-    enum CommonString {
-        Error,
-        Usage,
-        Description,
-        Arguments,
-        Options,
-        Commands,
-    };
-
-    enum InfoString {
-        Version,
-        Help,
-    };
-
-    enum HelperString {
-        MatchCommand,
-    };
-
-    extern const char INDENT[];
-
-    extern const char *error_strings[];
-
-    extern const char *common_strings[];
-
-    extern const char *info_strings[];
-
-    extern const char *helper_strings[];
+namespace SysCmdLine::Utils {
 
     template <class T>
     std::vector<std::basic_string<T>> split(const std::basic_string<T> &s,
@@ -84,4 +56,5 @@ namespace SysCmdLine::Strings {
 
 }
 
-#endif // SYSCMDLINE_STRINGS_H
+
+#endif // UTILS_H

@@ -1,13 +1,9 @@
 #include "strings.h"
 
-#include <algorithm>
-
 namespace SysCmdLine::Strings {
 
-    const char INDENT[] = "    ";
-
-    const char *error_strings[] = {
-        "",
+    static const char *error_strings[] = {
+        R"(No error.)",
         R"(Unknown option "%1".)",
         R"(Unknown command or argument "%1".)",
         R"(Missing required argument "%1" of option "%2".)",
@@ -22,84 +18,66 @@ namespace SysCmdLine::Strings {
         R"(Options "%1" and "%2" are mutually exclusive.)",
     };
 
-    const char *common_strings[] = {
+    static const char *title_strings[] = {
         "Error", "Usage", "Description", "Arguments", "Options", "Commands",
     };
 
-    const char *info_strings[] = {
+    static const char *command_strings[] = {
         "Show version information",
         "Show help information",
     };
 
-    const char *helper_strings[] = {
+    static const char *info_strings[] = {
         R"("%1" is not matched. Do you mean one of the following?)",
     };
 
-    std::string formatText(const std::string &format, const std::vector<std::string> &args) {
-        std::string result = format;
-        for (size_t i = 0; i < args.size(); i++) {
-            std::string placeholder = "%" + std::to_string(i + 1);
-            size_t pos = result.find(placeholder);
-            while (pos != std::string::npos) {
-                result.replace(pos, placeholder.length(), args[i]);
-                pos = result.find(placeholder, pos + args[i].size());
-            }
+    static std::string builtInTextProvider(TextCategory category, int index) {
+        const char **arr;
+        switch (category) {
+            case ParseError:
+                arr = error_strings;
+                break;
+            case Title:
+                arr = title_strings;
+                break;
+            case DefaultCommand:
+                arr = command_strings;
+                break;
+            case Information:
+                arr = info_strings;
+                break;
+            default:
+                return {};
         }
-        return result;
+        return arr[index];
     }
 
-    int levenshteinDistance(const std::string &s1, const std::string &s2) {
-        int len1 = s1.size();
-        int len2 = s2.size();
+    static TextProvider _provider = builtInTextProvider;
 
-        std::vector<std::vector<int>> dp(len1 + 1, std::vector<int>(len2 + 1));
-
-        for (int i = 0; i <= len1; i++) {
-            for (int j = 0; j <= len2; j++) {
-                if (i == 0) {
-                    dp[i][j] = j;
-                } else if (j == 0) {
-                    dp[i][j] = i;
-                } else if (s1[i - 1] == s2[j - 1]) {
-                    dp[i][j] = dp[i - 1][j - 1];
-                } else {
-                    dp[i][j] = 1 + std::min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]});
-                }
-            }
-        }
-
-        return dp[len1][len2];
+    void setTextProvider(TextProvider textProvider) {
+        _provider = textProvider;
     }
 
-    std::vector<std::string> getClosestTexts(const std::vector<std::string> &texts,
-                                             const std::string &input, int threshold) {
-
-        std::vector<std::string> suggestions;
-        for (const auto &cmd : texts) {
-            int distance = levenshteinDistance(input, cmd);
-            if (distance <= threshold) {
-                suggestions.push_back(cmd);
-            }
-        }
-        return suggestions;
+    TextProvider textProvider() {
+        return _provider;
     }
 
-    std::string removeSideQuotes(const std::string &s) {
-        if (s.size() < 2)
-            return s;
-        if ((s.front() == '\'' && s.back() == '\'') || (s.front() == '\"' && s.back() == '\"'))
-            return s.substr(1, s.size() - 2);
-        return s;
+    std::string text(TextCategory category, int index) {
+        return _provider(category, index);
     }
 
-    std::string toUpper(std::string s) {
-        std::transform(s.begin(), s.end(), s.begin(), ::toupper);
-        return s;
+    static int _sizeConfig[] = {
+        4,
+        4,
+        80,
+    };
+
+    int sizeConfig(int index) {
+        return _sizeConfig[index];
     }
 
-    std::string toLower(std::string s) {
-        std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-        return s;
+    void setSizeConfig(int index, int value) {
+        _sizeConfig[index] = value;
     }
 
 }

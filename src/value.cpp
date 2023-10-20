@@ -2,8 +2,6 @@
 
 #include <algorithm>
 
-#include "strings.h"
-
 namespace SysCmdLine {
 
     Value::Value(Value::Type type) : _type(type) {

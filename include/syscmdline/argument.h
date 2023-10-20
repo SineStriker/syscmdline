@@ -2,9 +2,7 @@
 #define ARGUMENT_H
 
 #include <functional>
-#include <string>
 #include <vector>
-#include <unordered_map>
 
 #include <syscmdline/symbol.h>
 #include <syscmdline/value.h>
@@ -12,17 +10,13 @@
 namespace SysCmdLine {
 
     class Parser;
-
-    class ParserPrivate;
-
+    class ParserData;
+    class ParseResult;
+    class ParseResultData;
     class ArgumentHolder;
-
     class ArgumentHolderData;
-
     class Command;
-
     class CommandData;
-
     class ArgumentData;
 
     class SYSCMDLINE_EXPORT Argument : public Symbol {
@@ -33,10 +27,12 @@ namespace SysCmdLine {
         Argument();
         Argument(const std::string &name, const std::string &desc = {});
         Argument(const std::string &name, const std::string &desc, const Value &defaultValue,
-                 bool required = true, const std::string &displayName = {}, bool multipleEnabled = false);
+                 bool required = true, const std::string &displayName = {},
+                 bool multipleEnabled = false);
         Argument(const std::string &name, const std::string &desc,
                  const std::vector<Value> &expectedValues, const Value &defaultValue,
-                 bool required = true, const std::string &displayName = {}, bool multipleEnabled = false);
+                 bool required = true, const std::string &displayName = {},
+                 bool multipleEnabled = false);
         ~Argument();
 
         Argument(const Argument &other);
@@ -77,7 +73,9 @@ namespace SysCmdLine {
         friend class Command;
         friend class CommandData;
         friend class Parser;
-        friend class ParserPrivate;
+        friend class ParserData;
+        friend class ParseResult;
+        friend class ParseResultData;
     };
 
     inline bool Argument::isOptional() const {
@@ -110,7 +108,9 @@ namespace SysCmdLine {
         const ArgumentHolderData *d_func() const;
 
         friend class Parser;
-        friend class ParserPrivate;
+        friend class ParserData;
+        friend class ParseResult;
+        friend class ParseResultData;
     };
 
 }

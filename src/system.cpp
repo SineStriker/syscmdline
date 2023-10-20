@@ -1,6 +1,5 @@
 #include "system.h"
 
-#include <iostream>
 #include <filesystem>
 
 #ifdef _WIN32
@@ -15,6 +14,8 @@
 #    include <mach-o/dyld.h>
 #  endif
 #endif
+
+#include "utils.h"
 
 namespace SysCmdLine {
 
@@ -119,8 +120,7 @@ namespace SysCmdLine {
 #ifdef _WIN32
         auto dotIdx = appName.find_last_of('.');
         if (dotIdx != std::string::npos) {
-            std::string suffix = appName.substr(dotIdx + 1);
-            std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
+            std::string suffix = Utils::toLower(appName.substr(dotIdx + 1));
             if (suffix == "exe") {
                 appName = appName.substr(0, dotIdx);
             }

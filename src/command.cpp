@@ -11,39 +11,33 @@
 #include "option_p.h"
 #include "strings.h"
 #include "parser.h"
+#include "utils.h"
 
 namespace SysCmdLine {
 
     CommandCatalogueData *CommandCatalogueData::clone() const {
-        auto cc = new CommandCatalogueData();
-        cc->_arg = _arg;
-        cc->_opt = _opt;
-        cc->_cmd = _cmd;
-        cc->_argIndexes = _argIndexes;
-        cc->_optIndexes = _optIndexes;
-        cc->_cmdIndexes = _cmdIndexes;
-        return cc;
+        return new CommandCatalogueData(*this);
     }
 
-    CommandCatalogue::CommandCatalogue() : d(new CommandCatalogueData()) {
+    CommandCatalogue::CommandCatalogue() : d_ptr(new CommandCatalogueData()) {
     }
 
     CommandCatalogue::~CommandCatalogue() {
     }
 
     CommandCatalogue::CommandCatalogue(const CommandCatalogue &other) {
-        d = other.d;
+        d_ptr = other.d_ptr;
     }
 
     CommandCatalogue::CommandCatalogue(CommandCatalogue &&other) noexcept {
-        d.swap(other.d);
+        d_ptr.swap(other.d_ptr);
     }
 
     CommandCatalogue &CommandCatalogue::operator=(const CommandCatalogue &other) {
         if (this == &other) {
             return *this;
         }
-        d = other.d;
+        d_ptr = other.d_ptr;
         return *this;
     }
 
@@ -51,49 +45,49 @@ namespace SysCmdLine {
         if (this == &other) {
             return *this;
         }
-        d.swap(other.d);
+        d_ptr.swap(other.d_ptr);
         return *this;
     }
 
     void CommandCatalogue::addArgumentCategory(const std::string &name,
                                                const std::vector<std::string> &args) {
         size_t index;
-        auto it = d->_argIndexes.find(name);
-        if (it == d->_argIndexes.end()) {
-            index = d->_arg.size();
-            d->_arg.emplace_back(args.begin(), args.end());
-            d->_argIndexes.insert(std::make_pair(name, index));
+        auto it = d_ptr->_argIndexes.find(name);
+        if (it == d_ptr->_argIndexes.end()) {
+            index = d_ptr->_arg.size();
+            d_ptr->_arg.emplace_back(args.begin(), args.end());
+            d_ptr->_argIndexes.insert(std::make_pair(name, index));
         } else {
             index = it->second;
-            d->_arg[index].insert(args.begin(), args.end());
+            d_ptr->_arg[index].insert(args.begin(), args.end());
         }
     }
 
     void CommandCatalogue::addOptionCategory(const std::string &name,
                                              const std::vector<std::string> &options) {
         size_t index;
-        auto it = d->_optIndexes.find(name);
-        if (it == d->_optIndexes.end()) {
-            index = d->_opt.size();
-            d->_opt.emplace_back(options.begin(), options.end());
-            d->_optIndexes.insert(std::make_pair(name, index));
+        auto it = d_ptr->_optIndexes.find(name);
+        if (it == d_ptr->_optIndexes.end()) {
+            index = d_ptr->_opt.size();
+            d_ptr->_opt.emplace_back(options.begin(), options.end());
+            d_ptr->_optIndexes.insert(std::make_pair(name, index));
         } else {
             index = it->second;
-            d->_opt[index].insert(options.begin(), options.end());
+            d_ptr->_opt[index].insert(options.begin(), options.end());
         }
     }
 
     void CommandCatalogue::addCommandCatalogue(const std::string &name,
                                                const std::vector<std::string> &commands) {
         size_t index;
-        auto it = d->_cmdIndexes.find(name);
-        if (it == d->_cmdIndexes.end()) {
-            index = d->_cmd.size();
-            d->_cmd.emplace_back(commands.begin(), commands.end());
-            d->_cmdIndexes.insert(std::make_pair(name, index));
+        auto it = d_ptr->_cmdIndexes.find(name);
+        if (it == d_ptr->_cmdIndexes.end()) {
+            index = d_ptr->_cmd.size();
+            d_ptr->_cmd.emplace_back(commands.begin(), commands.end());
+            d_ptr->_cmdIndexes.insert(std::make_pair(name, index));
         } else {
             index = it->second;
-            d->_cmd[index].insert(commands.begin(), commands.end());
+            d_ptr->_cmd[index].insert(commands.begin(), commands.end());
         }
     }
 
@@ -115,14 +109,7 @@ namespace SysCmdLine {
     }
 
     SymbolData *CommandData::clone() const {
-        std::vector<std::pair<Option, int>> _options;
-        _options.reserve(options.size());
-        for (const auto &opt : options) {
-            auto it = exclusiveGroupIndexes.find(opt.name());
-            _options.emplace_back(opt, it == exclusiveGroupIndexes.end() ? -1 : it->second);
-        }
-        return new CommandData(name, desc, _options, subCommands, arguments, version,
-                               detailedDescription, showHelpIfNoArg, handler, catalogue);
+        return new CommandData(*this);
     }
 
     void CommandData::setCommands(const std::vector<Command> &commands) {
@@ -339,7 +326,7 @@ namespace SysCmdLine {
         auto it = d->subCommandNameIndexes.find(name);
         if (it == d->subCommandNameIndexes.end())
             return -1;
-        return it->second;
+        return int(it->second);
     }
 
     bool Command::hasCommand(const std::string &name) const {
@@ -390,7 +377,7 @@ namespace SysCmdLine {
         auto it = d->optionNameIndexes.find(name);
         if (it == d->optionNameIndexes.end())
             return -1;
-        return it->second;
+        return int(it->second);
     }
 
     bool Command::hasOption(const std::string &name) const {
@@ -482,7 +469,7 @@ namespace SysCmdLine {
     void Command::addVersionOption(const std::string &ver, const std::vector<std::string> &tokens) {
         SYSCMDLINE_GET_DATA(Command);
         d->version = ver;
-        addOption(Option("version", Strings::info_strings[Strings::Version],
+        addOption(Option("version", Strings::text(Strings::DefaultCommand, Strings::Version),
                          tokens.empty() ? std::vector<std::string>{"-v", "--version"} : tokens,
                          false, Option::NoShortMatch, Option::IgnoreMissingArgument, false));
     }
@@ -490,7 +477,7 @@ namespace SysCmdLine {
     void Command::addHelpOption(bool showHelpIfNoArg, bool global,
                                 const std::vector<std::string> &tokens) {
         SYSCMDLINE_GET_DATA(Command);
-        addOption(Option("help", Strings::info_strings[Strings::Help],
+        addOption(Option("help", Strings::text(Strings::DefaultCommand, Strings::Help),
                          tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
                          Option::NoShortMatch, Option::IgnoreMissingArgument, global));
         d->showHelpIfNoArg = showHelpIfNoArg;
@@ -503,22 +490,25 @@ namespace SysCmdLine {
 
         ss << std::endl;
 
-        size_t widest = 0;
+        int widest = 0;
         for (const auto &item : contents) {
-            widest = std::max(item.first.size(), widest);
+            widest = std::max<int>(int(item.first.size()), widest);
         }
 
         ss << title << ": " << std::endl;
+
+        const int indent_ = Strings::sizeConfig(Strings::Indent);
+        const int spacing_ = Strings::sizeConfig(Strings::Spacing);
         for (const auto &item : contents) {
-            auto lines = Strings::split<char>(item.second, "\n");
+            auto lines = Utils::split<char>(item.second, "\n");
             if (lines.empty())
                 lines.emplace_back();
 
-            ss << Strings::INDENT << std::left << std::setw(widest) << item.first << Strings::INDENT
-               << lines.front() << std::endl;
+            ss << std::setw(indent_) << " " << std::left << std::setw(widest) << item.first
+               << std::setw(spacing_) << " " << lines.front() << std::endl;
             for (int i = 1; i < lines.size(); ++i) {
-                ss << Strings::INDENT << std::left << std::setw(widest) << " " << Strings::INDENT
-                   << lines.at(i) << std::endl;
+                ss << std::setw(indent_) << " " << std::left << std::setw(widest) << " "
+                   << std::setw(spacing_) << " " << lines.at(i) << std::endl;
             }
         }
     }
@@ -568,9 +558,9 @@ namespace SysCmdLine {
 
     std::string Command::helpText(const std::vector<std::string> &parentCommands,
                                   const std::vector<const Option *> &globalOptions,
-                                  int parserOptions) const {
+                                  int displayOptions) const {
         SYSCMDLINE_GET_CONST_DATA(Command);
-        const auto &dd = d->catalogue.d.constData();
+        const auto &dd = d->catalogue.d_ptr.constData();
 
         // Build option indexes
         auto options = d->options;
@@ -587,19 +577,21 @@ namespace SysCmdLine {
 
         // Description
         const auto &desc = d->detailedDescription.empty() ? d->desc : d->detailedDescription;
-        if (!desc.empty()) {
-            ss << Strings::common_strings[Strings::Description] << ": " << std::endl;
 
-            auto lines = Strings::split<char>(desc, "\n");
+        const int indent_ = Strings::sizeConfig(Strings::Indent);
+        if (!desc.empty()) {
+            ss << Strings::text(Strings::Title, Strings::Description) << ": " << std::endl;
+
+            auto lines = Utils::split<char>(desc, "\n");
             for (const auto &line : std::as_const(lines))
-                ss << Strings::INDENT << line << std::endl;
+                ss << std::setw(indent_) << " " << line << std::endl;
             ss << std::endl;
         }
 
         // Usage
-        ss << Strings::common_strings[Strings::Usage] << ": " << std::endl;
+        ss << Strings::text(Strings::Title, Strings::Usage) << ": " << std::endl;
         {
-            ss << Strings::INDENT;
+            ss << std::setw(indent_) << " ";
             for (const auto &item : parentCommands) {
                 ss << item << " ";
             }
@@ -607,7 +599,7 @@ namespace SysCmdLine {
             // name
             ss << d->name;
 
-            if (parserOptions & Parser::ShowOptionsBehindArguments) {
+            if (displayOptions & Parser::ShowOptionsBehindArguments) {
                 // arguments
                 if (!d->arguments.empty()) {
                     ss << " " << displayedArguments();
@@ -640,12 +632,12 @@ namespace SysCmdLine {
                     printedOptions.insert(curOpt.name());
                 }
 
-                ss << Strings::join<char>(exclusiveOptions, " | ");
+                ss << Utils::join<char>(exclusiveOptions, " | ");
                 if (needParen)
                     ss << ")";
             };
 
-            if (!(parserOptions & Parser::DontShowRequiredOptionsOnUsage)) {
+            if (!(displayOptions & Parser::DontShowRequiredOptionsOnUsage)) {
                 for (const auto &opt : options) {
                     if (!opt.isRequired()) {
                         continue;
@@ -660,7 +652,7 @@ namespace SysCmdLine {
                 }
             }
 
-            if ((parserOptions & Parser::ShowOptionalOptionsOnUsage) &&
+            if ((displayOptions & Parser::ShowOptionalOptionsOnUsage) &&
                 printedOptions.size() < options.size()) {
                 for (const auto &opt : options) {
                     if (opt.isRequired()) {
@@ -677,7 +669,7 @@ namespace SysCmdLine {
                 }
             }
 
-            if (!(parserOptions & Parser::ShowOptionsBehindArguments)) {
+            if (!(displayOptions & Parser::ShowOptionsBehindArguments)) {
                 // arguments
                 if (!d->arguments.empty()) {
                     ss << " " << displayedArguments();
@@ -701,7 +693,7 @@ namespace SysCmdLine {
         if (!d->arguments.empty()) {
             collectItems(
                 ss, dd->_arg, dd->_argIndexes, d->arguments, d->argumentNameIndexes,
-                Strings::common_strings[Strings::Arguments],
+                Strings::text(Strings::Title, Strings::Arguments),
                 [](const Argument &arg) { return arg.displayedText(); },
                 [](const Argument &arg) { return arg.description(); });
         }
@@ -710,7 +702,7 @@ namespace SysCmdLine {
         if (!options.empty()) {
             collectItems(
                 ss, dd->_opt, dd->_optIndexes, options, optionNameIndexes,
-                Strings::common_strings[Strings::Options],
+                Strings::text(Strings::Title, Strings::Options),
                 [](const Option &opt) { return opt.displayedText(); },
                 [](const Option &opt) { return opt.description(); });
         }
@@ -719,7 +711,7 @@ namespace SysCmdLine {
         if (!d->subCommands.empty()) {
             collectItems(
                 ss, dd->_cmd, dd->_cmdIndexes, d->subCommands, d->subCommandNameIndexes,
-                Strings::common_strings[Strings::Commands],
+                Strings::text(Strings::Title, Strings::Commands),
                 [](const Command &cmd) { return cmd.name(); },
                 [](const Command &cmd) { return cmd.description(); });
         }

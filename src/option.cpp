@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <sstream>
 
-#include "strings.h"
+#include "utils.h"
 
 namespace SysCmdLine {
 
@@ -24,8 +24,7 @@ namespace SysCmdLine {
     }
 
     SymbolData *OptionData::clone() const {
-        return new OptionData(name, desc, tokens, required, arguments, shortMatchRule, priorLevel,
-                              global, maxOccurrence);
+        return new OptionData(*this);
     }
 
     void OptionData::setTokens(const std::vector<std::string> &tokens) {
@@ -93,7 +92,7 @@ namespace SysCmdLine {
 
     std::string Option::displayedTokens() const {
         SYSCMDLINE_GET_CONST_DATA(Option);
-        return Strings::join<char>(d->tokens, ", ");
+        return Utils::join<char>(d->tokens, ", ");
     }
 
     std::string Option::displayedText(bool allTokens) const {
@@ -103,7 +102,7 @@ namespace SysCmdLine {
         const auto &_tokens = d->tokens;
 
         std::stringstream ss;
-        ss << (allTokens ? Strings::join<char>(_tokens, ", ") : _tokens.front());
+        ss << (allTokens ? Utils::join<char>(_tokens, ", ") : _tokens.front());
         if (!_arguments.empty()) {
             ss << " " << displayedArguments();
         }

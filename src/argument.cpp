@@ -21,8 +21,7 @@ namespace SysCmdLine {
     }
 
     SymbolData *ArgumentData::clone() const {
-        return new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName,
-                                multiple, validator);
+        return new ArgumentData(*this);
     }
 
     void ArgumentData::setExpectedValues(const std::vector<Value> &values) {
@@ -205,7 +204,7 @@ namespace SysCmdLine {
             if (multiValueIndex >= 0) {
                 throw std::runtime_error("there can be at most one multi-value argument");
             }
-            multiValueIndex = arguments.size();
+            multiValueIndex = int(arguments.size());
         } else if (multiValueIndex >= 0 && !arg.isRequired()) {
             throw std::runtime_error(
                 "adding optional argument after multi-value argument is prohibited");
@@ -301,7 +300,7 @@ namespace SysCmdLine {
         auto it = d->argumentNameIndexes.find(name);
         if (it == d->argumentNameIndexes.end())
             return -1;
-        return it->second;
+        return int(it->second);
     }
 
     bool ArgumentHolder::hasArgument(const std::string &name) const {

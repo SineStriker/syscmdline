@@ -34,7 +34,7 @@ namespace SysCmdLine {
         d_ptr->desc = desc;
     }
 
-    Symbol::Symbol(SymbolData *d) :d_ptr(d){
+    Symbol::Symbol(SymbolData *d) : d_ptr(d) {
     }
 
 }

@@ -13,9 +13,8 @@ namespace SysCmdLine {
     public:
         mutable std::atomic_int ref;
 
-        inline SharedData() noexcept : ref(0) {
-        }
-        SharedData(const SharedData &) = delete;
+        inline SharedData() noexcept : ref(0){};
+        inline SharedData(const SharedData &) noexcept : ref(0){};
 
         // using the assignment operator would lead to corruption in the ref-counting
         SharedData &operator=(const SharedData &) = delete;
@@ -164,8 +163,7 @@ namespace SysCmdLine {
         d = x;
     }
 
-#define SYSCMDLINE_GET_DATA(T)                                                                     \
-    T##Data *const d = reinterpret_cast<T##Data *>(d_ptr.data())
+#define SYSCMDLINE_GET_DATA(T) T##Data *const d = reinterpret_cast<T##Data *>(d_ptr.data())
 
 #define SYSCMDLINE_GET_CONST_DATA(T)                                                               \
     const T##Data *const d = reinterpret_cast<const T##Data *>(d_ptr.constData())
