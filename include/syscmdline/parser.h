@@ -47,6 +47,7 @@ namespace SysCmdLine {
             IgnoreOptionCase = 2,
             ConsiderShortFlags = 4,
             AllowDosStyleOptions = 8,
+            DontAllowUnixStyleOptions = 16,
         };
 
         enum DisplayOption {

@@ -187,7 +187,7 @@ namespace SysCmdLine {
         if (name.empty()) {
             throw std::runtime_error("null option name");
         }
-        if (name == "-" || name == "--" || name == "/") {
+        if (name == "-" || name == "/") {
             throw std::runtime_error("invalid option name \"" + name + "\"");
         }
         if (optionNameIndexes.count(name)) {

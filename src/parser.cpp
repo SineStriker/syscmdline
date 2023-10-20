@@ -302,8 +302,10 @@ namespace SysCmdLine {
                     return it->second;
                 }
 
-                if (token.front() == '-') {
-                    return searchShortOptions(indexes, token, '-', pos);
+                if (!(parserOptions & Parser::DontAllowUnixStyleOptions)) {
+                    if (token.front() == '-') {
+                        return searchShortOptions(indexes, token, '-', pos);
+                    }
                 }
 
                 if (parserOptions & Parser::AllowDosStyleOptions) {
