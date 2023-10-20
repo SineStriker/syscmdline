@@ -7,7 +7,6 @@
 #include <sstream>
 #include <cctype>
 #include <algorithm>
-#include <iomanip>
 
 #include "strings.h"
 #include "utils.h"
@@ -69,7 +68,7 @@ namespace SysCmdLine {
         ss << Utils::formatText(Strings::text(Strings::Information, Strings::MatchCommand), {input})
            << std::endl;
         for (const auto &item : std::as_const(suggestions)) {
-            ss << std::setw(Strings::sizeConfig(Strings::Indent)) << " " << item << std::endl;
+            ss << Strings::indent << item << std::endl;
         }
         return ss.str();
     }

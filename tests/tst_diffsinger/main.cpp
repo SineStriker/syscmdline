@@ -31,8 +31,8 @@ static int routine(const ParseResult &result) {
 }
 
 int main(int argc, char *argv[]) {
-    (void) argc;
-    (void) argv;
+    SYSCMDLINE_UNUSED(argc);
+    SYSCMDLINE_UNUSED(argv);
 
     Option dsFileOption("--ds-file", "Path to .ds file");
     dsFileOption.addArgument(Argument("file"));

@@ -4,7 +4,6 @@
 #include <set>
 #include <stdexcept>
 #include <sstream>
-#include <iomanip>
 #include <algorithm>
 #include <iostream>
 
@@ -497,18 +496,16 @@ namespace SysCmdLine {
 
         ss << title << ": " << std::endl;
 
-        const int indent_ = Strings::sizeConfig(Strings::Indent);
-        const int spacing_ = Strings::sizeConfig(Strings::Spacing);
         for (const auto &item : contents) {
             auto lines = Utils::split<char>(item.second, "\n");
             if (lines.empty())
                 lines.emplace_back();
 
-            ss << std::setw(indent_) << " " << std::left << std::setw(widest) << item.first
-               << std::setw(spacing_) << " " << lines.front() << std::endl;
+            ss << Strings::indent << " " << std::left << std::setw(widest) << item.first
+               << Strings::spacing << " " << lines.front() << std::endl;
             for (int i = 1; i < lines.size(); ++i) {
-                ss << std::setw(indent_) << " " << std::left << std::setw(widest) << " "
-                   << std::setw(spacing_) << " " << lines.at(i) << std::endl;
+                ss << Strings::indent << " " << std::left << std::setw(widest) << " "
+                   << Strings::spacing << " " << lines.at(i) << std::endl;
             }
         }
     }
@@ -578,20 +575,19 @@ namespace SysCmdLine {
         // Description
         const auto &desc = d->detailedDescription.empty() ? d->desc : d->detailedDescription;
 
-        const int indent_ = Strings::sizeConfig(Strings::Indent);
         if (!desc.empty()) {
             ss << Strings::text(Strings::Title, Strings::Description) << ": " << std::endl;
 
             auto lines = Utils::split<char>(desc, "\n");
             for (const auto &line : std::as_const(lines))
-                ss << std::setw(indent_) << " " << line << std::endl;
+                ss << Strings::indent << " " << line << std::endl;
             ss << std::endl;
         }
 
         // Usage
         ss << Strings::text(Strings::Title, Strings::Usage) << ": " << std::endl;
         {
-            ss << std::setw(indent_) << " ";
+            ss << Strings::indent << " ";
             for (const auto &item : parentCommands) {
                 ss << item << " ";
             }

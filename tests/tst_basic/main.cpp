@@ -7,8 +7,8 @@
 using namespace SysCmdLine;
 
 int main(int argc, char *argv[]) {
-    (void) argc;
-    (void) argv;
+    SYSCMDLINE_UNUSED(argc);
+    SYSCMDLINE_UNUSED(argv);
 
     Command cloneCommand("clone", "Clone a repository into a new directory");
     cloneCommand.addArgument(Argument("url", "Repository url"));

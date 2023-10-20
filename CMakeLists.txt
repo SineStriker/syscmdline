@@ -6,6 +6,7 @@ project(syscmdline VERSION 0.0.1.1 LANGUAGES CXX)
 # Build Options
 # ----------------------------------
 option(SYSCMDLINE_BUILD_STATIC "Build static library" ON)
+option(SYSCMDLINE_BUILD_EXAMPLES "Build examples" OFF)
 option(SYSCMDLINE_BUILD_TESTS "Build test cases" ON)
 option(SYSCMDLINE_INSTALL "Install library" ON)
 
@@ -57,6 +58,10 @@ add_subdirectory(src)
 
 if(SYSCMDLINE_BUILD_TESTS)
     add_subdirectory(tests)
+endif()
+
+if(SYSCMDLINE_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
 
 if(SYSCMDLINE_INSTALL)

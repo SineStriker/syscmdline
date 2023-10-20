@@ -1,7 +1,8 @@
-#ifndef SYSCMDLINE_STRINGS_H
-#define SYSCMDLINE_STRINGS_H
+#ifndef STRINGS_H
+#define STRINGS_H
 
 #include <string>
+#include <iomanip>
 
 #include <syscmdline/global.h>
 
@@ -54,6 +55,16 @@ namespace SysCmdLine::Strings {
 
     SYSCMDLINE_EXPORT void setSizeConfig(int index, int value);
 
+    template <class Char, class Traits>
+    std::basic_ostream<Char, Traits> &indent(std::basic_ostream<Char, Traits> &out) {
+        return out << std::setw(sizeConfig(Indent)) << " ";
+    }
+
+    template <class Char, class Traits>
+    std::basic_ostream<Char, Traits> &spacing(std::basic_ostream<Char, Traits> &out) {
+        return out << std::setw(sizeConfig(Spacing)) << " ";
+    }
+
 }
 
-#endif // SYSCMDLINE_STRINGS_H
+#endif // STRINGS_H

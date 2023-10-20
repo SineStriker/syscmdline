@@ -1,4 +1,4 @@
-project(tst_correction)
+project(del)
 
 file(GLOB _src *.h *.cpp)
 

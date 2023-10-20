@@ -40,8 +40,8 @@ static int routine(const ParseResult &result) {
 }
 
 int main(int argc, char *argv[]) {
-    (void) argc;
-    (void) argv;
+    SYSCMDLINE_UNUSED(argc);
+    SYSCMDLINE_UNUSED(argv);
 
     Option promptOption("/P", "Prompts for confirmation before deleting the specified file.");
     Option forceOption("/F", "Forces deletion of read-only files.");
