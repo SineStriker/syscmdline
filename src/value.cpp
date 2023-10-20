@@ -176,8 +176,15 @@ namespace SysCmdLine {
                 try {
                     int base = 10;
                     std::string s1 = s;
-                    if (s.size() > 2 && s.front() == '0') {
-                        switch (s.at(1)) {
+                    int f = 1;
+                    if (s1.front() == '+') {
+                        s1 = s1.substr(1);
+                    } else if (s1.front() == '-') {
+                        f = -1;
+                        s1 = s1.substr(1);
+                    }
+                    if (s1.size() > 2 && s1.front() == '0') {
+                        switch (s1.at(1)) {
                             case 'x':
                             case 'X':
                                 s1 = s1.substr(2);
@@ -201,7 +208,7 @@ namespace SysCmdLine {
                                 break;
                         }
                     }
-                    res = std::stoi(s1, &idx, base);
+                    res = std::stoi(s1, &idx, base) * f;
                     if (idx < s1.size()) {
                         res = {};
                     }

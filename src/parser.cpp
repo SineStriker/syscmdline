@@ -14,7 +14,7 @@
 
 namespace SysCmdLine {
 
-    class ParseResult {
+    class ParseResultData {
     public:
         Parser::Error error;
         std::vector<std::string> errorPlaceholders;
@@ -31,7 +31,7 @@ namespace SysCmdLine {
         bool versionSet;
         bool helpSet;
 
-        ParseResult()
+        ParseResultData()
             : error(Parser::NoError), command(nullptr), versionSet(false), helpSet(false) {
         }
 
@@ -98,7 +98,7 @@ namespace SysCmdLine {
     public:
         Command rootCommand;
         std::string texts[2];
-        ParseResult *result;
+        ParseResultData *result;
         int displayOptions;
 
         ParserPrivate() : result(nullptr), displayOptions(Parser::Normal) {
@@ -110,7 +110,7 @@ namespace SysCmdLine {
 
         void parse(const std::vector<std::string> &args, int parserOptions) {
             delete result;
-            result = new ParseResult();
+            result = new ParseResultData();
 
             // Search command
             const Command *cmd = &rootCommand;
@@ -429,7 +429,8 @@ namespace SysCmdLine {
             };
 
             auto checkOptionCommon =
-                [&](const Option *opt, const std::vector<ParseResult::ArgResult> &resVec) -> bool {
+                [&](const Option *opt,
+                    const std::vector<ParseResultData::ArgResult> &resVec) -> bool {
                 // Check max occurrence
                 if (opt->maxOccurrence() > 0 && resVec.size() == opt->maxOccurrence()) {
                     result->error = Parser::OptionOccurTooMuch;
@@ -471,7 +472,7 @@ namespace SysCmdLine {
                 if (auto opt = searchOption(token, &pos); opt) {
                     auto &resVec = result->optResult[opt->name()];
                     const auto &optArgs = opt->d_func()->arguments;
-                    ParseResult::ArgResult curArgResult;
+                    ParseResultData::ArgResult curArgResult;
 
                     // Check following argument
                     size_t x = 0;
@@ -1036,4 +1037,5 @@ namespace SysCmdLine {
             u8warning("%s\n", message.data()); //
         });
     }
+
 }
