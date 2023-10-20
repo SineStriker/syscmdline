@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <iostream>
-#include <regex>
+#include <cctype>
 
 #include "strings.h"
 #include "system.h"
@@ -80,7 +80,7 @@ namespace SysCmdLine {
 
             auto input = errorPlaceholders[0];
             auto suggestions =
-                Strings::getClosestTexts(expectedValues, input, std::max(2, int(input.size()) / 2));
+                Strings::getClosestTexts(expectedValues, input, int(input.size()) / 2);
             if (suggestions.empty())
                 return {};
 
@@ -521,9 +521,16 @@ namespace SysCmdLine {
                     continue;
                 }
 
+                auto isFlags = [](const std::string &s) -> bool {
+                    if (s.size() <= 1 || s.front() != '-')
+                        return false;
+                    return std::all_of(s.begin() + 1, s.end(), [](char c) {
+                        return std::isalpha(static_cast<unsigned char>(c));
+                    });
+                };
+
                 // Consider short flags
-                if ((parserOptions & Parser::ConsiderShortFlags) &&
-                    std::regex_match(token, std::regex("^-[a-zA-Z]+$"))) {
+                if ((parserOptions & Parser::ConsiderShortFlags) && isFlags(token)) {
                     auto opts = searchShortFlagOption(token.substr(1));
                     if (!opts.empty()) {
                         bool failed = false;
