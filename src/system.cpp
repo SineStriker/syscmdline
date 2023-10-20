@@ -4,7 +4,8 @@
 #include <filesystem>
 
 #ifdef _WIN32
-#  include <Windows.h>
+#  include <windows.h>
+#  include <shellapi.h>
 #else
 #  include <limits.h>
 #  include <sys/stat.h>
