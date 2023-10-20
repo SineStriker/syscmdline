@@ -34,7 +34,7 @@ namespace SysCmdLine {
         std::string utf8Str;
         utf8Str.resize(utf8Length);
         ::WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, utf16Str.data(), utf16Length,
-                              &utf8Str[0], utf8Length, nullptr, nullptr);
+                              utf8Str.data(), utf8Length, nullptr, nullptr);
         return utf8Str;
 #else
         return std::filesystem::path(utf16Str).string();
@@ -58,7 +58,7 @@ namespace SysCmdLine {
         std::wstring utf16Str;
         utf16Str.resize(utf16Length);
         ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8Str.data(), utf8Length,
-                              &utf16Str[0], utf16Length);
+                              utf16Str.data(), utf16Length);
         return utf16Str;
 #else
         return std::filesystem::path(utf8Str).wstring();
