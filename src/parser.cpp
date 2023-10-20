@@ -256,25 +256,9 @@ namespace SysCmdLine {
                 }
             }
 
-            auto searchOptionImpl = [](const std::map<std::string, const Option *> &indexes,
-                                       const std::string &token, int *pos) -> const Option * {
-                if (pos)
-                    *pos = -1;
-
-                if (indexes.empty())
-                    return nullptr;
-
-                {
-                    auto it = indexes.find(token);
-                    if (it != indexes.end()) {
-                        return it->second;
-                    }
-                }
-
-                if (token.front() != '-') {
-                    return nullptr;
-                }
-
+            auto searchShortOptions = [](const std::map<std::string, const Option *> &indexes,
+                                         const std::string &token, char sign,
+                                         int *pos) -> const Option * {
                 // Search for short option
                 auto it = indexes.lower_bound(token);
                 if (it != indexes.begin() && it != indexes.end() && token.find(it->first) != 0) {
@@ -295,10 +279,35 @@ namespace SysCmdLine {
                         return opt;
                     }
 
-                    if (token.at(prefix.size()) == '=') {
+                    if (token.at(prefix.size()) == sign) {
                         if (pos)
                             *pos = prefix.size() + 1;
                         return opt;
+                    }
+                }
+                return nullptr;
+            };
+
+            auto searchOptionImpl = [&](const std::map<std::string, const Option *> &indexes,
+                                        const std::string &token, int *pos) -> const Option * {
+                if (pos)
+                    *pos = -1;
+
+                if (indexes.empty())
+                    return nullptr;
+
+                auto it = indexes.find(token);
+                if (it != indexes.end()) {
+                    return it->second;
+                }
+
+                if (token.front() == '-') {
+                    return searchShortOptions(indexes, token, '-', pos);
+                }
+
+                if (parserOptions & Parser::AllowDosStyleOptions) {
+                    if (token.front() == '/') {
+                        return searchShortOptions(indexes, token, ':', pos);
                     }
                 }
                 return nullptr;
@@ -525,7 +534,7 @@ namespace SysCmdLine {
                     if (s.size() <= 1 || s.front() != '-')
                         return false;
                     return std::all_of(s.begin() + 1, s.end(), [](char c) {
-                        return std::isalpha(static_cast<unsigned char>(c));
+                        return std::isalpha(c) || std::isdigit(c); //
                     });
                 };
 
@@ -1027,5 +1036,4 @@ namespace SysCmdLine {
             u8warning("%s\n", message.data()); //
         });
     }
-
 }
