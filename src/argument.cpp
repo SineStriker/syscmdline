@@ -157,7 +157,7 @@ namespace SysCmdLine {
         return d->validator;
     }
 
-    void Argument::setValidator(const Argument::Validator &validator) {
+    void Argument::setValidator(const Validator &validator) {
         SYSCMDLINE_GET_DATA(Argument);
         d->validator = validator;
     }

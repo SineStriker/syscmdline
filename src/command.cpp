@@ -445,7 +445,7 @@ namespace SysCmdLine {
         return d->handler;
     }
 
-    void Command::setHandler(const Command::Handler &handler) {
+    void Command::setHandler(const Handler &handler) {
         SYSCMDLINE_GET_DATA(Command);
         d->handler = handler;
     }
@@ -501,11 +501,13 @@ namespace SysCmdLine {
             if (lines.empty())
                 lines.emplace_back();
 
-            ss << Strings::indent << " " << std::left << std::setw(widest) << item.first
-               << Strings::spacing << " " << lines.front() << std::endl;
+            ss << Strings::indent << std::left << std::setw(widest) << item.first //
+               << Strings::spacing                                                //
+               << lines.front() << std::endl;
             for (int i = 1; i < lines.size(); ++i) {
-                ss << Strings::indent << " " << std::left << std::setw(widest) << " "
-                   << Strings::spacing << " " << lines.at(i) << std::endl;
+                ss << Strings::indent << std::left << std::setw(widest) << ' ' //
+                   << Strings::spacing                                         //
+                   << lines.at(i) << std::endl;
             }
         }
     }
@@ -580,14 +582,14 @@ namespace SysCmdLine {
 
             auto lines = Utils::split<char>(desc, "\n");
             for (const auto &line : std::as_const(lines))
-                ss << Strings::indent << " " << line << std::endl;
+                ss << Strings::indent << line << std::endl;
             ss << std::endl;
         }
 
         // Usage
         ss << Strings::text(Strings::Title, Strings::Usage) << ": " << std::endl;
         {
-            ss << Strings::indent << " ";
+            ss << Strings::indent;
             for (const auto &item : parentCommands) {
                 ss << item << " ";
             }

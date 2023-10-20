@@ -57,12 +57,12 @@ namespace SysCmdLine::Strings {
 
     template <class Char, class Traits>
     std::basic_ostream<Char, Traits> &indent(std::basic_ostream<Char, Traits> &out) {
-        return out << std::setw(sizeConfig(Indent)) << " ";
+        return out << std::setw(sizeConfig(Indent)) << out.widen(' ');
     }
 
     template <class Char, class Traits>
     std::basic_ostream<Char, Traits> &spacing(std::basic_ostream<Char, Traits> &out) {
-        return out << std::setw(sizeConfig(Spacing)) << " ";
+        return out << std::setw(sizeConfig(Spacing)) << out.widen(' ');
     }
 
 }

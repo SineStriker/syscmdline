@@ -100,12 +100,12 @@ int main(int argc, char *argv[]) {
 
     Strings::setTextProvider(CN::textProvider);
 
-    Option promptOption("/P", "删除每一个文件之前提示确认。");
-    Option forceOption("/F", "强制删除只读文件。");
-    Option subdirOption("/S", "删除所有子目录中的指定的文件。");
-    Option quietOption("/Q", "安静模式。删除全局通配符时，不要求确认。");
+    Option promptOption("/P", "删除每一个文件之前提示确认");
+    Option forceOption("/F", "强制删除只读文件");
+    Option subdirOption("/S", "删除所有子目录中的指定的文件");
+    Option quietOption("/Q", "安静模式。删除全局通配符时，不要求确认");
 
-    Argument fileArg("files", "指定一个或多个文件或者目录列表。");
+    Argument fileArg("files", "指定一个或多个文件或者目录列表");
     fileArg.setDisplayName("files");
     fileArg.setMultiValueEnabled(true);
 
