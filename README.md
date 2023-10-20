@@ -12,6 +12,7 @@ Inspired by Qt `QCommandLineParser` and C# `Systeme.CommandLine`.
 + Support short options and flags
 + Simple tips for typo correction
 + Highly configurable
++ Interface friendly
 
 ## Integrate
 

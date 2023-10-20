@@ -88,7 +88,6 @@ namespace SysCmdLine {
         setRequired(!optional);
     }
 
-
     class SYSCMDLINE_EXPORT ArgumentHolder : public Symbol {
     public:
         ~ArgumentHolder();
