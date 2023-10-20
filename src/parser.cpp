@@ -267,6 +267,9 @@ namespace SysCmdLine {
                 }
 
                 const auto &prefix = it->first;
+                if (prefix == "--")
+                    return nullptr;
+
                 if (it != indexes.end() && Strings::starts_with(token, prefix)) {
                     const auto &opt = it->second;
                     const auto &args = opt->d_func()->arguments;
@@ -274,10 +277,22 @@ namespace SysCmdLine {
                         return nullptr;
                     }
 
-                    if (opt->isShortOption()) {
-                        if (pos)
-                            *pos = prefix.size();
-                        return opt;
+                    switch (opt->shortMatchRule()) {
+                        case Option::ShortMatchSingleChar: {
+                            if (token.size() > 2)
+                                break;
+                        }
+                        case Option::ShortMatchSingleLetter: {
+                            if (!std::isalpha(token.at(1)))
+                                break;
+                        }
+                        case Option::ShortMatchAll: {
+                            if (pos)
+                                *pos = prefix.size();
+                            return opt;
+                        }
+                        default:
+                            break;
                     }
 
                     if (token.at(prefix.size()) == sign) {
@@ -302,15 +317,17 @@ namespace SysCmdLine {
                     return it->second;
                 }
 
-                if (!(parserOptions & Parser::DontAllowUnixStyleOptions)) {
-                    if (token.front() == '-') {
-                        return searchShortOptions(indexes, token, '-', pos);
+                if (token.size() > 1) {
+                    if (!(parserOptions & Parser::DontAllowUnixStyleOptions)) {
+                        if (token.front() == '-') {
+                            return searchShortOptions(indexes, token, '-', pos);
+                        }
                     }
-                }
 
-                if (parserOptions & Parser::AllowDosStyleOptions) {
-                    if (token.front() == '/') {
-                        return searchShortOptions(indexes, token, ':', pos);
+                    if (parserOptions & Parser::AllowDosStyleOptions) {
+                        if (token.front() == '/') {
+                            return searchShortOptions(indexes, token, ':', pos);
+                        }
                     }
                 }
                 return nullptr;
@@ -1040,5 +1057,4 @@ namespace SysCmdLine {
             u8warning("%s\n", message.data()); //
         });
     }
-
 }

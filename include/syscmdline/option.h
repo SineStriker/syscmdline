@@ -17,12 +17,19 @@ namespace SysCmdLine {
             IgnoreMissingArgument,
         };
 
+        enum ShortMatchRule {
+            NoShortMatch,
+            ShortMatchAll,
+            ShortMatchSingleChar,
+            ShortMatchSingleLetter,
+        };
+
         Option();
         Option(const std::string &name, const std::string &desc,
                const std::vector<std::string> &tokens = {}, bool required = false,
                const std::vector<Argument> &arguments = {});
         Option(const std::string &name, const std::string &desc,
-               const std::vector<std::string> &tokens, bool required, bool is_short,
+               const std::vector<std::string> &tokens, bool required, ShortMatchRule shortMatchType,
                PriorLevel priorLevel, bool global, const std::vector<Argument> &arguments = {});
         ~Option();
 
@@ -45,8 +52,8 @@ namespace SysCmdLine {
         inline bool isOptional() const;
         inline void setOptional(bool optional);
 
-        bool isShortOption() const;
-        void setShortOption(bool on);
+        ShortMatchRule shortMatchRule() const;
+        void setShortMatchRule(ShortMatchRule shortMatchRule);
 
         PriorLevel priorLevel() const;
         void setPriorLevel(PriorLevel priorLevel);

@@ -19,19 +19,19 @@ int main(int argc, char *argv[]) {
     (void) argv;
 
     Option option1("a", "A");
-    option1.setShortOption(true);
+    option1.setShortMatchRule(Option::ShortMatchAll);
     option1.setRequired(true);
 
     Option option2("b", "B");
-    option2.setShortOption(true);
+    option2.setShortMatchRule(Option::ShortMatchAll);
     option2.setRequired(true);
 
     Option option3("c", "C");
-    option3.setShortOption(true);
+    option3.setShortMatchRule(Option::ShortMatchAll);
     option3.setRequired(true);
 
     Option option4("d", "D");
-    option4.setShortOption(true);
+    option4.setShortMatchRule(Option::ShortMatchAll);
 
     Command rootCommand("test");
     rootCommand.setOptions({

@@ -10,8 +10,8 @@ namespace SysCmdLine {
     public:
         OptionData(const std::string &name, const std::string &desc,
                    const std::vector<std::string> &tokens, bool required,
-                   const std::vector<Argument> &args, bool is_short, Option::PriorLevel priorLevel,
-                   bool global, int maxOccurrence);
+                   const std::vector<Argument> &args, Option::ShortMatchRule shortMatchRule,
+                   Option::PriorLevel priorLevel, bool global, int maxOccurrence);
         ~OptionData();
 
         SymbolData *clone() const override;
@@ -21,7 +21,7 @@ namespace SysCmdLine {
 
         std::vector<std::string> tokens;
         bool required;
-        bool is_short;
+        Option::ShortMatchRule shortMatchRule;
         Option::PriorLevel priorLevel;
         bool global;
         int maxOccurrence;

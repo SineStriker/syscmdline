@@ -10,11 +10,11 @@ namespace SysCmdLine {
 
     OptionData::OptionData(const std::string &name, const std::string &desc,
                            const std::vector<std::string> &tokens, bool required,
-                           const std::vector<Argument> &args, bool is_short,
+                           const std::vector<Argument> &args, Option::ShortMatchRule shortMatchRule,
                            Option::PriorLevel priorLevel, bool global, int maxOccurrence)
         : ArgumentHolderData(Symbol::ST_Option, name, desc, args), tokens(tokens),
-          required(required), is_short(is_short), priorLevel(priorLevel), global(global),
-          maxOccurrence(maxOccurrence) {
+          required(required), shortMatchRule(shortMatchRule), priorLevel(priorLevel),
+          global(global), maxOccurrence(maxOccurrence) {
 
         if (!tokens.empty())
             setTokens(tokens);
@@ -24,8 +24,8 @@ namespace SysCmdLine {
     }
 
     SymbolData *OptionData::clone() const {
-        return new OptionData(name, desc, tokens, required, arguments, is_short, priorLevel, global,
-                              maxOccurrence);
+        return new OptionData(name, desc, tokens, required, arguments, shortMatchRule, priorLevel,
+                              global, maxOccurrence);
     }
 
     void OptionData::setTokens(const std::vector<std::string> &tokens) {
@@ -53,14 +53,14 @@ namespace SysCmdLine {
     Option::Option(const std::string &name, const std::string &desc,
                    const std::vector<std::string> &tokens, bool required,
                    const std::vector<Argument> &arguments)
-        : Option(name, desc, tokens, required, false, NoPrior, false, arguments) {
+        : Option(name, desc, tokens, required, NoShortMatch, NoPrior, false, arguments) {
     }
 
     Option::Option(const std::string &name, const std::string &desc,
-                   const std::vector<std::string> &tokens, bool required, bool is_short,
-                   Option::PriorLevel priorLevel, bool global,
+                   const std::vector<std::string> &tokens, bool required,
+                   ShortMatchRule shortMatchType, Option::PriorLevel priorLevel, bool global,
                    const std::vector<Argument> &arguments)
-        : ArgumentHolder(new OptionData(name, desc, tokens, required, arguments, is_short,
+        : ArgumentHolder(new OptionData(name, desc, tokens, required, arguments, shortMatchType,
                                         priorLevel, global, 0)) {
     }
 
@@ -136,17 +136,17 @@ namespace SysCmdLine {
         d->required = required;
     }
 
-    bool Option::isShortOption() const {
+    Option::ShortMatchRule Option::shortMatchRule() const {
         SYSCMDLINE_GET_CONST_DATA(Option);
-        return d->is_short;
+        return d->shortMatchRule;
     }
 
-    void Option::setShortOption(bool on) {
-        if (on == this->isShortOption())
+    void Option::setShortMatchRule(ShortMatchRule shortMatchRule) {
+        if (shortMatchRule == this->shortMatchRule())
             return;
 
         SYSCMDLINE_GET_DATA(Option);
-        d->is_short = on;
+        d->shortMatchRule = shortMatchRule;
     }
 
     Option::PriorLevel Option::priorLevel() const {
