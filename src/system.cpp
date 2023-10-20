@@ -209,7 +209,7 @@ namespace SysCmdLine {
                     default:
                         break;
                 }
-                std::cout << colorStr;
+                printf("%s", colorStr);
             }
 #endif
         }
@@ -225,7 +225,7 @@ namespace SysCmdLine {
             if (_color != NoColor) {
                 // ANSI escape code to reset text color to default
                 const char *resetColor = "\033[0m";
-                std::cout << resetColor;
+                printf("%s", resetColor);
             }
 #endif
         }
