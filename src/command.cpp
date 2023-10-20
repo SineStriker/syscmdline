@@ -618,9 +618,14 @@ namespace SysCmdLine {
             std::unordered_set<std::string> printedOptions;
             auto printExclusiveOptions = [&](const Option &opt, bool needParen) {
                 auto it = d->exclusiveGroupIndexes.find(opt.name());
-                const decltype(d->exclusiveGroups.find(it->second)->second) *arr;
-                if (it == d->exclusiveGroupIndexes.end() ||
-                    (arr = &d->exclusiveGroups.find(it->second)->second)->size() <= 1) {
+                if (it == d->exclusiveGroupIndexes.end()) {
+                    ss << opt.displayedText(false);
+                    printedOptions.insert(opt.name());
+                    return;
+                }
+
+                const auto &arr = d->exclusiveGroups.find(it->second)->second;
+                if (arr.size() <= 1) {
                     ss << opt.displayedText(false);
                     printedOptions.insert(opt.name());
                     return;
@@ -629,7 +634,7 @@ namespace SysCmdLine {
                 if (needParen)
                     ss << "(";
                 std::vector<std::string> exclusiveOptions;
-                for (const auto &item : *arr) {
+                for (const auto &item : arr) {
                     const auto &curOpt = d->options[item];
                     exclusiveOptions.push_back(curOpt.displayedText(false));
                     printedOptions.insert(curOpt.name());
