@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iostream>
 #include <cctype>
+#include <algorithm>
 
 #include "strings.h"
 #include "system.h"
