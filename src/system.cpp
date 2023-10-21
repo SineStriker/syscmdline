@@ -1,10 +1,13 @@
 #include "system.h"
 
 #include <filesystem>
+#include <cstdarg>
 
 #ifdef _WIN32
 #  include <windows.h>
 #  include <shellapi.h>
+
+#  include "utils.h"
 #else
 #  include <limits.h>
 #  include <sys/stat.h>
@@ -12,10 +15,10 @@
 #  ifdef __APPLE__
 #    include <crt_externs.h>
 #    include <mach-o/dyld.h>
+#  else
+#    include <fstream>
 #  endif
 #endif
-
-#include "utils.h"
 
 namespace SysCmdLine {
 

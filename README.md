@@ -2,7 +2,7 @@
 
 Command Line Parser for Mordern C++.
 
-Inspired by Qt `QCommandLineParser` and C# `Systeme.CommandLine`.
+Inspired by Qt `QCommandLineParser` and C# `System.CommandLine`.
 
 ## Features
 
