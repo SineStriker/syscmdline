@@ -8,10 +8,14 @@ namespace SysCmdLine {
     class OptionData;
 
     class SYSCMDLINE_EXPORT Option : public ArgumentHolder {
+        SYSCMDLINE_DECL_DATA(Option)
     public:
         enum PriorLevel {
             NoPrior,
-            IgnoreMissingArgument,
+            IgnoreMissingSymbols,
+            ExclusiveToArguments,
+            ExclusiveToOptions,
+            ExclusiveToAll,
         };
 
         enum ShortMatchRule {
@@ -62,9 +66,6 @@ namespace SysCmdLine {
         void setMaxOccurrence(int max);
 
     protected:
-        OptionData *d_func();
-        const OptionData *d_func() const;
-
         friend class Command;
         friend class CommandData;
         friend class Parser;

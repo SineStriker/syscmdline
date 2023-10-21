@@ -8,6 +8,7 @@ namespace SysCmdLine {
     class CommandCatalogueData;
 
     class SYSCMDLINE_EXPORT CommandCatalogue {
+        SYSCMDLINE_DECL_DATA(CommandCatalogue)
     public:
         CommandCatalogue();
         ~CommandCatalogue();
@@ -27,11 +28,16 @@ namespace SysCmdLine {
 
         friend class Command;
         friend class CommandData;
+        friend class Parser;
+        friend class ParserData;
+        friend class ParseResult;
+        friend class ParseResultData;
     };
 
     class CommandData;
 
     class SYSCMDLINE_EXPORT Command : public ArgumentHolder {
+        SYSCMDLINE_DECL_DATA(Command)
     public:
         using Handler = std::function<int /* code */ (const ParseResult & /* parser */)>;
 
@@ -87,14 +93,8 @@ namespace SysCmdLine {
         void setCatalogue(const CommandCatalogue &catalogue);
 
         std::string version() const;
-        std::string helpText(const std::vector<std::string> &cmd = {},
-                             const std::vector<const Option *> &globalOptions = {},
-                             int displayOptions = 0) const;
 
     protected:
-        CommandData *d_func();
-        const CommandData *d_func() const;
-
         friend class Parser;
         friend class ParserData;
         friend class ParseResult;

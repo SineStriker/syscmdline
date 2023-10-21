@@ -17,9 +17,11 @@ namespace SysCmdLine {
     class ArgumentHolderData;
     class Command;
     class CommandData;
+
     class ArgumentData;
 
     class SYSCMDLINE_EXPORT Argument : public Symbol {
+        SYSCMDLINE_DECL_DATA(Argument)
     public:
         using Validator = std::function<bool /* result */ (
             const std::string & /* token */, Value * /* out */, std::string * /* errorMessage */)>;
@@ -65,9 +67,6 @@ namespace SysCmdLine {
         void setValidator(const Validator &validator);
 
     protected:
-        ArgumentData *d_func();
-        const ArgumentData *d_func() const;
-
         friend class ArgumentHolder;
         friend class ArgumentHolderData;
         friend class Command;
@@ -87,6 +86,7 @@ namespace SysCmdLine {
     }
 
     class SYSCMDLINE_EXPORT ArgumentHolder : public Symbol {
+        SYSCMDLINE_DECL_DATA(ArgumentHolder)
     public:
         ~ArgumentHolder();
 
@@ -104,9 +104,8 @@ namespace SysCmdLine {
     protected:
         ArgumentHolder(ArgumentHolderData *d);
 
-        ArgumentHolderData *d_func();
-        const ArgumentHolderData *d_func() const;
-
+        friend class Command;
+        friend class CommandData;
         friend class Parser;
         friend class ParserData;
         friend class ParseResult;

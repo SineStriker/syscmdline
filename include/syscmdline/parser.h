@@ -8,6 +8,7 @@ namespace SysCmdLine {
     class ParseResultData;
 
     class SYSCMDLINE_EXPORT ParseResult {
+        SYSCMDLINE_DECL_DATA(ParseResult)
     public:
         ParseResult();
         ~ParseResult();
@@ -20,6 +21,7 @@ namespace SysCmdLine {
         inline bool isValid() const;
 
     public:
+        Command rootCommand() const;
         const std::vector<std::string> &arguments() const;
 
         int invoke(int errCode = -1) const;
@@ -40,15 +42,17 @@ namespace SysCmdLine {
             ArgumentTypeMismatch,
             ArgumentValidateFailed,
             MutuallyExclusiveOptions,
+            PriorOptionWithArguments,
+            PriorOptionWithOptions,
         };
 
         Error error() const;
         std::string errorText() const;
         std::string correctionText() const;
 
-        Command targetCommand() const;
-        std::vector<Option> targetGlobalOptions() const;
-        std::vector<int> targetStack() const;
+        Command command() const;
+        std::vector<Option> globalOptions() const;
+        std::vector<int> commandIndexStack() const;
 
         void showError() const;
         void showHelpText() const;
@@ -120,6 +124,7 @@ namespace SysCmdLine {
     class ParserData;
 
     class SYSCMDLINE_EXPORT Parser {
+        SYSCMDLINE_DECL_DATA(Parser)
     public:
         Parser();
         Parser(const Command &rootCommand);
@@ -131,37 +136,41 @@ namespace SysCmdLine {
         Parser &operator=(Parser &&other) noexcept;
 
     public:
-        enum Side {
-            Top,
-            Bottom,
+        enum Position {
+            Prologue,
+            Epilogue,
         };
 
         enum ParseOption {
             Standard = 0,
-            IgnoreCommandCase = 1,
-            IgnoreOptionCase = 2,
-            ConsiderContinuousFlags = 4,
-            AllowDosStyleOptions = 8,
-            DontAllowUnixStyleOptions = 16,
+            IgnoreCommandCase = 0x1,
+            IgnoreOptionCase = 0x2,
+            AllowUnixGroupFlags = 0x4,
+            AllowDosKeyValueOptions = 0x8,
+            DontAllowUnixKeyValueOptions = 0x10,
         };
 
         enum DisplayOption {
             Normal = 0,
-            DontShowHelpOnError = 1,
-            SkipCorrection = 2,
-            DontShowRequiredOptionsOnUsage = 4,
-            ShowOptionalOptionsOnUsage = 8,
-            ShowOptionsBehindArguments = 16,
+            DontShowHelpOnError = 0x1,
+            SkipCorrection = 0x2,
+            DontShowRequiredOptionsOnUsage = 0x4,
+            ShowOptionalOptionsOnUsage = 0x8,
+            ShowOptionsBehindArguments = 0x10,
+            ShowArgumentDefaultValue = 0x20,
+            ShowArgumentExpectedValues = 0x40,
+            ShowArgumentIsRequired = 0x80,
+            ShowOptionIsRequired = 0x100,
         };
 
-        Command rootCommand() const;
-        void setRootCommand(const Command &rootCommand);
-
-        std::string text(Side side) const;
-        void setText(Side side, const std::string &text);
+        std::string intro(Position pos) const;
+        void setIntro(Position pos, const std::string &text);
 
         int displayOptions() const;
         void setDisplayOptions(int displayOptions);
+
+        Command rootCommand() const;
+        void setRootCommand(const Command &rootCommand);
 
         ParseResult parse(const std::vector<std::string> &args, int parseOptions = Standard);
         inline int invoke(const std::vector<std::string> &args, int errCode = -1,
@@ -169,6 +178,8 @@ namespace SysCmdLine {
 
     protected:
         SharedDataPointer<ParserData> d_ptr;
+
+        friend class ParserData;
     };
 
     inline int Parser::invoke(const std::vector<std::string> &args, int errCode, int parseOptions) {

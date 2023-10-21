@@ -40,8 +40,8 @@ namespace SysCmdLine::Utils {
 
     int levenshteinDistance(const std::string &s1, const std::string &s2);
 
-    std::vector<std::string> getClosestTexts(const std::vector<std::string> &texts,
-                                             const std::string &input, int threshold);
+    std::vector<std::string> calcClosestTexts(const std::vector<std::string> &texts,
+                                              const std::string &input, int threshold);
 
     std::string removeSideQuotes(const std::string &s);
 

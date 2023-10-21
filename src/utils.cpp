@@ -40,7 +40,7 @@ namespace SysCmdLine::Utils {
         return dp[len1][len2];
     }
 
-    std::vector<std::string> getClosestTexts(const std::vector<std::string> &texts,
+    std::vector<std::string> calcClosestTexts(const std::vector<std::string> &texts,
                                              const std::string &input, int threshold) {
 
         std::vector<std::string> suggestions;

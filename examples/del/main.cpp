@@ -23,10 +23,12 @@ namespace CN {
         R"(参数 "%2" 被指定非法的值 "%1"，应为 "%3"。)",
         R"(参数 "%2" 被指定非法的值 "%1"，原因: %3)",
         R"(选项 "%1" 与 "%2" 是互斥的。)",
+        R"(选项 "%1" 与其他参数不能同时指定。)",
+        R"(选项 "%1" 与其他选项不能同时指定。)",
     };
 
     static const char *title_strings[] = {
-        "错误", "用法", "简介", "参数", "选项", "命令",
+        "错误", "用法", "简介", "参数", "选项", "命令", "必选", "默认", "合法值",
     };
 
     static const char *command_strings[] = {
@@ -121,6 +123,6 @@ int main(int argc, char *argv[]) {
     rootCommand.setHandler(routine);
 
     Parser parser(rootCommand);
-    parser.setDisplayOptions(Parser::ShowOptionalOptionsOnUsage);
+    parser.setDisplayOptions(Parser::ShowOptionalOptionsOnUsage | Parser::ShowArgumentIsRequired);
     return parser.invoke(commandLineArguments(), -1, Parser::IgnoreOptionCase);
 }

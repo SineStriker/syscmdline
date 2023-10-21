@@ -8,7 +8,7 @@ namespace SysCmdLine {
     class ParserData : public SharedData {
     public:
         Command rootCommand;
-        std::string texts[2];
+        std::string intro[2];
         int displayOptions;
 
         ParserData() : displayOptions(Parser::Normal) {
@@ -53,6 +53,8 @@ namespace SysCmdLine {
         ParseResultData *clone() const {
             return new ParseResultData(*this);
         }
+
+        std::string commandHelpText() const;
 
         std::string correctionText() const;
         static Value getDefaultResult(const ArgumentHolder *argumentHolder,

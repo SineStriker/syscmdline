@@ -11,6 +11,7 @@ namespace SysCmdLine {
     class SymbolData;
 
     class SYSCMDLINE_EXPORT Symbol {
+        SYSCMDLINE_DECL_DATA(Symbol)
     public:
         enum SymbolType {
             ST_Command,

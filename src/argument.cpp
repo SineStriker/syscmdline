@@ -80,7 +80,7 @@ namespace SysCmdLine {
     }
 
     std::string Argument::displayedText() const {
-        SYSCMDLINE_GET_CONST_DATA(Argument);
+        SYSCMDLINE_GET_DATA(const Argument);
         std::string res = d->displayName.empty() ? ("<" + d->name + ">") : d->displayName;
         if (d->multiple)
             res += "...";
@@ -88,7 +88,7 @@ namespace SysCmdLine {
     }
 
     const std::vector<Value> &Argument::expectedValues() const {
-        SYSCMDLINE_GET_CONST_DATA(Argument);
+        SYSCMDLINE_GET_DATA(const Argument);
         return d->expectedValues;
     }
 
@@ -101,7 +101,7 @@ namespace SysCmdLine {
     }
 
     Value Argument::defaultValue() const {
-        SYSCMDLINE_GET_CONST_DATA(Argument);
+        SYSCMDLINE_GET_DATA(const Argument);
         return d->defaultValue;
     }
 
@@ -114,7 +114,7 @@ namespace SysCmdLine {
     }
 
     std::string Argument::displayName() const {
-        SYSCMDLINE_GET_CONST_DATA(Argument);
+        SYSCMDLINE_GET_DATA(const Argument);
         return d->displayName;
     }
 
@@ -127,7 +127,7 @@ namespace SysCmdLine {
     }
 
     bool Argument::isRequired() const {
-        SYSCMDLINE_GET_CONST_DATA(Argument);
+        SYSCMDLINE_GET_DATA(const Argument);
         return d->required;
     }
 
@@ -140,7 +140,7 @@ namespace SysCmdLine {
     }
 
     bool Argument::multiValueEnabled() const {
-        SYSCMDLINE_GET_CONST_DATA(Argument);
+        SYSCMDLINE_GET_DATA(const Argument);
         return d->multiple;
     }
 
@@ -153,23 +153,13 @@ namespace SysCmdLine {
     }
 
     Argument::Validator Argument::validator() const {
-        SYSCMDLINE_GET_CONST_DATA(Argument);
+        SYSCMDLINE_GET_DATA(const Argument);
         return d->validator;
     }
 
     void Argument::setValidator(const Validator &validator) {
         SYSCMDLINE_GET_DATA(Argument);
         d->validator = validator;
-    }
-
-    ArgumentData *Argument::d_func() {
-        SYSCMDLINE_GET_DATA(Argument);
-        return d;
-    }
-
-    const ArgumentData *Argument::d_func() const {
-        SYSCMDLINE_GET_CONST_DATA(Argument);
-        return d;
     }
 
     ArgumentHolderData::ArgumentHolderData(Symbol::SymbolType type, const std::string &name,
@@ -184,14 +174,15 @@ namespace SysCmdLine {
     }
 
     void ArgumentHolderData::addArgument(const Argument &arg) {
-        const auto &name = arg.name();
+        const auto &d = arg.d_func();
+        const auto &name = d->name;
         if (name.empty()) {
             throw std::runtime_error("empty argument name");
         }
         if (argumentNameIndexes.count(name)) {
             throw std::runtime_error("argument name \"" + name + "\" duplicated");
         }
-        if (!arguments.empty() && !arguments.back().isRequired() && arg.isRequired()) {
+        if (!arguments.empty() && !arguments.back().isRequired() && d->required) {
             throw std::runtime_error(
                 "adding required argument after optional arguments is prohibited");
         }
@@ -204,16 +195,19 @@ namespace SysCmdLine {
             if (multiValueIndex >= 0) {
                 throw std::runtime_error("there can be at most one multi-value argument");
             }
+            if (d->defaultValue.type() != Value::Null) {
+                throw std::runtime_error("multi-value argument with default value is prohibited");
+            }
             multiValueIndex = int(arguments.size());
-        } else if (multiValueIndex >= 0 && !arg.isRequired()) {
+        } else if (multiValueIndex >= 0 && !d->required) {
             throw std::runtime_error(
                 "adding optional argument after multi-value argument is prohibited");
         }
 
         // check if default value is valid
         {
-            const auto &expectedValues = arg.d_func()->expectedValues;
-            const auto &defaultValue = arg.d_func()->defaultValue;
+            const auto &expectedValues = d->expectedValues;
+            const auto &defaultValue = d->defaultValue;
             if (!expectedValues.empty() && defaultValue.type() != Value::Null &&
                 std::find(expectedValues.begin(), expectedValues.end(), defaultValue) ==
                     expectedValues.end()) {
@@ -244,7 +238,7 @@ namespace SysCmdLine {
     }
 
     std::string ArgumentHolder::displayedArguments() const {
-        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        SYSCMDLINE_GET_DATA(const ArgumentHolder);
         auto &_arguments = d->arguments;
 
         std::stringstream ss;
@@ -276,7 +270,7 @@ namespace SysCmdLine {
     }
 
     Argument ArgumentHolder::argument(const std::string &name) const {
-        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        SYSCMDLINE_GET_DATA(const ArgumentHolder);
         auto it = d->argumentNameIndexes.find(name);
         if (it == d->argumentNameIndexes.end())
             return {};
@@ -284,19 +278,19 @@ namespace SysCmdLine {
     }
 
     Argument ArgumentHolder::argument(int index) const {
-        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        SYSCMDLINE_GET_DATA(const ArgumentHolder);
         if (index < 0 || index >= d->arguments.size())
             return {};
         return d->arguments[index];
     }
 
     const std::vector<Argument> &ArgumentHolder::arguments() const {
-        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        SYSCMDLINE_GET_DATA(const ArgumentHolder);
         return d->arguments;
     }
 
     int ArgumentHolder::indexOfArgument(const std::string &name) const {
-        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        SYSCMDLINE_GET_DATA(const ArgumentHolder);
         auto it = d->argumentNameIndexes.find(name);
         if (it == d->argumentNameIndexes.end())
             return -1;
@@ -304,7 +298,7 @@ namespace SysCmdLine {
     }
 
     bool ArgumentHolder::hasArgument(const std::string &name) const {
-        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
+        SYSCMDLINE_GET_DATA(const ArgumentHolder);
         return d->argumentNameIndexes.count(name);
     }
 
@@ -319,16 +313,6 @@ namespace SysCmdLine {
     }
 
     ArgumentHolder::ArgumentHolder(ArgumentHolderData *d) : Symbol(d) {
-    }
-
-    ArgumentHolderData *ArgumentHolder::d_func() {
-        SYSCMDLINE_GET_DATA(ArgumentHolder);
-        return d;
-    }
-
-    const ArgumentHolderData *ArgumentHolder::d_func() const {
-        SYSCMDLINE_GET_CONST_DATA(ArgumentHolder);
-        return d;
     }
 
 }

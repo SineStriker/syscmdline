@@ -96,9 +96,9 @@ namespace SysCmdLine {
                              const std::vector<Argument> &args, const std::string &version,
                              const std::string &detailedDescription, bool showHelpIfNoArg,
                              const Command::Handler &handler, const CommandCatalogue &catalogue)
-        : ArgumentHolderData(Symbol::ST_Command, name, desc, args), version(version),
-          detailedDescription(detailedDescription), showHelpIfNoArg(showHelpIfNoArg),
-          handler(handler), catalogue(catalogue) {
+        : ArgumentHolderData(Symbol::ST_Command, name, desc, args), superPriorOptionIndex(-1),
+          version(version), detailedDescription(detailedDescription),
+          showHelpIfNoArg(showHelpIfNoArg), handler(handler), catalogue(catalogue) {
         if (!options.empty())
             setOptions(options);
         if (!subCommands.empty())
@@ -146,6 +146,7 @@ namespace SysCmdLine {
         optionTokenIndexes.clear();
         exclusiveGroups.clear();
         exclusiveGroupIndexes.clear();
+        superPriorOptionIndex = -1;
         if (opts.empty())
             return;
 
@@ -181,7 +182,7 @@ namespace SysCmdLine {
         }
 
         Option newOption = option;
-        if (std::as_const(newOption).d_func()->tokens.empty()) {
+        if (newOption.tokens().empty()) {
             if (name.front() == '-' || name.front() == '/') {
                 newOption.setToken(name);
             } else {
@@ -203,6 +204,19 @@ namespace SysCmdLine {
         if (exclusiveGroup >= 0 && newOption.isGlobal()) {
             throw std::runtime_error("global option \"" + name +
                                      "\" cannot be in any exclusive group");
+        }
+
+        switch (newOption.priorLevel()) {
+            case Option::ExclusiveToOptions:
+            case Option::ExclusiveToAll: {
+                if (superPriorOptionIndex >= 0) {
+                    throw std::runtime_error("there can be at most one exclusively prior option.");
+                }
+                superPriorOptionIndex = int(options.size());
+                break;
+            }
+            default:
+                break;
         }
 
         auto last = options.size();
@@ -268,7 +282,7 @@ namespace SysCmdLine {
     }
 
     std::string Command::displayedArguments() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         auto &_arguments = d->arguments;
 
         std::stringstream ss;
@@ -301,7 +315,7 @@ namespace SysCmdLine {
     }
 
     Command Command::command(const std::string &name) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         auto it = d->subCommandNameIndexes.find(name);
         if (it == d->subCommandNameIndexes.end())
             return {};
@@ -309,19 +323,19 @@ namespace SysCmdLine {
     }
 
     Command Command::command(int index) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         if (index < 0 || index >= d->subCommands.size())
             return {};
         return d->subCommands[index];
     }
 
     const std::vector<Command> &Command::commands() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         return d->subCommands;
     }
 
     int Command::indexOfCommand(const std::string &name) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         auto it = d->subCommandNameIndexes.find(name);
         if (it == d->subCommandNameIndexes.end())
             return -1;
@@ -329,7 +343,7 @@ namespace SysCmdLine {
     }
 
     bool Command::hasCommand(const std::string &name) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         return d->subCommandNameIndexes.count(name);
     }
 
@@ -344,7 +358,7 @@ namespace SysCmdLine {
     }
 
     Option Command::option(const std::string &name) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         auto it = d->optionNameIndexes.find(name);
         if (it == d->optionNameIndexes.end())
             return {};
@@ -352,14 +366,14 @@ namespace SysCmdLine {
     }
 
     Option Command::option(int index) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         if (index < 0 || index >= d->options.size())
             return {};
         return d->options[index];
     }
 
     Option Command::optionFromToken(const std::string &token) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         auto it = d->optionTokenIndexes.find(token);
         if (it == d->optionTokenIndexes.end())
             return {};
@@ -367,12 +381,12 @@ namespace SysCmdLine {
     }
 
     const std::vector<Option> &Command::options() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         return d->options;
     }
 
     int Command::indexOfOption(const std::string &name) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         auto it = d->optionNameIndexes.find(name);
         if (it == d->optionNameIndexes.end())
             return -1;
@@ -380,12 +394,12 @@ namespace SysCmdLine {
     }
 
     bool Command::hasOption(const std::string &name) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         return d->optionTokenIndexes.count(name);
     }
 
     bool Command::hasOptionToken(const std::string &token) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         return d->optionTokenIndexes.count(token);
     }
 
@@ -405,7 +419,7 @@ namespace SysCmdLine {
     }
 
     std::vector<int> Command::exclusiveGroups() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         std::set<int> groups;
         for (const auto &item : d->exclusiveGroups) {
             groups.insert(item.first);
@@ -414,7 +428,7 @@ namespace SysCmdLine {
     }
 
     std::vector<Option> Command::exclusiveGroupOptions(int group) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         auto it = d->exclusiveGroups.find(group);
         if (it == d->exclusiveGroups.end())
             return {};
@@ -428,7 +442,7 @@ namespace SysCmdLine {
     }
 
     std::string Command::detailedDescription() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         return d->detailedDescription;
     }
 
@@ -441,7 +455,7 @@ namespace SysCmdLine {
     }
 
     Command::Handler Command::handler() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         return d->handler;
     }
 
@@ -451,7 +465,7 @@ namespace SysCmdLine {
     }
 
     CommandCatalogue Command::catalogue() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         return d->catalogue;
     }
 
@@ -461,7 +475,7 @@ namespace SysCmdLine {
     }
 
     std::string Command::version() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
+        SYSCMDLINE_GET_DATA(const Command);
         return d->version;
     }
 
@@ -470,7 +484,7 @@ namespace SysCmdLine {
         d->version = ver;
         addOption(Option("version", Strings::text(Strings::DefaultCommand, Strings::Version),
                          tokens.empty() ? std::vector<std::string>{"-v", "--version"} : tokens,
-                         false, Option::NoShortMatch, Option::IgnoreMissingArgument, false));
+                         false, Option::NoShortMatch, Option::IgnoreMissingSymbols, false));
     }
 
     void Command::addHelpOption(bool showHelpIfNoArg, bool global,
@@ -478,253 +492,8 @@ namespace SysCmdLine {
         SYSCMDLINE_GET_DATA(Command);
         addOption(Option("help", Strings::text(Strings::DefaultCommand, Strings::Help),
                          tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
-                         Option::NoShortMatch, Option::IgnoreMissingArgument, global));
+                         Option::NoShortMatch, Option::IgnoreMissingSymbols, global));
         d->showHelpIfNoArg = showHelpIfNoArg;
-    }
-
-    static void listItems(std::stringstream &ss, const std::string &title,
-                          const std::vector<std::pair<std::string, std::string>> &contents) {
-        if (contents.empty())
-            return;
-
-        ss << std::endl;
-
-        int widest = 0;
-        for (const auto &item : contents) {
-            widest = std::max<int>(int(item.first.size()), widest);
-        }
-
-        ss << title << ": " << std::endl;
-
-        for (const auto &item : contents) {
-            auto lines = Utils::split<char>(item.second, "\n");
-            if (lines.empty())
-                lines.emplace_back();
-
-            ss << Strings::indent << std::left << std::setw(widest) << item.first //
-               << Strings::spacing                                                //
-               << lines.front() << std::endl;
-            for (int i = 1; i < lines.size(); ++i) {
-                ss << Strings::indent << std::left << std::setw(widest) << ' ' //
-                   << Strings::spacing                                         //
-                   << lines.at(i) << std::endl;
-            }
-        }
-    }
-
-    template <class T, class F1, class F2>
-    static void collectItems(std::stringstream &ss,
-                             const std::vector<std::unordered_set<std::string>> &catalogue,
-                             const std::unordered_map<std::string, size_t> &catalogueIndexes,
-                             const std::vector<T> &items,
-                             const std::unordered_map<std::string, size_t> &itemIndexes,
-                             const std::string &defaultTitle, F1 f1, F2 f2) {
-
-        auto indexes = itemIndexes;
-        for (const auto &pair : catalogueIndexes) {
-            std::set<size_t> subscriptSet;
-            for (const auto &name : catalogue[pair.second]) {
-                auto it = indexes.find(name);
-                if (it == indexes.end())
-                    continue;
-                subscriptSet.insert(it->second);
-                indexes.erase(it);
-            }
-
-            std::vector<std::pair<std::string, std::string>> texts;
-            for (const auto &subscript : std::as_const(subscriptSet)) {
-                const auto &item = items[subscript];
-                texts.emplace_back(f1(item), f2(item));
-            }
-            listItems(ss, pair.first, texts);
-        }
-
-        {
-            std::set<size_t> subscriptSet;
-            for (const auto &pair : std::as_const(indexes)) {
-                subscriptSet.insert(pair.second);
-            }
-
-            std::vector<std::pair<std::string, std::string>> texts;
-            texts.reserve(subscriptSet.size());
-            for (const auto &subscript : std::as_const(subscriptSet)) {
-                const auto &item = items[subscript];
-                texts.emplace_back(f1(item), f2(item));
-            }
-            listItems(ss, defaultTitle, texts);
-        }
-    }
-
-    std::string Command::helpText(const std::vector<std::string> &parentCommands,
-                                  const std::vector<const Option *> &globalOptions,
-                                  int displayOptions) const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
-        const auto &dd = d->catalogue.d_ptr.constData();
-
-        // Build option indexes
-        auto options = d->options;
-        auto optionNameIndexes = d->optionNameIndexes;
-
-        options.reserve(options.size() + globalOptions.size());
-        optionNameIndexes.reserve(optionNameIndexes.size() + globalOptions.size());
-        for (const auto &item : globalOptions) {
-            optionNameIndexes.insert(std::make_pair(item->name(), options.size()));
-            options.push_back(*item);
-        }
-
-        std::stringstream ss;
-
-        // Description
-        const auto &desc = d->detailedDescription.empty() ? d->desc : d->detailedDescription;
-
-        if (!desc.empty()) {
-            ss << Strings::text(Strings::Title, Strings::Description) << ": " << std::endl;
-
-            auto lines = Utils::split<char>(desc, "\n");
-            for (const auto &line : std::as_const(lines))
-                ss << Strings::indent << line << std::endl;
-            ss << std::endl;
-        }
-
-        // Usage
-        ss << Strings::text(Strings::Title, Strings::Usage) << ": " << std::endl;
-        {
-            ss << Strings::indent;
-            for (const auto &item : parentCommands) {
-                ss << item << " ";
-            }
-
-            // name
-            ss << d->name;
-
-            if (displayOptions & Parser::ShowOptionsBehindArguments) {
-                // arguments
-                if (!d->arguments.empty()) {
-                    ss << " " << displayedArguments();
-                }
-            }
-
-            // required options
-            std::unordered_set<std::string> printedOptions;
-            auto printExclusiveOptions = [&](const Option &opt, bool needParen) {
-                auto it = d->exclusiveGroupIndexes.find(opt.name());
-                if (it == d->exclusiveGroupIndexes.end()) {
-                    ss << opt.displayedText(false);
-                    printedOptions.insert(opt.name());
-                    return;
-                }
-
-                const auto &arr = d->exclusiveGroups.find(it->second)->second;
-                if (arr.size() <= 1) {
-                    ss << opt.displayedText(false);
-                    printedOptions.insert(opt.name());
-                    return;
-                }
-
-                if (needParen)
-                    ss << "(";
-                std::vector<std::string> exclusiveOptions;
-                for (const auto &item : arr) {
-                    const auto &curOpt = d->options[item];
-                    exclusiveOptions.push_back(curOpt.displayedText(false));
-                    printedOptions.insert(curOpt.name());
-                }
-
-                ss << Utils::join<char>(exclusiveOptions, " | ");
-                if (needParen)
-                    ss << ")";
-            };
-
-            if (!(displayOptions & Parser::DontShowRequiredOptionsOnUsage)) {
-                for (const auto &opt : options) {
-                    if (!opt.isRequired()) {
-                        continue;
-                    }
-
-                    if (printedOptions.count(opt.name()))
-                        continue;
-
-                    // check exclusive
-                    ss << " ";
-                    printExclusiveOptions(opt, true);
-                }
-            }
-
-            if ((displayOptions & Parser::ShowOptionalOptionsOnUsage) &&
-                printedOptions.size() < options.size()) {
-                for (const auto &opt : options) {
-                    if (opt.isRequired()) {
-                        continue;
-                    }
-
-                    if (printedOptions.count(opt.name()))
-                        continue;
-
-                    // check exclusive
-                    ss << " [";
-                    printExclusiveOptions(opt, false);
-                    ss << "]";
-                }
-            }
-
-            if (!(displayOptions & Parser::ShowOptionsBehindArguments)) {
-                // arguments
-                if (!d->arguments.empty()) {
-                    ss << " " << displayedArguments();
-                }
-            }
-
-            // command
-            if (!d->subCommands.empty()) {
-                ss << " [commands]";
-            }
-
-            // options
-            if (printedOptions.size() < options.size() || !d->subCommands.empty()) {
-                ss << " [options]";
-            }
-
-            ss << std::endl;
-        }
-
-        // Arguments
-        if (!d->arguments.empty()) {
-            collectItems(
-                ss, dd->_arg, dd->_argIndexes, d->arguments, d->argumentNameIndexes,
-                Strings::text(Strings::Title, Strings::Arguments),
-                [](const Argument &arg) { return arg.displayedText(); },
-                [](const Argument &arg) { return arg.description(); });
-        }
-
-        // Options
-        if (!options.empty()) {
-            collectItems(
-                ss, dd->_opt, dd->_optIndexes, options, optionNameIndexes,
-                Strings::text(Strings::Title, Strings::Options),
-                [](const Option &opt) { return opt.displayedText(); },
-                [](const Option &opt) { return opt.description(); });
-        }
-
-        // Commands
-        if (!d->subCommands.empty()) {
-            collectItems(
-                ss, dd->_cmd, dd->_cmdIndexes, d->subCommands, d->subCommandNameIndexes,
-                Strings::text(Strings::Title, Strings::Commands),
-                [](const Command &cmd) { return cmd.name(); },
-                [](const Command &cmd) { return cmd.description(); });
-        }
-
-        return ss.str();
-    }
-
-    CommandData *Command::d_func() {
-        SYSCMDLINE_GET_DATA(Command);
-        return d;
-    }
-
-    const CommandData *Command::d_func() const {
-        SYSCMDLINE_GET_CONST_DATA(Command);
-        return d;
     }
 
 }

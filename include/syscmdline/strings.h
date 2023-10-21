@@ -24,6 +24,9 @@ namespace SysCmdLine::Strings {
         Arguments,
         Options,
         Commands,
+        Required,
+        Default,
+        ExpectedValues,
     };
 
     enum DefaultCommandText {

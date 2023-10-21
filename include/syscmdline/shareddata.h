@@ -163,11 +163,13 @@ namespace SysCmdLine {
         d = x;
     }
 
+#define SYSCMDLINE_DECL_DATA(T)                                                                 \
+    friend class T##Data;                                                                          \
+    const T##Data *d_func() const {                                                                \
+        return reinterpret_cast<const T##Data *>(d_ptr.data());                                    \
+    }
+
 #define SYSCMDLINE_GET_DATA(T) T##Data *const d = reinterpret_cast<T##Data *>(d_ptr.data())
-
-#define SYSCMDLINE_GET_CONST_DATA(T)                                                               \
-    const T##Data *const d = reinterpret_cast<const T##Data *>(d_ptr.constData())
-
 }
 
 #endif // SHAREDDATA_H

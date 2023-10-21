@@ -16,10 +16,13 @@ namespace SysCmdLine::Strings {
         R"(Invalid token "%1" of argument "%2", expect "%3".)",
         R"(Invalid token "%1" of argument "%2", reason: %3)",
         R"(Options "%1" and "%2" are mutually exclusive.)",
+        R"(Option "%1" and other arguments cannot be specified simultaneously.)",
+        R"(Option "%1" and other options cannot be specified simultaneously.)",
     };
 
     static const char *title_strings[] = {
-        "Error", "Usage", "Description", "Arguments", "Options", "Commands",
+        "Error",    "Usage",    "Description", "Arguments", "Options",
+        "Commands", "Required", "Default",     "Expected",
     };
 
     static const char *command_strings[] = {

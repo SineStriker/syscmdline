@@ -91,12 +91,12 @@ namespace SysCmdLine {
     }
 
     std::string Option::displayedTokens() const {
-        SYSCMDLINE_GET_CONST_DATA(Option);
+        SYSCMDLINE_GET_DATA(const Option);
         return Utils::join<char>(d->tokens, ", ");
     }
 
     std::string Option::displayedText(bool allTokens) const {
-        SYSCMDLINE_GET_CONST_DATA(Option);
+        SYSCMDLINE_GET_DATA(const Option);
 
         const auto &_arguments = d->arguments;
         const auto &_tokens = d->tokens;
@@ -110,7 +110,7 @@ namespace SysCmdLine {
     }
 
     const std::vector<std::string> &Option::tokens() const {
-        SYSCMDLINE_GET_CONST_DATA(Option);
+        SYSCMDLINE_GET_DATA(const Option);
         return d->tokens;
     }
 
@@ -123,7 +123,7 @@ namespace SysCmdLine {
     }
 
     bool Option::isRequired() const {
-        SYSCMDLINE_GET_CONST_DATA(Option);
+        SYSCMDLINE_GET_DATA(const Option);
         return d->required;
     }
 
@@ -136,7 +136,7 @@ namespace SysCmdLine {
     }
 
     Option::ShortMatchRule Option::shortMatchRule() const {
-        SYSCMDLINE_GET_CONST_DATA(Option);
+        SYSCMDLINE_GET_DATA(const Option);
         return d->shortMatchRule;
     }
 
@@ -149,7 +149,7 @@ namespace SysCmdLine {
     }
 
     Option::PriorLevel Option::priorLevel() const {
-        SYSCMDLINE_GET_CONST_DATA(Option);
+        SYSCMDLINE_GET_DATA(const Option);
         return d->priorLevel;
     }
 
@@ -162,7 +162,7 @@ namespace SysCmdLine {
     }
 
     bool Option::isGlobal() const {
-        SYSCMDLINE_GET_CONST_DATA(Option);
+        SYSCMDLINE_GET_DATA(const Option);
         return d->global;
     }
 
@@ -175,7 +175,7 @@ namespace SysCmdLine {
     }
 
     int Option::maxOccurrence() const {
-        SYSCMDLINE_GET_CONST_DATA(Option);
+        SYSCMDLINE_GET_DATA(const Option);
         return d->maxOccurrence;
     }
 
@@ -185,16 +185,6 @@ namespace SysCmdLine {
 
         SYSCMDLINE_GET_DATA(Option);
         d->global = max;
-    }
-
-    OptionData *Option::d_func() {
-        SYSCMDLINE_GET_DATA(Option);
-        return d;
-    }
-
-    const OptionData *Option::d_func() const {
-        SYSCMDLINE_GET_CONST_DATA(Option);
-        return d;
     }
 
 }

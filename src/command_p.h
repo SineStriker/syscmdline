@@ -46,6 +46,7 @@ namespace SysCmdLine {
         std::unordered_map<std::string, size_t> optionTokenIndexes;
         std::unordered_map<int, std::vector<size_t>> exclusiveGroups;
         std::unordered_map<std::string, int> exclusiveGroupIndexes;
+        int superPriorOptionIndex;
 
         std::vector<Command> subCommands;
         std::unordered_map<std::string, size_t> subCommandNameIndexes;
