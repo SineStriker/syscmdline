@@ -1,5 +1,13 @@
 # Examples
 
++ Basic
+    + Positional Arguments
+    + Optinal Argument And Restricted Argument
+    + Argument Validator
+    + Options
+    + Commands
+    + Sub-commands
+
 ## Basic
 
 ### Positional Arguments
@@ -34,6 +42,8 @@ int main(int /* argc */, char * /* argv */ []) {
 
 + If the arguments are valid, the program will print `src` and `dest` value.
 
++ On Windows, parameters from `main` function are ANSI strings which doesn't support some Unicode characters. `syscmdline` uses UTF-8 encoding to privide internal texts and print to the console. Therefore, it is recommended to use `SysCmdLine::commandLineArguments()` rather than `argc` and `argv`, this function provides a cross-platform aproach to query command line arguments and return the strings encoded in UTF-8.
+
 ```sh
 Description:
     Move file or directory.
@@ -50,7 +60,7 @@ Options:
     -h, --help       Show help information
 ```
 
-### Default Value And Restricted Argument
+### Optinal Argument And Restricted Argument
 
 ```c++
 int main(int /* argc */, char * /* argv */ []) {
@@ -67,6 +77,7 @@ int main(int /* argc */, char * /* argv */ []) {
 
     Argument eventArg("event", "Event to do");
     eventArg.setDefaultValue("football");
+    eventArg.setRequired(false);
 
     Command rootCommand("work", "What to do on which day?");
     rootCommand.setArguments({weekdayArg, eventArg});
@@ -82,7 +93,7 @@ int main(int /* argc */, char * /* argv */ []) {
     return parser.invoke(SysCmdLine::commandLineArguments());
 }
 ```
-+ In this case, we add a restricted argument and another argument with default value.
++ In this case, we add a restricted argument and another optional argument with default value.
 
 + If an argument has an expected value list, only symbols listed in it will be regarded as valid argument.
 
@@ -93,17 +104,17 @@ Description:
     What to do on which day?
 
 Usage:
-    work <weekday> <event> [options]
+    work <weekday> [<event>] [options]
 
 Arguments:
-    <weekday>    Weekday [Expected: "Monday", "Tuesday", ...]
+    <weekday>    Weekday [Expected: "Monday", "Tuesday", "Wednesday", ...]
     <event>      Event to do [Default: football]
 
 Options:
     -h, --help    Show help information
 ```
 
-### Add Validator
+### Argument Validator
 
 TODO
 

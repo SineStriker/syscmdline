@@ -25,6 +25,7 @@ int main(int /* argc */, char * /* argv */[]) {
 
     Argument eventArg("event", "Event to do");
     eventArg.setDefaultValue("football");
+    eventArg.setRequired(false);
 
     Command rootCommand("work", "What to do on which day?");
     rootCommand.setArguments({weekdayArg, eventArg});
