@@ -54,6 +54,7 @@ target_link_libraries(my_project PRIVATE syscmdline::syscmdline)
 + Short option and key-value pair option
 + Group flags
 + Prior option
++ Localizations
 
 See [Examples](docs/examples.md) to learn more.
 
