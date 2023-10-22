@@ -729,7 +729,7 @@ namespace SysCmdLine {
         d->rootCommand = rootCommand;
     }
 
-    ParseResult Parser::parse(const std::vector<std::string> &args, int parseOptions) {
+    ParseResult Parser::parse(const std::vector<std::string> &args, int parseOptions) const{
         auto result = new ParseResultData(d_ptr, args);
         auto &error = result->error;
         auto &errorPlaceholders = result->errorPlaceholders;

@@ -42,7 +42,7 @@ int main(int /* argc */, char * /* argv */ []) {
 
 + If the arguments are valid, the program will print `src` and `dest` value.
 
-+ On Windows, parameters from `main` function are ANSI strings which doesn't support some Unicode characters. `syscmdline` uses UTF-8 encoding to privide internal texts and print to the console. Therefore, it is recommended to use `SysCmdLine::commandLineArguments()` rather than `argc` and `argv`, this function provides a cross-platform aproach to query command line arguments and return the strings encoded in UTF-8.
++ On Windows, parameters from `main` function are ANSI strings which doesn't support some Unicode characters. `syscmdline` uses UTF-8 encoding to provide internal texts and print to the console. Therefore, it is recommended to use `SysCmdLine::commandLineArguments()` rather than `argc` and `argv`, this function provides a cross-platform approach to query command line arguments and return the strings encoded in UTF-8.
 
 ```sh
 Description:

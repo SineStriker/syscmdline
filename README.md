@@ -16,13 +16,6 @@ Inspired by Qt `QCommandLineParser` and C# `System.CommandLine`.
 + Interface friendly
 + Highly configurable
 
-## Integrate
-
-```cmake
-find_package(syscmdline REQUIRED)
-target_link_libraries(my_project PRIVATE syscmdline::syscmdline)
-```
-
 ## Concepts
 
 ### Command
@@ -58,6 +51,23 @@ target_link_libraries(my_project PRIVATE syscmdline::syscmdline)
 
 See [Examples](docs/examples.md) to learn more.
 
+## How To Use
+
+### Build & Install
+
+```sh
+cmake -B build -G Ninja
+cmake --build build --target all
+cmake --build build --target install
+```
+
+### Integrate
+
+```cmake
+find_package(syscmdline REQUIRED)
+target_link_libraries(my_project PRIVATE syscmdline::syscmdline)
+```
+
 ## Thanks
 
 ### Other Projects
@@ -71,3 +81,4 @@ See [Examples](docs/examples.md) to learn more.
 ### Contributors
 
 + [wangwenx190](https://github.com/wangwenx190)
++ [JobSecond](https://github.com/JobSecond)
