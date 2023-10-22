@@ -36,11 +36,6 @@ namespace SysCmdLine::Strings {
 
     // Text Configuration
 
-    enum Locale {
-        English,
-        SimplifiedChinese,
-    };
-
     enum TextCategory {
         ParseError,
         Title,
@@ -74,8 +69,6 @@ namespace SysCmdLine::Strings {
     SYSCMDLINE_EXPORT void setTextProvider(TextProvider textProvider);
 
     SYSCMDLINE_EXPORT TextProvider textProvider();
-
-    SYSCMDLINE_EXPORT TextProvider textProviderForLocale(Locale locale);
 
     SYSCMDLINE_EXPORT std::string text(TextCategory category, int index);
 
