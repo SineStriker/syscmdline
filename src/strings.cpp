@@ -51,14 +51,23 @@ namespace SysCmdLine::Strings {
 
     static TextProvider _provider = en_US::provider;
 
+    /*!
+        Sets the current text provider.
+    */
     void setTextProvider(TextProvider textProvider) {
         _provider = textProvider;
     }
 
+    /*!
+        Returns the current text provider.
+    */
     TextProvider textProvider() {
         return _provider;
     }
 
+    /*!
+        Returns the current text of given category and index.
+    */
     std::string text(TextCategory category, int index) {
         return _provider(category, index);
     }
