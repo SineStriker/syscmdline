@@ -39,6 +39,7 @@ namespace SysCmdLine {
         enum PriorLevel {
             NoPrior,
             IgnoreMissingSymbols,
+            AutoSetWhenNoSymbols,
             ExclusiveToArguments,
             ExclusiveToOptions,
             ExclusiveToAll,

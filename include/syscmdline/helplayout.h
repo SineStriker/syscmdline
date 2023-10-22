@@ -76,8 +76,9 @@ namespace SysCmdLine {
             ST_ConsoleWidth,
         };
 
-        using Printer = std::function<void(const std::string & /* title */,
-                                           const std::vector<std::string> & /* lines */)>;
+        using Printer =
+            std::function<void(const std::string & /* title */,
+                               const std::vector<std::string> & /* lines */, bool /* hasNext */)>;
 
     public:
         bool isNull() const;

@@ -48,7 +48,7 @@ namespace SysCmdLine {
         return *this;
     }
 
-    void CommandCatalogue::addArgumentCategory(const std::string &name,
+    void CommandCatalogue::addArgumentCatalogue(const std::string &name,
                                                const std::vector<std::string> &args) {
         size_t index;
         auto it = d_ptr->_argIndexes.find(name);
@@ -62,7 +62,7 @@ namespace SysCmdLine {
         }
     }
 
-    void CommandCatalogue::addOptionCategory(const std::string &name,
+    void CommandCatalogue::addOptionCatalogue(const std::string &name,
                                              const std::vector<std::string> &options) {
         size_t index;
         auto it = d_ptr->_optIndexes.find(name);
@@ -94,11 +94,11 @@ namespace SysCmdLine {
                              const std::vector<std::pair<Option, int>> &options,
                              const std::vector<Command> &subCommands,
                              const std::vector<Argument> &args, const std::string &version,
-                             const std::string &detailedDescription, bool showHelpIfNoArg,
+                             const std::string &detailedDescription,
                              const Command::Handler &handler, const CommandCatalogue &catalogue)
         : ArgumentHolderData(Symbol::ST_Command, name, desc, args), superPriorOptionIndex(-1),
-          version(version), detailedDescription(detailedDescription),
-          showHelpIfNoArg(showHelpIfNoArg), handler(handler), catalogue(catalogue) {
+          version(version), detailedDescription(detailedDescription), handler(handler),
+          catalogue(catalogue) {
         if (!options.empty())
             setOptions(options);
         if (!subCommands.empty())
@@ -207,6 +207,14 @@ namespace SysCmdLine {
         }
 
         switch (newOption.priorLevel()) {
+            case Option::AutoSetWhenNoSymbols: {
+                for (const auto &arg : d->arguments) {
+                    if (arg.isRequired()) {
+                        throw std::runtime_error("auto-option cannot have required arguments");
+                    }
+                }
+                break;
+            }
             case Option::ExclusiveToOptions:
             case Option::ExclusiveToAll: {
                 if (superPriorOptionIndex >= 0) {
@@ -251,7 +259,7 @@ namespace SysCmdLine {
                      const std::vector<Command> &subCommands, const std::vector<Argument> &args,
                      const std::string &detailedDescription, const Command::Handler &handler)
         : ArgumentHolder(new CommandData(name, desc, options, subCommands, args, {},
-                                         detailedDescription, false, handler, {})) {
+                                         detailedDescription, handler, {})) {
     }
 
     Command::~Command() {
@@ -569,10 +577,11 @@ namespace SysCmdLine {
     void Command::addHelpOption(bool showHelpIfNoArg, bool global,
                                 const std::vector<std::string> &tokens) {
         SYSCMDLINE_GET_DATA(Command);
-        addOption(Option("help", Strings::text(Strings::DefaultCommand, Strings::Help),
-                         tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
-                         Option::NoShortMatch, Option::IgnoreMissingSymbols, global));
-        d->showHelpIfNoArg = showHelpIfNoArg;
+        addOption(Option(
+            "help", Strings::text(Strings::DefaultCommand, Strings::Help),
+            tokens.empty() ? std::vector<std::string>{"-h", "--help"} : tokens, false,
+            Option::NoShortMatch,
+            showHelpIfNoArg ? Option::AutoSetWhenNoSymbols : Option::IgnoreMissingSymbols, global));
     }
 
 }

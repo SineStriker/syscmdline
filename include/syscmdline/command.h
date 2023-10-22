@@ -45,8 +45,8 @@ namespace SysCmdLine {
         CommandCatalogue &operator=(CommandCatalogue &&other) noexcept;
 
     public:
-        void addArgumentCategory(const std::string &name, const std::vector<std::string> &args);
-        void addOptionCategory(const std::string &name, const std::vector<std::string> &options);
+        void addArgumentCatalogue(const std::string &name, const std::vector<std::string> &args);
+        void addOptionCatalogue(const std::string &name, const std::vector<std::string> &options);
         void addCommandCatalogue(const std::string &name, const std::vector<std::string> &commands);
 
     protected:

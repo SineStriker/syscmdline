@@ -149,46 +149,52 @@ namespace SysCmdLine {
         }
 
         // Arguments
-        result.arguments =
-            collectItems(helpLayout, dd->_arg, dd->_argIndexes, d->argumentNameIndexes,
-                         Strings::text(Strings::Title, Strings::Arguments),
+        if (!d->arguments.empty()) {
+            result.arguments = collectItems(
+                helpLayout, dd->_arg, dd->_argIndexes, d->argumentNameIndexes,
+                Strings::text(Strings::Title, Strings::Arguments),
 
-                         // getter
-                         [d, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
-                             const auto &arg = d->arguments[idx];
-                             return {
-                                 arg.helpText(Symbol::HP_FirstColumn, displayOptions),
-                                 arg.helpText(Symbol::HP_SecondColumn, displayOptions),
-                             };
-                         });
+                // getter
+                [d, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
+                    const auto &arg = d->arguments[idx];
+                    return {
+                        arg.helpText(Symbol::HP_FirstColumn, displayOptions),
+                        arg.helpText(Symbol::HP_SecondColumn, displayOptions),
+                    };
+                });
+        }
 
         // Options
-        result.options = collectItems(
-            helpLayout, dd->_opt, dd->_optIndexes, optionNameIndexes,
-            Strings::text(Strings::Title, Strings::Options),
+        if (!options.empty()) {
+            result.options = collectItems(
+                helpLayout, dd->_opt, dd->_optIndexes, optionNameIndexes,
+                Strings::text(Strings::Title, Strings::Options),
 
-            // getter
-            [&options, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
-                const auto &opt = options[idx];
-                return {
-                    opt.helpText(Symbol::HP_FirstColumn, displayOptions),
-                    opt.helpText(Symbol::HP_SecondColumn, displayOptions),
-                };
-            });
+                // getter
+                [&options, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
+                    const auto &opt = options[idx];
+                    return {
+                        opt.helpText(Symbol::HP_FirstColumn, displayOptions),
+                        opt.helpText(Symbol::HP_SecondColumn, displayOptions),
+                    };
+                });
+        }
 
         // Commands
-        result.commands =
-            collectItems(helpLayout, dd->_cmd, dd->_cmdIndexes, d->subCommandNameIndexes,
-                         Strings::text(Strings::Title, Strings::Commands),
+        if (!d->subCommands.empty()) {
+            result.commands = collectItems(
+                helpLayout, dd->_cmd, dd->_cmdIndexes, d->subCommandNameIndexes,
+                Strings::text(Strings::Title, Strings::Commands),
 
-                         // getter
-                         [d, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
-                             const auto &cmd = d->subCommands[idx];
-                             return {
-                                 cmd.helpText(Symbol::HP_FirstColumn, displayOptions),
-                                 cmd.helpText(Symbol::HP_SecondColumn, displayOptions),
-                             };
-                         });
+                // getter
+                [d, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
+                    const auto &cmd = d->subCommands[idx];
+                    return {
+                        cmd.helpText(Symbol::HP_FirstColumn, displayOptions),
+                        cmd.helpText(Symbol::HP_SecondColumn, displayOptions),
+                    };
+                });
+        }
         return result;
     }
 
@@ -242,10 +248,10 @@ namespace SysCmdLine {
             return {};
 
         std::stringstream ss;
-        ss << Utils::formatText(Strings::text(Strings::Information, Strings::MatchCommand), {input})
-           << std::endl;
+        ss << Utils::formatText(Strings::text(Strings::Information, Strings::MatchCommand),
+                                {input});
         for (const auto &item : std::as_const(suggestions)) {
-            ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' ' << item << std::endl;
+            ss << std::endl << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' ' << item;
         }
         return ss.str();
     }
@@ -269,10 +275,7 @@ namespace SysCmdLine {
     }
 
     static void defaultPrinter(MessageType messageType, const std::string &title,
-                               const std::vector<std::string> &lines) {
-        if (lines.empty())
-            return;
-
+                               const std::vector<std::string> &lines, bool hasNext) {
         bool highlight = false;
         switch (messageType) {
             case MT_Information:
@@ -292,7 +295,10 @@ namespace SysCmdLine {
         for (const auto &item : lines) {
             u8debug(messageType, highlight, "%s\n", item.data());
         }
-        u8printf("\n");
+
+        if (hasNext) {
+            u8printf("\n");
+        }
     }
 
     void ParseResultData::showHelp(const std::string &info, const std::string &warn,
@@ -301,108 +307,176 @@ namespace SysCmdLine {
         const auto &dd = parserData->helpLayout.d_func();
         const auto &ht = helpText();
 
-        auto buildStringList = [](const std::string &s) {
-            std::vector<std::string> res;
-            if (!s.empty())
-                res.push_back(s);
-            return res;
-        };
-
-        for (const auto &item : dd->layoutItems) {
+        int last = -1;
+        for (int i = 0; i < dd->layoutItems.size(); ++i) {
+            const auto &item = dd->layoutItems.at(i);
+            bool hasValue = false;
             switch (item.item) {
                 case HelpLayout::HI_CustomText: {
                     if (item.printer) {
-                        item.printer({}, {});
+                        hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Prologue: {
-                    if (item.printer) {
-                        item.printer({}, buildStringList(d->intro[Parser::Prologue]));
-                    } else {
-                        defaultPrinter(MessageType::MT_Debug, {},
-                                       buildStringList(d->intro[Parser::Prologue]));
+                    if (!d->intro[Parser::Prologue].empty()) {
+                        hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Information: {
-                    if (item.printer) {
-                        item.printer({}, buildStringList(info));
-                    } else {
-                        defaultPrinter(MessageType::MT_Debug, {}, buildStringList(info));
+                    if (!info.empty()) {
+                        hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Warning: {
-                    if (item.printer) {
-                        item.printer({}, buildStringList(warn));
-                    } else {
-                        defaultPrinter(MessageType::MT_Warning, {}, buildStringList(warn));
+                    if (!warn.empty()) {
+                        hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Error: {
-                    if (item.printer) {
-                        item.printer({}, buildStringList(err));
-                    } else {
-                        defaultPrinter(MessageType::MT_Critical, {}, buildStringList(err));
+                    if (!err.empty()) {
+                        hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Description: {
-                    if (item.printer) {
-                        item.printer(ht.description.first, ht.description.second);
-                    } else {
-                        defaultPrinter(MessageType::MT_Debug, ht.description.first,
-                                       ht.description.second);
+                    if (!ht.description.second.empty()) {
+                        hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Usage: {
-                    if (item.printer) {
-                        item.printer(ht.usage.first, ht.usage.second);
-                    } else {
-                        defaultPrinter(MessageType::MT_Debug, ht.usage.first, ht.usage.second);
+                    if (!ht.usage.second.empty()) {
+                        hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Arguments: {
-                    for (const auto &arg : ht.arguments) {
-                        if (item.printer) {
-                            item.printer(arg.first, arg.second);
-                        } else {
-                            defaultPrinter(MessageType::MT_Debug, arg.first, arg.second);
-                        }
+                    if (!ht.arguments.empty()) {
+                        hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Options: {
-                    for (const auto &opt : ht.options) {
-                        if (item.printer) {
-                            item.printer(opt.first, opt.second);
-                        } else {
-                            defaultPrinter(MessageType::MT_Debug, opt.first, opt.second);
-                        }
+                    if (!ht.options.empty()) {
+                        hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Commands: {
-                    for (const auto &cmd : ht.commands) {
-                        if (item.printer) {
-                            item.printer(cmd.first, cmd.second);
-                        } else {
-                            defaultPrinter(MessageType::MT_Debug, cmd.first, cmd.second);
-                        }
+                    if (!ht.commands.empty()) {
+                        hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Epilogue: {
-                    if (item.printer) {
-                        item.printer({}, buildStringList(d->intro[Parser::Epilogue]));
-                    } else {
-                        defaultPrinter(MessageType::MT_Debug, {},
-                                       buildStringList(d->intro[Parser::Epilogue]));
+                    if (!d->intro[Parser::Epilogue].empty()) {
+                        hasValue = true;
                     }
+                    break;
+                }
+            }
+            if (hasValue) {
+                last = i;
+            }
+        }
+
+        auto displayStr = [](const HelpLayoutData::LayoutItem &item, bool hasNext,
+                             const std::string &s, MessageType messageType = MT_Debug) {
+            if (s.empty())
+                return;
+            if (item.printer) {
+                item.printer({}, {s}, hasNext);
+            } else {
+                defaultPrinter(messageType, {}, {s}, hasNext);
+            }
+        };
+
+        auto displayPair = [](const HelpLayoutData::LayoutItem &item, bool hasNext,
+                              const std::pair<std::string, std::vector<std::string>> &p,
+                              MessageType messageType = MT_Debug) {
+            if (p.second.empty())
+                return;
+            if (item.printer) {
+                item.printer(p.first, p.second, hasNext);
+            } else {
+                defaultPrinter(messageType, p.first, p.second, hasNext);
+            }
+        };
+
+        auto displayArr =
+            [](const HelpLayoutData::LayoutItem &item, bool hasNext,
+               const std::vector<std::pair<std::string, std::vector<std::string>>> &arr) {
+                int last = -1;
+                if (!hasNext) {
+                    for (int j = 0; j < arr.size(); ++j) {
+                        if (!arr.at(j).second.empty()) {
+                            last = j;
+                        }
+                    }
+                }
+                for (int j = 0; j <= last; ++j) {
+                    const auto &item2 = arr.at(j);
+                    if (item.printer) {
+                        item.printer(item2.first, item2.second, hasNext || j < last);
+                    } else {
+                        defaultPrinter(MessageType::MT_Debug, item2.first, item2.second,
+                                       hasNext || j < last);
+                    }
+                }
+            };
+
+        for (int i = 0; i <= last; ++i) {
+            const auto &item = dd->layoutItems.at(i);
+            bool hasNext = i < last;
+            switch (item.item) {
+                case HelpLayout::HI_CustomText: {
+                    if (item.printer) {
+                        item.printer({}, {}, hasNext);
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Prologue: {
+                    displayStr(item, hasNext, d->intro[Parser::Prologue]);
+                    break;
+                }
+                case HelpLayout::HI_Information: {
+                    displayStr(item, hasNext, info);
+                    break;
+                }
+                case HelpLayout::HI_Warning: {
+                    displayStr(item, hasNext, warn, MT_Warning);
+                    break;
+                }
+                case HelpLayout::HI_Error: {
+                    displayStr(item, hasNext, err, MT_Critical);
+                    break;
+                }
+                case HelpLayout::HI_Description: {
+                    displayPair(item, hasNext, ht.description);
+                    break;
+                }
+                case HelpLayout::HI_Usage: {
+                    displayPair(item, hasNext, ht.usage);
+                    break;
+                }
+                case HelpLayout::HI_Arguments: {
+                    displayArr(item, hasNext, ht.arguments);
+                    break;
+                }
+                case HelpLayout::HI_Options: {
+                    displayArr(item, hasNext, ht.options);
+                    break;
+                }
+                case HelpLayout::HI_Commands: {
+                    displayArr(item, hasNext, ht.commands);
+                    break;
+                }
+                case HelpLayout::HI_Epilogue: {
+                    displayStr(item, hasNext, d->intro[Parser::Epilogue]);
                     break;
                 }
             }
@@ -473,11 +547,6 @@ namespace SysCmdLine {
         }
 
         if (d->helpSet) {
-            showHelpText();
-            return 0;
-        }
-
-        if (cmd.d_func()->showHelpIfNoArg && isResultNull()) {
             showHelpText();
             return 0;
         }
@@ -1350,9 +1419,28 @@ namespace SysCmdLine {
 
         // Check required arguments
         if (error == ParseResult::NoError) {
-            if ((cmd->d_func()->showHelpIfNoArg && result->optResult.empty() &&
-                 result->argResult.empty()) ||
-                (priorOpt && priorOpt->priorLevel() >= Option::IgnoreMissingSymbols)) {
+            bool hasAutoOption = false;
+
+            // Automatic set options
+            if (result->argResult.empty() && result->optResult.empty()) {
+                for (const auto &opt : cmd->d_func()->options) {
+                    if (opt.priorLevel() == Option::AutoSetWhenNoSymbols) {
+                        result->optResult[opt.name()] = {};
+                        hasAutoOption = true;
+                        break;
+                    }
+                }
+
+                for (const auto &opt : std::as_const(globalOptions)) {
+                    if (opt->priorLevel() == Option::AutoSetWhenNoSymbols) {
+                        result->optResult[opt->name()] = {};
+                        hasAutoOption = true;
+                        break;
+                    }
+                }
+            }
+
+            if (priorOpt || hasAutoOption) {
                 // ...
             } else if (missingArgument) {
                 // Required arguments
