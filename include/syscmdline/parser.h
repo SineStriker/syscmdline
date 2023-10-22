@@ -28,6 +28,7 @@
 #define PARSER_H
 
 #include <syscmdline/command.h>
+#include <syscmdline/helplayout.h>
 
 namespace SysCmdLine {
 
@@ -195,6 +196,9 @@ namespace SysCmdLine {
 
         int displayOptions() const;
         void setDisplayOptions(int displayOptions);
+
+        HelpLayout helpLayout() const;
+        void setHelpLayout(const HelpLayout &helpLayout);
 
         Command rootCommand() const;
         void setRootCommand(const Command &rootCommand);

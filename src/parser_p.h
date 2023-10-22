@@ -10,6 +10,7 @@ namespace SysCmdLine {
         Command rootCommand;
         std::string intro[2];
         int displayOptions;
+        HelpLayout helpLayout;
 
         ParserData() : displayOptions(Parser::Normal) {
         }

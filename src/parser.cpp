@@ -597,6 +597,16 @@ namespace SysCmdLine {
         d->displayOptions = displayOptions;
     }
 
+    HelpLayout Parser::helpLayout() const {
+        SYSCMDLINE_GET_DATA(const Parser);
+        return d->helpLayout;
+    }
+
+    void Parser::setHelpLayout(const HelpLayout &helpLayout) {
+        SYSCMDLINE_GET_DATA(Parser);
+        d->helpLayout = helpLayout;
+    }
+
     Command Parser::rootCommand() const {
         SYSCMDLINE_GET_DATA(const Parser);
         return d->rootCommand;

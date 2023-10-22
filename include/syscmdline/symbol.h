@@ -82,6 +82,11 @@ namespace SysCmdLine {
         Symbol(SymbolData *d);
 
         SharedDataPointer<SymbolData> d_ptr;
+
+        friend class Parser;
+        friend class ParserData;
+        friend class ParseResult;
+        friend class ParseResultData;
     };
 
     inline std::string Symbol::helpText(Symbol::HelpPosition pos, int displayOptions) const {

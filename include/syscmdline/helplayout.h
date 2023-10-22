@@ -11,12 +11,22 @@
 
 namespace SysCmdLine {
 
+    class Parser;
+    class ParserData;
+    class ParseResult;
+    class ParseResultData;
+
     class HelpLayoutData;
 
     class SYSCMDLINE_EXPORT HelpLayout {
     public:
         HelpLayout();
         ~HelpLayout();
+
+        HelpLayout(const HelpLayout &other);
+        HelpLayout(HelpLayout &&other) noexcept;
+        HelpLayout &operator=(const HelpLayout &other);
+        HelpLayout &operator=(HelpLayout &&other) noexcept;
 
         enum HelpItem {
             HI_CustomText,
@@ -32,23 +42,38 @@ namespace SysCmdLine {
             HI_Epilogue,
         };
 
+        enum MessageType {
+            ML_Debug,
+            ML_Healthy,
+            ML_Highlight,
+            ML_Warning,
+            ML_Critical,
+        };
+
         enum SizeType {
             ST_Indent,
             ST_Spacing,
             ST_ConsoleWidth,
         };
 
-        using LayoutBuilder = std::function<void(const std::vector<std::string> & /*lines */)>;
+        using Printer = std::function<void(const std::vector<std::string> & /*lines */)>;
+
+        bool isNull() const;
 
     public:
         int size(SizeType sizeType) const;
         void setSize(SizeType sizeType, int value);
 
-        void add(const std::string &s);
-        void add(HelpItem type, const LayoutBuilder &builder = {});
+        void addText(const std::string &text, MessageType messageType = ML_Debug);
+        void addItem(HelpItem type, const Printer &printer = {});
 
     protected:
         SharedDataPointer<HelpLayoutData> d_ptr;
+
+        friend class Parser;
+        friend class ParserData;
+        friend class ParseResult;
+        friend class ParseResultData;
     };
 
 }
