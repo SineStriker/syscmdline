@@ -5,7 +5,6 @@
 #include <map>
 #include <set>
 #include <stdexcept>
-#include <sstream>
 #include <cctype>
 #include <algorithm>
 
@@ -33,21 +32,34 @@ namespace SysCmdLine {
                 lines.emplace_back();
 
             {
-                std::stringstream ss;
-                ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' '  //
-                   << std::left << std::setw(widest) << item.first              //
-                   << std::setw(helpLayout.size(HelpLayout::ST_Spacing)) << ' ' //
-                   << lines.front();
-                res.push_back(ss.str());
+                std::string ss;
+                ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ');
+                ss += item.first;
+                ss += std::string(widest - item.first.size(), ' ');
+                ss += std::string(helpLayout.size(HelpLayout::ST_Spacing), ' ');
+                ss += lines.front();
+
+                // std::stringstream ss;
+                // ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' '  //
+                //    << std::left << std::setw(widest) << item.first              //
+                //    << std::setw(helpLayout.size(HelpLayout::ST_Spacing)) << ' ' //
+                //    << lines.front();
+                res.push_back(ss);
             }
 
             for (int i = 1; i < lines.size(); ++i) {
-                std::stringstream ss;
-                ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' '  //
-                   << std::left << std::setw(widest) << ' '                     //
-                   << std::setw(helpLayout.size(HelpLayout::ST_Spacing)) << ' ' //
-                   << lines.at(i) << std::endl;
-                res.push_back(ss.str());
+                std::string ss;
+                ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ');
+                ss += std::string(widest, ' ');
+                ss += std::string(helpLayout.size(HelpLayout::ST_Spacing), ' ');
+                ss += lines.at(i);
+
+                // std::stringstream ss;
+                // ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' '  //
+                //    << std::left << std::setw(widest) << ' '                     //
+                //    << std::setw(helpLayout.size(HelpLayout::ST_Spacing)) << ' ' //
+                //    << lines.at(i) << std::endl;
+                res.push_back(ss);
             }
         }
 
@@ -119,32 +131,32 @@ namespace SysCmdLine {
             const auto &desc = d->detailedDescription.empty() ? d->desc : d->detailedDescription;
             result.description.first = Strings::text(Strings::Title, Strings::Description);
             if (!desc.empty()) {
-                std::stringstream ss;
-                ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' ' << desc;
-                result.description.second = {ss.str()};
+                std::string ss;
+                ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ') + desc;
+                result.description.second = {ss};
             }
         }
 
         // Usage
         {
-            std::stringstream ss;
-            ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' ';
+            std::string ss;
+            ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ');
 
             // parent commands
             {
                 const Command *p = &parserData->rootCommand;
                 for (const auto &item : std::as_const(stack)) {
-                    ss << p->name() << " ";
+                    ss += p->name() + " ";
                     p = &p->d_func()->subCommands[item];
                 }
             }
 
             // usage
-            ss << command->helpText(Symbol::HP_Usage, displayOptions, &options);
+            ss += command->helpText(Symbol::HP_Usage, displayOptions, &options);
 
             result.usage = {
                 Strings::text(Strings::Title, Strings::Usage),
-                {ss.str()},
+                {ss},
             };
         }
 
@@ -247,13 +259,13 @@ namespace SysCmdLine {
         if (suggestions.empty())
             return {};
 
-        std::stringstream ss;
-        ss << Utils::formatText(Strings::text(Strings::Information, Strings::MatchCommand),
-                                {input});
+        std::string ss;
+        ss +=
+            Utils::formatText(Strings::text(Strings::Information, Strings::MatchCommand), {input});
         for (const auto &item : std::as_const(suggestions)) {
-            ss << std::endl << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' ' << item;
+            ss += "\n" + std::string(helpLayout.size(HelpLayout::ST_Indent), ' ') + item;
         }
-        return ss.str();
+        return ss;
     }
 
     Value ParseResultData::getDefaultResult(const SysCmdLine::ArgumentHolder *argumentHolder,

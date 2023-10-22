@@ -2,7 +2,6 @@
 #include "option_p.h"
 
 #include <stdexcept>
-#include <sstream>
 
 #include "utils.h"
 #include "strings.h"

@@ -28,8 +28,6 @@
 #define HELPLAYOUT_H
 
 #include <string>
-#include <sstream>
-#include <iomanip>
 #include <vector>
 #include <functional>
 

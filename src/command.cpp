@@ -3,7 +3,6 @@
 
 #include <set>
 #include <stdexcept>
-#include <sstream>
 #include <algorithm>
 #include <iostream>
 
@@ -49,7 +48,7 @@ namespace SysCmdLine {
     }
 
     void CommandCatalogue::addArgumentCatalogue(const std::string &name,
-                                               const std::vector<std::string> &args) {
+                                                const std::vector<std::string> &args) {
         size_t index;
         auto it = d_ptr->_argIndexes.find(name);
         if (it == d_ptr->_argIndexes.end()) {
@@ -63,7 +62,7 @@ namespace SysCmdLine {
     }
 
     void CommandCatalogue::addOptionCatalogue(const std::string &name,
-                                             const std::vector<std::string> &options) {
+                                              const std::vector<std::string> &options) {
         size_t index;
         auto it = d_ptr->_optIndexes.find(name);
         if (it == d_ptr->_optIndexes.end()) {
@@ -298,13 +297,13 @@ namespace SysCmdLine {
             case HP_Usage: {
                 auto &options = *reinterpret_cast<const decltype(d->options) *>(extra);
 
-                std::stringstream ss;
-                ss << d->name;
+                std::string ss;
+                ss += d->name;
 
                 auto displayArgumentsHelp = [&](bool front) {
                     if (bool(displayOptions & Parser::ShowOptionsBehindArguments) != front &&
                         !d->arguments.empty()) {
-                        ss << " " << displayedArguments(displayOptions);
+                        ss += " " + displayedArguments(displayOptions);
                     }
                 };
 
@@ -315,20 +314,20 @@ namespace SysCmdLine {
                 auto printExclusiveOptions = [&](const Option &opt, bool needParen) {
                     auto it = d->exclusiveGroupIndexes.find(opt.name());
                     if (it == d->exclusiveGroupIndexes.end()) {
-                        ss << opt.helpText(Symbol::HP_Usage, displayOptions);
+                        ss += opt.helpText(Symbol::HP_Usage, displayOptions);
                         printedOptions.insert(opt.name());
                         return;
                     }
 
                     const auto &arr = d->exclusiveGroups.find(it->second)->second;
                     if (arr.size() <= 1) {
-                        ss << opt.helpText(Symbol::HP_Usage, displayOptions);
+                        ss += opt.helpText(Symbol::HP_Usage, displayOptions);
                         printedOptions.insert(opt.name());
                         return;
                     }
 
                     if (needParen)
-                        ss << "(";
+                        ss += "(";
                     std::vector<std::string> exclusiveOptions;
                     for (const auto &item : arr) {
                         const auto &curOpt = d->options[item];
@@ -337,9 +336,9 @@ namespace SysCmdLine {
                         printedOptions.insert(curOpt.name());
                     }
 
-                    ss << Utils::join<char>(exclusiveOptions, " | ");
+                    ss += Utils::join<char>(exclusiveOptions, " | ");
                     if (needParen)
-                        ss << ")";
+                        ss += ")";
                 };
 
                 // required options
@@ -353,7 +352,7 @@ namespace SysCmdLine {
                             continue;
 
                         // check exclusive
-                        ss << " ";
+                        ss += " ";
                         printExclusiveOptions(opt, true);
                     }
                 }
@@ -370,9 +369,9 @@ namespace SysCmdLine {
                             continue;
 
                         // check exclusive
-                        ss << " [";
+                        ss += " [";
                         printExclusiveOptions(opt, false);
-                        ss << "]";
+                        ss += "]";
                     }
                 }
 
@@ -381,14 +380,14 @@ namespace SysCmdLine {
 
                 // command
                 if (!d->subCommands.empty()) {
-                    ss << " [commands]";
+                    ss += " [commands]";
                 }
 
                 // options
                 if (printedOptions.size() < options.size() || !d->subCommands.empty()) {
-                    ss << " [options]";
+                    ss += " [options]";
                 }
-                return ss.str();
+                return ss;
             }
             case HP_ErrorText:
             case HP_FirstColumn: {
