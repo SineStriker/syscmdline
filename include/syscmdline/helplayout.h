@@ -58,14 +58,25 @@ namespace SysCmdLine {
 
         using Printer = std::function<void(const std::vector<std::string> & /*lines */)>;
 
+    public:
         bool isNull() const;
 
-    public:
         int size(SizeType sizeType) const;
         void setSize(SizeType sizeType, int value);
 
         void addText(const std::string &text, MessageType messageType = ML_Debug);
         void addItem(HelpItem type, const Printer &printer = {});
+
+    public:
+        template <class Char, class Traits>
+        std::basic_ostream<Char, Traits> &indent(std::basic_ostream<Char, Traits> &out) {
+            return out << std::setw(size(ST_Indent)) << out.widen(' ');
+        }
+
+        template <class Char, class Traits>
+        std::basic_ostream<Char, Traits> &spacing(std::basic_ostream<Char, Traits> &out) {
+            return out << std::setw(size(ST_Spacing)) << out.widen(' ');
+        }
 
     protected:
         SharedDataPointer<HelpLayoutData> d_ptr;

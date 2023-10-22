@@ -7,62 +7,6 @@
 
 using namespace SysCmdLine;
 
-namespace CN {
-
-    static const char *error_strings[] = {
-        R"(没有错误。)",
-        R"(未知的选项 "%1"。)",
-        R"(未知的命令或参数 "%1"。)",
-        R"(选项 "%2" 缺少必选参数 "%1"。)",
-        R"(缺少必选参数 "%1"。)",
-        R"(参数过多。)",
-        R"(参数 "%2" 被指定非法的值 "%1"。)",
-        R"(选项 "%1" 出现在非法的位置，此处应为参数 "%2"。)",
-        R"(缺少必选选项 "%1"。)",
-        R"(选项 "%1" 出现次数过多，最多 %2 次。)",
-        R"(参数 "%2" 被指定非法的值 "%1"，应为 "%3"。)",
-        R"(参数 "%2" 被指定非法的值 "%1"，原因: %3)",
-        R"(选项 "%1" 与 "%2" 是互斥的。)",
-        R"(选项 "%1" 与其他参数不能同时指定。)",
-        R"(选项 "%1" 与其他选项不能同时指定。)",
-    };
-
-    static const char *title_strings[] = {
-        "错误", "用法", "简介", "参数", "选项", "命令", "必选", "默认", "合法值",
-    };
-
-    static const char *command_strings[] = {
-        "显示版本信息",
-        "显示帮助信息",
-    };
-
-    static const char *info_strings[] = {
-        R"("%1" 未匹配。您是否想指定以下之一？)",
-    };
-
-    static std::string textProvider(Strings::TextCategory category, int index) {
-        const char **arr;
-        switch (category) {
-            case Strings::ParseError:
-                arr = error_strings;
-                break;
-            case Strings::Title:
-                arr = title_strings;
-                break;
-            case Strings::DefaultCommand:
-                arr = command_strings;
-                break;
-            case Strings::Information:
-                arr = info_strings;
-                break;
-            default:
-                return {};
-        }
-        return arr[index];
-    }
-
-}
-
 static int routine(const ParseResult &result) {
     auto fileValues = Value::toStringList(result.valuesForArgument("files"));
     u8printf("将要被删除的文件：\n");
@@ -100,7 +44,7 @@ int main(int argc, char *argv[]) {
     SYSCMDLINE_UNUSED(argc);
     SYSCMDLINE_UNUSED(argv);
 
-    Strings::setTextProvider(CN::textProvider);
+    Strings::setTextProvider(Strings::textProviderForLocale(Strings::SimplifiedChinese));
 
     Option promptOption("/P", "删除每一个文件之前提示确认");
     Option forceOption("/F", "强制删除只读文件");
