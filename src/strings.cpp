@@ -63,18 +63,4 @@ namespace SysCmdLine::Strings {
         return _provider(category, index);
     }
 
-    static int _sizeConfig[] = {
-        4,
-        4,
-        80,
-    };
-
-    int sizeConfig(int index) {
-        return _sizeConfig[index];
-    }
-
-    void setSizeConfig(int index, int value) {
-        _sizeConfig[index] = value;
-    }
-
 }

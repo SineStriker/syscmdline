@@ -57,7 +57,7 @@ static int routine(const ParseResult &result) {
     auto fileValues = Value::toStringList(result.valuesForArgument("files"));
     u8printf("将要被删除的文件：\n");
     for (const auto &item : std::as_const(fileValues)) {
-        std::cout << Strings::indent << item << std::endl;
+        std::cout << "    " << item << std::endl;
     }
 
     bool prompt = result.optionIsSet("/P");
@@ -67,19 +67,19 @@ static int routine(const ParseResult &result) {
 
     u8printf("模式: \n");
     if (prompt) {
-        std::cout << Strings::indent;
+        std::cout << "    ";
         u8printf("提示\n");
     }
     if (force) {
-        std::cout << Strings::indent;
+        std::cout << "    ";
         u8printf("强制\n");
     }
     if (subdir) {
-        std::cout << Strings::indent;
+        std::cout << "    ";
         u8printf("子文件夹\n");
     }
     if (quiet) {
-        std::cout << Strings::indent;
+        std::cout << "    ";
         u8printf("静默\n");
     }
 

@@ -46,6 +46,7 @@ namespace SysCmdLine {
     class HelpLayoutData;
 
     class SYSCMDLINE_EXPORT HelpLayout {
+        SYSCMDLINE_DECL_DATA(HelpLayout)
     public:
         HelpLayout();
         ~HelpLayout();
@@ -69,21 +70,14 @@ namespace SysCmdLine {
             HI_Epilogue,
         };
 
-        enum MessageType {
-            ML_Debug,
-            ML_Healthy,
-            ML_Highlight,
-            ML_Warning,
-            ML_Critical,
-        };
-
         enum SizeType {
             ST_Indent,
             ST_Spacing,
             ST_ConsoleWidth,
         };
 
-        using Printer = std::function<void(const std::vector<std::string> & /*lines */)>;
+        using Printer = std::function<void(const std::string & /* title */,
+                                           const std::vector<std::string> & /* lines */)>;
 
     public:
         bool isNull() const;
@@ -91,19 +85,10 @@ namespace SysCmdLine {
         int size(SizeType sizeType) const;
         void setSize(SizeType sizeType, int value);
 
-        void addText(const std::string &text, MessageType messageType = ML_Debug);
         void addItem(HelpItem type, const Printer &printer = {});
 
     public:
-        template <class Char, class Traits>
-        std::basic_ostream<Char, Traits> &indent(std::basic_ostream<Char, Traits> &out) {
-            return out << std::setw(size(ST_Indent)) << out.widen(' ');
-        }
-
-        template <class Char, class Traits>
-        std::basic_ostream<Char, Traits> &spacing(std::basic_ostream<Char, Traits> &out) {
-            return out << std::setw(size(ST_Spacing)) << out.widen(' ');
-        }
+        static HelpLayout defaultHelpLayout();
 
     protected:
         SharedDataPointer<HelpLayoutData> d_ptr;

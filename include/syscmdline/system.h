@@ -43,9 +43,15 @@ namespace SysCmdLine {
     SYSCMDLINE_EXPORT std::string appName();
     SYSCMDLINE_EXPORT std::vector<std::string> commandLineArguments();
 
+    enum MessageType {
+        MT_Debug,
+        MT_Information,
+        MT_Healthy,
+        MT_Warning,
+        MT_Critical,
+    };
+    SYSCMDLINE_EXPORT int u8debug(MessageType messageType, bool highlight, const char *fmt, ...);
     SYSCMDLINE_EXPORT int u8printf(const char *fmt, ...);
-    SYSCMDLINE_EXPORT int u8error(const char *fmt, ...);
-    SYSCMDLINE_EXPORT int u8warning(const char *fmt, ...);
 
 }
 

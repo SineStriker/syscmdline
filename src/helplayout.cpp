@@ -5,17 +5,12 @@
 
 namespace SysCmdLine {
 
-    const HelpLayout &HelpLayoutData::defaultHelpLayout() {
-        static HelpLayout hl;
-        return hl;
-    }
-
-    HelpLayout::HelpLayout() {
+    HelpLayout::HelpLayout() : d_ptr(new HelpLayoutData()) {
     }
 
     HelpLayout::~HelpLayout() {
     }
-    
+
     HelpLayout::HelpLayout(const HelpLayout &other) {
         d_ptr = other.d_ptr;
     }
@@ -55,15 +50,29 @@ namespace SysCmdLine {
         d->sizeConfig[sizeType] = value;
     }
 
-    void HelpLayout::addText(const std::string &text, MessageType messageType) {
-        addItem(HI_CustomText, [text](const std::vector<std::string> &) {
-            u8printf("%s\n", text.data()); //
-        });
-    }
-
     void HelpLayout::addItem(HelpLayout::HelpItem type, const HelpLayout::Printer &printer) {
         SYSCMDLINE_GET_DATA(HelpLayout);
         d->layoutItems.push_back({type, printer});
+    }
+
+    static HelpLayout buildDefaultHelpLayout() {
+        HelpLayout layout;
+        layout.addItem(HelpLayout::HI_Prologue);
+        layout.addItem(HelpLayout::HI_Information);
+        layout.addItem(HelpLayout::HI_Warning);
+        layout.addItem(HelpLayout::HI_Error);
+        layout.addItem(HelpLayout::HI_Description);
+        layout.addItem(HelpLayout::HI_Usage);
+        layout.addItem(HelpLayout::HI_Arguments);
+        layout.addItem(HelpLayout::HI_Options);
+        layout.addItem(HelpLayout::HI_Commands);
+        layout.addItem(HelpLayout::HI_Epilogue);
+        return layout;
+    }
+
+    HelpLayout HelpLayout::defaultHelpLayout() {
+        static HelpLayout hl = buildDefaultHelpLayout();
+        return hl;
     }
 
 }

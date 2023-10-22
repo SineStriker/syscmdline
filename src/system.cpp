@@ -169,15 +169,17 @@ namespace SysCmdLine {
             Red,
             Green,
             Yellow,
+            White,
         };
 
-        explicit PrintScopeGuard(Color color = NoColor) : _color(color) {
+        explicit PrintScopeGuard(Color color = NoColor, bool highlight = false)
+            : needReset(color != NoColor) {
 #ifdef _WIN32
             _codepage = ::GetConsoleOutputCP();
             ::SetConsoleOutputCP(CP_UTF8);
 
             if (color != NoColor) {
-                WORD winColor = FOREGROUND_INTENSITY;
+                WORD winColor = highlight ? FOREGROUND_INTENSITY : 0;
                 switch (color) {
                     case Red:
                         winColor |= FOREGROUND_RED;
@@ -188,6 +190,8 @@ namespace SysCmdLine {
                     case Yellow:
                         winColor |= FOREGROUND_RED | FOREGROUND_GREEN;
                         break;
+                    case White:
+                        winColor |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
                     default:
                         break;
                 }
@@ -201,13 +205,16 @@ namespace SysCmdLine {
                 const char *colorStr;
                 switch (color) {
                     case Red:
-                        colorStr = "\033[91m";
+                        colorStr = highlight ? "\033[91m" : "\033[31m";
                         break;
                     case Green:
-                        colorStr = "\033[92m";
+                        colorStr = highlight ? "\033[92m" : "\033[32m";
                         break;
                     case Yellow:
-                        colorStr = "\033[93m";
+                        colorStr = highlight ? "\033[93m" : "\033[33m";
+                        break;
+                    case White:
+                        colorStr = highlight ? "\033[97m" : "\033[37m";
                         break;
                     default:
                         break;
@@ -221,11 +228,11 @@ namespace SysCmdLine {
 #ifdef _WIN32
             ::SetConsoleOutputCP(_codepage);
 
-            if (_color != NoColor) {
+            if (needReset) {
                 SetConsoleTextAttribute(_hConsole, _csbi.wAttributes);
             }
 #else
-            if (_color != NoColor) {
+            if (needReset) {
                 // ANSI escape code to reset text color to default
                 const char *resetColor = "\033[0m";
                 printf("%s", resetColor);
@@ -234,7 +241,7 @@ namespace SysCmdLine {
         }
 
     private:
-        Color _color;
+        bool needReset;
 #ifdef _WIN32
         UINT _codepage;
         HANDLE _hConsole;
@@ -242,28 +249,36 @@ namespace SysCmdLine {
 #endif
     };
 
+    int u8debug(MessageType messageType, bool highlight, const char *fmt, ...) {
+        PrintScopeGuard::Color color;
+        switch (messageType) {
+            case MT_Information:
+                color = PrintScopeGuard::White;
+                break;
+            case MT_Healthy:
+                color = PrintScopeGuard::Green;
+                break;
+            case MT_Warning:
+                color = PrintScopeGuard::Yellow;
+                break;
+            case MT_Critical:
+                color = PrintScopeGuard::Red;
+                break;
+            default:
+                color = PrintScopeGuard::NoColor;
+                break;
+        }
+        PrintScopeGuard _guard(color, highlight);
+
+        va_list args;
+        va_start(args, fmt);
+        int res = vprintf(fmt, args);
+        va_end(args);
+        return res;
+    }
+
     int u8printf(const char *fmt, ...) {
         PrintScopeGuard _guard;
-
-        va_list args;
-        va_start(args, fmt);
-        int res = vprintf(fmt, args);
-        va_end(args);
-        return res;
-    }
-
-    int u8error(const char *fmt, ...) {
-        PrintScopeGuard _guard(PrintScopeGuard::Red);
-
-        va_list args;
-        va_start(args, fmt);
-        int res = vprintf(fmt, args);
-        va_end(args);
-        return res;
-    }
-
-    int u8warning(const char *fmt, ...) {
-        PrintScopeGuard _guard(PrintScopeGuard::Yellow);
 
         va_list args;
         va_start(args, fmt);

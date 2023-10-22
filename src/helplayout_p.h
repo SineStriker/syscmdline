@@ -27,8 +27,6 @@ namespace SysCmdLine {
         HelpLayoutData *clone() const {
             return new HelpLayoutData(*this);
         }
-
-        static const HelpLayout &defaultHelpLayout();
     };
 
 }

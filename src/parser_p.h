@@ -12,7 +12,7 @@ namespace SysCmdLine {
         int displayOptions;
         HelpLayout helpLayout;
 
-        ParserData() : displayOptions(Parser::Normal) {
+        ParserData() : displayOptions(Parser::Normal), helpLayout(HelpLayout::defaultHelpLayout()) {
         }
 
         ~ParserData() {
@@ -28,6 +28,7 @@ namespace SysCmdLine {
         using ArgResult = std::unordered_map<std::string, Value>;
 
         SharedDataPointer<ParserData> parserData;
+
         std::vector<std::string> arguments;
 
         ParseResult::Error error;
@@ -56,13 +57,23 @@ namespace SysCmdLine {
             return new ParseResultData(*this);
         }
 
-        std::string commandHelpText() const;
+        struct HelpText {
+            std::pair<std::string, std::vector<std::string>> description;
+            std::pair<std::string, std::vector<std::string>> usage;
+            std::vector<std::pair<std::string, std::vector<std::string>>> arguments;
+            std::vector<std::pair<std::string, std::vector<std::string>>> options;
+            std::vector<std::pair<std::string, std::vector<std::string>>> commands;
+        };
+
+        HelpText helpText() const;
 
         std::string correctionText() const;
         static Value getDefaultResult(const ArgumentHolder *argumentHolder,
                                       const std::string &argName);
         Value getDefaultResult(const std::string &optName, const std::string &argName) const;
-        void showHelp(const std::function<void()> &messageCaller = {}) const;
+
+        void showHelp(const std::string &info, const std::string &warn,
+                      const std::string &err) const;
     };
 
 }

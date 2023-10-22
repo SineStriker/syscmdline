@@ -14,44 +14,52 @@
 #include "system.h"
 #include "command_p.h"
 #include "option_p.h"
+#include "helplayout_p.h"
 
 namespace SysCmdLine {
 
-    static void listItems(std::stringstream &ss, const std::string &title,
-                          const std::vector<std::pair<std::string, std::string>> &contents) {
-        if (contents.empty())
-            return;
-
-        ss << std::endl;
-
+    static std::vector<std::string>
+        listItems(const HelpLayout &helpLayout,
+                  const std::vector<std::pair<std::string, std::string>> &contents) {
         int widest = 0;
         for (const auto &item : contents) {
             widest = std::max<int>(int(item.first.size()), widest);
         }
 
-        ss << title << ": " << std::endl;
-
+        std::vector<std::string> res;
         for (const auto &item : contents) {
             auto lines = Utils::split<char>(item.second, "\n");
             if (lines.empty())
                 lines.emplace_back();
 
-            ss << Strings::indent << std::left << std::setw(widest) << item.first //
-               << Strings::spacing                                                //
-               << lines.front() << std::endl;
+            {
+                std::stringstream ss;
+                ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' '  //
+                   << std::left << std::setw(widest) << item.first              //
+                   << std::setw(helpLayout.size(HelpLayout::ST_Spacing)) << ' ' //
+                   << lines.front();
+                res.push_back(ss.str());
+            }
+
             for (int i = 1; i < lines.size(); ++i) {
-                ss << Strings::indent << std::left << std::setw(widest) << ' ' //
-                   << Strings::spacing                                         //
+                std::stringstream ss;
+                ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' '  //
+                   << std::left << std::setw(widest) << ' '                     //
+                   << std::setw(helpLayout.size(HelpLayout::ST_Spacing)) << ' ' //
                    << lines.at(i) << std::endl;
+                res.push_back(ss.str());
             }
         }
+
+        return res;
     }
 
-    static void collectItems(
-        std::stringstream &ss, const std::vector<std::unordered_set<std::string>> &catalogue,
+    static std::vector<std::pair<std::string, std::vector<std::string>>> collectItems(
+        const HelpLayout &helpLayout, const std::vector<std::unordered_set<std::string>> &catalogue,
         const std::unordered_map<std::string, size_t> &catalogueIndexes,
         const std::unordered_map<std::string, size_t> &itemIndexes, const std::string &defaultTitle,
         const std::function<std::pair<std::string, std::string>(size_t)> &getter) {
+        std::vector<std::pair<std::string, std::vector<std::string>>> res;
 
         auto indexes = itemIndexes;
         for (const auto &pair : catalogueIndexes) {
@@ -68,7 +76,7 @@ namespace SysCmdLine {
             for (const auto &subscript : std::as_const(subscriptSet)) {
                 texts.emplace_back(getter(subscript));
             }
-            listItems(ss, pair.first, texts);
+            res.emplace_back(pair.first, listItems(helpLayout, texts));
         }
 
         {
@@ -82,14 +90,18 @@ namespace SysCmdLine {
             for (const auto &subscript : std::as_const(subscriptSet)) {
                 texts.emplace_back(getter(subscript));
             }
-            listItems(ss, defaultTitle, texts);
+            res.emplace_back(defaultTitle, listItems(helpLayout, texts));
         }
+        return res;
     }
 
-    std::string ParseResultData::commandHelpText() const {
+    ParseResultData::HelpText ParseResultData::helpText() const {
+        HelpText result;
+
         const auto &d = command->d_func();
         const auto &dd = d->catalogue.d_func();
         const auto displayOptions = parserData->displayOptions;
+        const auto &helpLayout = parserData->helpLayout;
 
         // Build option indexes
         auto options = d->options;
@@ -102,24 +114,21 @@ namespace SysCmdLine {
             options.push_back(*item);
         }
 
-        std::stringstream ss;
-
         // Description
-        const auto &desc = d->detailedDescription.empty() ? d->desc : d->detailedDescription;
-        if (!desc.empty()) {
-            ss << Strings::text(Strings::Title, Strings::Description) << ": " << std::endl;
-
-            auto lines = Utils::split<char>(desc, "\n");
-            for (const auto &line : std::as_const(lines))
-                ss << Strings::indent << line << std::endl;
-            ss << std::endl;
+        {
+            const auto &desc = d->detailedDescription.empty() ? d->desc : d->detailedDescription;
+            result.description.first = Strings::text(Strings::Title, Strings::Description);
+            if (!desc.empty()) {
+                std::stringstream ss;
+                ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' ' << desc;
+                result.description.second = {ss.str()};
+            }
         }
 
         // Usage
-        ss << Strings::text(Strings::Title, Strings::Usage) << ": " << std::endl;
         {
-
-            ss << Strings::indent;
+            std::stringstream ss;
+            ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' ';
 
             // parent commands
             {
@@ -132,12 +141,16 @@ namespace SysCmdLine {
 
             // usage
             ss << command->helpText(Symbol::HP_Usage, displayOptions, &options);
-            ss << std::endl;
+
+            result.usage = {
+                Strings::text(Strings::Title, Strings::Usage),
+                {ss.str()},
+            };
         }
 
         // Arguments
-        if (!d->arguments.empty()) {
-            collectItems(ss, dd->_arg, dd->_argIndexes, d->argumentNameIndexes,
+        result.arguments =
+            collectItems(helpLayout, dd->_arg, dd->_argIndexes, d->argumentNameIndexes,
                          Strings::text(Strings::Title, Strings::Arguments),
 
                          // getter
@@ -148,27 +161,24 @@ namespace SysCmdLine {
                                  arg.helpText(Symbol::HP_SecondColumn, displayOptions),
                              };
                          });
-        }
 
         // Options
-        if (!options.empty()) {
-            collectItems(
-                ss, dd->_opt, dd->_optIndexes, optionNameIndexes,
-                Strings::text(Strings::Title, Strings::Options),
+        result.options = collectItems(
+            helpLayout, dd->_opt, dd->_optIndexes, optionNameIndexes,
+            Strings::text(Strings::Title, Strings::Options),
 
-                // getter
-                [&options, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
-                    const auto &opt = options[idx];
-                    return {
-                        opt.helpText(Symbol::HP_FirstColumn, displayOptions),
-                        opt.helpText(Symbol::HP_SecondColumn, displayOptions),
-                    };
-                });
-        }
+            // getter
+            [&options, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
+                const auto &opt = options[idx];
+                return {
+                    opt.helpText(Symbol::HP_FirstColumn, displayOptions),
+                    opt.helpText(Symbol::HP_SecondColumn, displayOptions),
+                };
+            });
 
         // Commands
-        if (!d->subCommands.empty()) {
-            collectItems(ss, dd->_cmd, dd->_cmdIndexes, d->subCommandNameIndexes,
+        result.commands =
+            collectItems(helpLayout, dd->_cmd, dd->_cmdIndexes, d->subCommandNameIndexes,
                          Strings::text(Strings::Title, Strings::Commands),
 
                          // getter
@@ -179,14 +189,13 @@ namespace SysCmdLine {
                                  cmd.helpText(Symbol::HP_SecondColumn, displayOptions),
                              };
                          });
-        }
-
-        return ss.str();
+        return result;
     }
 
     std::string ParseResultData::correctionText() const {
-        std::vector<std::string> expectedValues;
+        const auto &helpLayout = parserData->helpLayout;
 
+        std::vector<std::string> expectedValues;
         switch (error) {
             case ParseResult::UnknownOption:
             case ParseResult::InvalidOptionPosition: {
@@ -236,7 +245,7 @@ namespace SysCmdLine {
         ss << Utils::formatText(Strings::text(Strings::Information, Strings::MatchCommand), {input})
            << std::endl;
         for (const auto &item : std::as_const(suggestions)) {
-            ss << Strings::indent << item << std::endl;
+            ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' ' << item << std::endl;
         }
         return ss.str();
     }
@@ -259,20 +268,144 @@ namespace SysCmdLine {
         return getDefaultResult(&d->options.at(it->second), argName);
     }
 
-    void ParseResultData::showHelp(const std::function<void()> &messageCaller) const {
-        if (!parserData->intro[Parser::Prologue].empty()) {
-            u8printf("%s\n\n", parserData->intro[Parser::Prologue].data());
+    static void defaultPrinter(MessageType messageType, const std::string &title,
+                               const std::vector<std::string> &lines) {
+        if (lines.empty())
+            return;
+
+        bool highlight = false;
+        switch (messageType) {
+            case MT_Information:
+            case MT_Healthy:
+            case MT_Warning:
+            case MT_Critical:
+                highlight = true;
+                break;
+            default:
+                break;
         }
 
-        if (messageCaller) {
-            messageCaller();
-            u8printf("\n");
+        if (!title.empty()) {
+            u8printf("%s:\n", title.data());
         }
 
-        u8printf("%s", commandHelpText().data());
+        for (const auto &item : lines) {
+            u8debug(messageType, highlight, "%s\n", item.data());
+        }
+        u8printf("\n");
+    }
 
-        if (!parserData->intro[Parser::Epilogue].empty()) {
-            u8printf("\n%s\n", parserData->intro[Parser::Epilogue].data());
+    void ParseResultData::showHelp(const std::string &info, const std::string &warn,
+                                   const std::string &err) const {
+        const auto &d = parserData.data();
+        const auto &dd = parserData->helpLayout.d_func();
+        const auto &ht = helpText();
+
+        auto buildStringList = [](const std::string &s) {
+            std::vector<std::string> res;
+            if (!s.empty())
+                res.push_back(s);
+            return res;
+        };
+
+        for (const auto &item : dd->layoutItems) {
+            switch (item.item) {
+                case HelpLayout::HI_CustomText: {
+                    if (item.printer) {
+                        item.printer({}, {});
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Prologue: {
+                    if (item.printer) {
+                        item.printer({}, buildStringList(d->intro[Parser::Prologue]));
+                    } else {
+                        defaultPrinter(MessageType::MT_Debug, {},
+                                       buildStringList(d->intro[Parser::Prologue]));
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Information: {
+                    if (item.printer) {
+                        item.printer({}, buildStringList(info));
+                    } else {
+                        defaultPrinter(MessageType::MT_Debug, {}, buildStringList(info));
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Warning: {
+                    if (item.printer) {
+                        item.printer({}, buildStringList(warn));
+                    } else {
+                        defaultPrinter(MessageType::MT_Warning, {}, buildStringList(warn));
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Error: {
+                    if (item.printer) {
+                        item.printer({}, buildStringList(err));
+                    } else {
+                        defaultPrinter(MessageType::MT_Critical, {}, buildStringList(err));
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Description: {
+                    if (item.printer) {
+                        item.printer(ht.description.first, ht.description.second);
+                    } else {
+                        defaultPrinter(MessageType::MT_Debug, ht.description.first,
+                                       ht.description.second);
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Usage: {
+                    if (item.printer) {
+                        item.printer(ht.usage.first, ht.usage.second);
+                    } else {
+                        defaultPrinter(MessageType::MT_Debug, ht.usage.first, ht.usage.second);
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Arguments: {
+                    for (const auto &arg : ht.arguments) {
+                        if (item.printer) {
+                            item.printer(arg.first, arg.second);
+                        } else {
+                            defaultPrinter(MessageType::MT_Debug, arg.first, arg.second);
+                        }
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Options: {
+                    for (const auto &opt : ht.options) {
+                        if (item.printer) {
+                            item.printer(opt.first, opt.second);
+                        } else {
+                            defaultPrinter(MessageType::MT_Debug, opt.first, opt.second);
+                        }
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Commands: {
+                    for (const auto &cmd : ht.commands) {
+                        if (item.printer) {
+                            item.printer(cmd.first, cmd.second);
+                        } else {
+                            defaultPrinter(MessageType::MT_Debug, cmd.first, cmd.second);
+                        }
+                    }
+                    break;
+                }
+                case HelpLayout::HI_Epilogue: {
+                    if (item.printer) {
+                        item.printer({}, buildStringList(d->intro[Parser::Epilogue]));
+                    } else {
+                        defaultPrinter(MessageType::MT_Debug, {},
+                                       buildStringList(d->intro[Parser::Epilogue]));
+                    }
+                    break;
+                }
+            }
         }
     }
 
@@ -405,41 +538,25 @@ namespace SysCmdLine {
         if (d->error == NoError)
             return;
 
-        auto errCallback = [this, d]() {
-            if (!(d->parserData->displayOptions & Parser::SkipCorrection)) {
-                if (auto correction = d->correctionText(); !correction.empty()) {
-                    u8printf("%s", correction.data());
-                }
-            }
-            u8error("%s: %s\n", Strings::text(Strings::Title, Strings::Error).data(),
-                    errorText().data());
-        };
-
-        if (!(d_ptr->parserData->displayOptions & Parser::DontShowHelpOnError) &&
-            d->command->d_func()->optionNameIndexes.count("help")) {
-            d->showHelp(errCallback);
-        } else {
-            errCallback();
-        }
+        d->showHelp((!(d->parserData->displayOptions & Parser::SkipCorrection))
+                        ? d->correctionText()
+                        : std::string(),
+                    {}, Strings::text(Strings::Title, Strings::Error) + ": " + errorText());
     }
 
     void ParseResult::showHelpText() const {
         SYSCMDLINE_GET_DATA(const ParseResult);
-        d->showHelp();
+        d->showHelp({}, {}, {});
     }
 
     void ParseResult::showErrorAndHelpText(const std::string &message) const {
         SYSCMDLINE_GET_DATA(const ParseResult);
-        d->showHelp([&message]() {
-            u8error("%s\n", message.data()); //
-        });
+        d->showHelp({}, {}, message);
     }
 
     void ParseResult::showWarningAndHelpText(const std::string &message) const {
         SYSCMDLINE_GET_DATA(const ParseResult);
-        d->showHelp([&message]() {
-            u8warning("%s\n", message.data()); //
-        });
+        d->showHelp({}, message, {});
     }
 
     Value ParseResult::valueForArgument(const std::string &argName) const {

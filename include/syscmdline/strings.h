@@ -72,28 +72,6 @@ namespace SysCmdLine::Strings {
 
     SYSCMDLINE_EXPORT std::string text(TextCategory category, int index);
 
-    // Size Configuration
-
-    enum SizeConfigIndex {
-        Indent,
-        Spacing,
-        ConsoleWidth,
-    };
-
-    SYSCMDLINE_EXPORT int sizeConfig(int index);
-
-    SYSCMDLINE_EXPORT void setSizeConfig(int index, int value);
-
-    template <class Char, class Traits>
-    std::basic_ostream<Char, Traits> &indent(std::basic_ostream<Char, Traits> &out) {
-        return out << std::setw(sizeConfig(Indent)) << out.widen(' ');
-    }
-
-    template <class Char, class Traits>
-    std::basic_ostream<Char, Traits> &spacing(std::basic_ostream<Char, Traits> &out) {
-        return out << std::setw(sizeConfig(Spacing)) << out.widen(' ');
-    }
-
 }
 
 #endif // STRINGS_H
