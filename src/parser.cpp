@@ -301,8 +301,8 @@ namespace SysCmdLine {
         }
     }
 
-    void ParseResultData::showHelp(const std::string &info, const std::string &warn,
-                                   const std::string &err) const {
+    void ParseResultData::showMessage(const std::string &info, const std::string &warn,
+                                      const std::string &err, bool noHelp) const {
         const auto &d = parserData.data();
         const auto &dd = parserData->helpLayout.d_func();
         const auto &ht = helpText();
@@ -313,13 +313,13 @@ namespace SysCmdLine {
             bool hasValue = false;
             switch (item.item) {
                 case HelpLayout::HI_CustomText: {
-                    if (item.printer) {
+                    if (item.printer && !noHelp) {
                         hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Prologue: {
-                    if (!d->intro[Parser::Prologue].empty()) {
+                    if (!d->intro[Parser::Prologue].empty() && !noHelp) {
                         hasValue = true;
                     }
                     break;
@@ -343,37 +343,37 @@ namespace SysCmdLine {
                     break;
                 }
                 case HelpLayout::HI_Description: {
-                    if (!ht.description.second.empty()) {
+                    if (!ht.description.second.empty() && !noHelp) {
                         hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Usage: {
-                    if (!ht.usage.second.empty()) {
+                    if (!ht.usage.second.empty() && !noHelp) {
                         hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Arguments: {
-                    if (!ht.arguments.empty()) {
+                    if (!ht.arguments.empty() && !noHelp) {
                         hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Options: {
-                    if (!ht.options.empty()) {
+                    if (!ht.options.empty() && !noHelp) {
                         hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Commands: {
-                    if (!ht.commands.empty()) {
+                    if (!ht.commands.empty() && !noHelp) {
                         hasValue = true;
                     }
                     break;
                 }
                 case HelpLayout::HI_Epilogue: {
-                    if (!d->intro[Parser::Epilogue].empty()) {
+                    if (!d->intro[Parser::Epilogue].empty() && !noHelp) {
                         hasValue = true;
                     }
                     break;
@@ -434,13 +434,14 @@ namespace SysCmdLine {
             bool hasNext = i < last;
             switch (item.item) {
                 case HelpLayout::HI_CustomText: {
-                    if (item.printer) {
+                    if (item.printer && !noHelp) {
                         item.printer({}, {}, hasNext);
                     }
                     break;
                 }
                 case HelpLayout::HI_Prologue: {
-                    displayStr(item, hasNext, d->intro[Parser::Prologue]);
+                    if (!noHelp)
+                        displayStr(item, hasNext, d->intro[Parser::Prologue]);
                     break;
                 }
                 case HelpLayout::HI_Information: {
@@ -456,27 +457,33 @@ namespace SysCmdLine {
                     break;
                 }
                 case HelpLayout::HI_Description: {
-                    displayPair(item, hasNext, ht.description);
+                    if (!noHelp)
+                        displayPair(item, hasNext, ht.description);
                     break;
                 }
                 case HelpLayout::HI_Usage: {
-                    displayPair(item, hasNext, ht.usage);
+                    if (!noHelp)
+                        displayPair(item, hasNext, ht.usage);
                     break;
                 }
                 case HelpLayout::HI_Arguments: {
-                    displayArr(item, hasNext, ht.arguments);
+                    if (!noHelp)
+                        displayArr(item, hasNext, ht.arguments);
                     break;
                 }
                 case HelpLayout::HI_Options: {
-                    displayArr(item, hasNext, ht.options);
+                    if (!noHelp)
+                        displayArr(item, hasNext, ht.options);
                     break;
                 }
                 case HelpLayout::HI_Commands: {
-                    displayArr(item, hasNext, ht.commands);
+                    if (!noHelp)
+                        displayArr(item, hasNext, ht.commands);
                     break;
                 }
                 case HelpLayout::HI_Epilogue: {
-                    displayStr(item, hasNext, d->intro[Parser::Epilogue]);
+                    if (!noHelp)
+                        displayStr(item, hasNext, d->intro[Parser::Epilogue]);
                     break;
                 }
             }
@@ -607,25 +614,23 @@ namespace SysCmdLine {
         if (d->error == NoError)
             return;
 
-        d->showHelp((!(d->parserData->displayOptions & Parser::SkipCorrection))
-                        ? d->correctionText()
-                        : std::string(),
-                    {}, Strings::text(Strings::Title, Strings::Error) + ": " + errorText());
+        const auto &displayOptions = d->parserData->displayOptions;
+        d->showMessage((!(displayOptions & Parser::SkipCorrection)) ? d->correctionText()
+                                                                    : std::string(),
+                       {}, Strings::text(Strings::Title, Strings::Error) + ": " + errorText(),
+                       displayOptions & Parser::DontShowHelpOnError);
     }
 
     void ParseResult::showHelpText() const {
         SYSCMDLINE_GET_DATA(const ParseResult);
-        d->showHelp({}, {}, {});
+        d->showMessage({}, {}, {});
     }
 
-    void ParseResult::showErrorAndHelpText(const std::string &message) const {
+    void ParseResult::showMessage(const std::string &info, const std::string &warn,
+                                  const std::string &err) const {
         SYSCMDLINE_GET_DATA(const ParseResult);
-        d->showHelp({}, {}, message);
-    }
-
-    void ParseResult::showWarningAndHelpText(const std::string &message) const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        d->showHelp({}, message, {});
+        const auto &displayOptions = d->parserData->displayOptions;
+        d->showMessage(info, warn, err, displayOptions & Parser::DontShowHelpOnError);
     }
 
     Value ParseResult::valueForArgument(const std::string &argName) const {

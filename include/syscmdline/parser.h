@@ -84,8 +84,8 @@ namespace SysCmdLine {
 
         void showError() const;
         void showHelpText() const;
-        void showErrorAndHelpText(const std::string &message) const;
-        void showWarningAndHelpText(const std::string &message) const;
+        void showMessage(const std::string &info, const std::string &warn,
+                         const std::string &err) const;
 
     public:
         inline Value valueForArgument(const Argument &arg) const;

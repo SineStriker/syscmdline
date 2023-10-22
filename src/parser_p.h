@@ -72,8 +72,8 @@ namespace SysCmdLine {
                                       const std::string &argName);
         Value getDefaultResult(const std::string &optName, const std::string &argName) const;
 
-        void showHelp(const std::string &info, const std::string &warn,
-                      const std::string &p) const;
+        void showMessage(const std::string &info, const std::string &warn,
+                      const std::string &err, bool noHelp = false) const;
     };
 
 }
