@@ -4,15 +4,17 @@
 #include <stdexcept>
 #include <sstream>
 
+#include "strings.h"
+#include "parser.h"
+#include "utils.h"
+
 namespace SysCmdLine {
 
     ArgumentData::ArgumentData(const std::string &name, const std::string &desc,
                                const std::vector<Value> &expectedValues, const Value &defaultValue,
-                               bool required, const std::string &displayName, bool multipleEnabled,
-                               const Argument::Validator &validator)
+                               bool required, const std::string &displayName, bool multipleEnabled)
         : SymbolData(Symbol::ST_Argument, name, desc), defaultValue(defaultValue),
-          required(required), displayName(displayName), multiple(multipleEnabled),
-          validator(validator) {
+          required(required), displayName(displayName), multiple(multipleEnabled) {
         if (!expectedValues.empty())
             setExpectedValues(expectedValues);
     }
@@ -49,7 +51,7 @@ namespace SysCmdLine {
                        const std::vector<Value> &expectedValues, const Value &defaultValue,
                        bool required, const std::string &displayName, bool multipleEnabled)
         : Symbol(new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName,
-                                  multipleEnabled, {})) {
+                                  multipleEnabled)) {
     }
 
     Argument::~Argument() {
@@ -85,6 +87,54 @@ namespace SysCmdLine {
         if (d->multiple)
             res += "...";
         return res;
+    }
+
+    std::string Argument::helpText(Symbol::HelpPosition pos, int displayOptions,
+                                   void *extra) const {
+        SYSCMDLINE_GET_DATA(const Argument);
+        if (d->helpProvider)
+            return d->helpProvider(this, pos, displayOptions, extra);
+
+        switch (pos) {
+            case Symbol::HP_SecondColumn: {
+                std::string appendix;
+                // Required
+                if (d->required && (displayOptions & Parser::ShowArgumentIsRequired)) {
+                    appendix += " [" + Strings::text(Strings::Title, Strings::Required) + "]";
+                }
+
+                // Default Value
+                if (d->defaultValue.type() != Value::Null &&
+                    (displayOptions & Parser::ShowArgumentDefaultValue)) {
+                    appendix += " [" + Strings::text(Strings::Title, Strings::Default) + ": " +
+                                d->defaultValue.toString() + "]";
+                }
+
+                // Expected Values
+                if (!d->expectedValues.empty() &&
+                    (displayOptions & Parser::ShowArgumentExpectedValues)) {
+                    std::vector<std::string> values;
+                    values.reserve(d->expectedValues.size());
+                    for (const auto &item : d->expectedValues) {
+                        switch (item.type()) {
+                            case Value::String:
+                                values.push_back("\"" + item.toString() + "\"");
+                                break;
+                            default:
+                                values.push_back(item.toString());
+                                break;
+                        }
+                    }
+                    appendix += " [" + Strings::text(Strings::Title, Strings::ExpectedValues) +
+                                ": " + Utils::join<char>(values, ", ") + "]";
+                }
+                return d->desc + appendix;
+            }
+
+            default:
+                break;
+        }
+        return displayedText();
     }
 
     const std::vector<Value> &Argument::expectedValues() const {
@@ -237,38 +287,6 @@ namespace SysCmdLine {
     ArgumentHolder::~ArgumentHolder() {
     }
 
-    std::string ArgumentHolder::displayedArguments() const {
-        SYSCMDLINE_GET_DATA(const ArgumentHolder);
-        auto &_arguments = d->arguments;
-
-        std::stringstream ss;
-
-        std::string::size_type optionalIdx = _arguments.size();
-        for (std::string::size_type i = 0; i < _arguments.size(); ++i) {
-            if (!_arguments.at(i).isRequired()) {
-                optionalIdx = i;
-                break;
-            }
-        }
-
-        if (optionalIdx > 0) {
-            for (std::string::size_type i = 0; i < optionalIdx - 1; ++i) {
-                ss << _arguments[i].displayedText() << " ";
-            }
-            ss << _arguments[optionalIdx - 1].displayedText();
-        }
-
-        if (optionalIdx < _arguments.size()) {
-            ss << " [";
-            for (std::string::size_type i = optionalIdx; i < _arguments.size() - 1; ++i) {
-                ss << _arguments[i].displayedText() << " ";
-            }
-            ss << _arguments[_arguments.size() - 1].displayedText() << "]";
-        }
-
-        return ss.str();
-    }
-
     Argument ArgumentHolder::argument(const std::string &name) const {
         SYSCMDLINE_GET_DATA(const ArgumentHolder);
         auto it = d->argumentNameIndexes.find(name);
@@ -310,6 +328,38 @@ namespace SysCmdLine {
     void ArgumentHolder::setArguments(const std::vector<Argument> &arguments) {
         SYSCMDLINE_GET_DATA(ArgumentHolder);
         d->setArguments(arguments);
+    }
+
+    std::string ArgumentHolder::displayedArguments(int displayOptions) const {
+        SYSCMDLINE_GET_DATA(const ArgumentHolder);
+        const auto &arguments = d->arguments;
+
+        std::stringstream ss;
+        std::string::size_type optionalIdx = arguments.size();
+        for (std::string::size_type i = 0; i < arguments.size(); ++i) {
+            if (!arguments.at(i).isRequired()) {
+                optionalIdx = i;
+                break;
+            }
+        }
+
+        if (optionalIdx > 0) {
+            for (std::string::size_type i = 0; i < optionalIdx - 1; ++i) {
+                ss << arguments[i].helpText(Symbol::HP_Usage, displayOptions, nullptr) << " ";
+            }
+            ss << arguments[optionalIdx - 1].helpText(Symbol::HP_Usage, displayOptions, nullptr);
+        }
+
+        if (optionalIdx < arguments.size()) {
+            ss << " [";
+            for (std::string::size_type i = optionalIdx; i < arguments.size() - 1; ++i) {
+                ss << arguments[i].helpText(Symbol::HP_Usage, displayOptions, nullptr) << " ";
+            }
+            ss << arguments[arguments.size() - 1].helpText(Symbol::HP_Usage, displayOptions,
+                                                           nullptr)
+               << "]";
+        }
+        return ss.str();
     }
 
     ArgumentHolder::ArgumentHolder(ArgumentHolderData *d) : Symbol(d) {

@@ -10,8 +10,7 @@ namespace SysCmdLine {
     public:
         ArgumentData(const std::string &name, const std::string &desc,
                      const std::vector<Value> &expectedValues, const Value &defaultValue,
-                     bool required, const std::string &displayName, bool multipleEnabled,
-                     const Argument::Validator &validator);
+                     bool required, const std::string &displayName, bool multipleEnabled);
         ~ArgumentData();
 
         SymbolData *clone() const override;

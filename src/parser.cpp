@@ -130,165 +130,40 @@ namespace SysCmdLine {
                 }
             }
 
-            // name
-            ss << d->name;
-
-            // arguments
-            if (displayOptions & Parser::ShowOptionsBehindArguments) {
-                if (!d->arguments.empty()) {
-                    ss << " " << command->displayedArguments();
-                }
-            }
-
-            // required options
-            std::unordered_set<std::string> printedOptions;
-            auto printExclusiveOptions = [&](const Option &opt, bool needParen) {
-                auto it = d->exclusiveGroupIndexes.find(opt.name());
-                if (it == d->exclusiveGroupIndexes.end()) {
-                    ss << opt.displayedText(false);
-                    printedOptions.insert(opt.name());
-                    return;
-                }
-
-                const auto &arr = d->exclusiveGroups.find(it->second)->second;
-                if (arr.size() <= 1) {
-                    ss << opt.displayedText(false);
-                    printedOptions.insert(opt.name());
-                    return;
-                }
-
-                if (needParen)
-                    ss << "(";
-                std::vector<std::string> exclusiveOptions;
-                for (const auto &item : arr) {
-                    const auto &curOpt = d->options[item];
-                    exclusiveOptions.push_back(curOpt.displayedText(false));
-                    printedOptions.insert(curOpt.name());
-                }
-
-                ss << Utils::join<char>(exclusiveOptions, " | ");
-                if (needParen)
-                    ss << ")";
-            };
-
-            if (!(displayOptions & Parser::DontShowRequiredOptionsOnUsage)) {
-                for (const auto &opt : options) {
-                    if (!opt.isRequired()) {
-                        continue;
-                    }
-
-                    if (printedOptions.count(opt.name()))
-                        continue;
-
-                    // check exclusive
-                    ss << " ";
-                    printExclusiveOptions(opt, true);
-                }
-            }
-
-            if ((displayOptions & Parser::ShowOptionalOptionsOnUsage) &&
-                printedOptions.size() < options.size()) {
-                for (const auto &opt : options) {
-                    if (opt.isRequired()) {
-                        continue;
-                    }
-
-                    if (printedOptions.count(opt.name()))
-                        continue;
-
-                    // check exclusive
-                    ss << " [";
-                    printExclusiveOptions(opt, false);
-                    ss << "]";
-                }
-            }
-
-            // arguments
-            if (!(displayOptions & Parser::ShowOptionsBehindArguments)) {
-                if (!d->arguments.empty()) {
-                    ss << " " << command->displayedArguments();
-                }
-            }
-
-            // command
-            if (!d->subCommands.empty()) {
-                ss << " [commands]";
-            }
-
-            // options
-            if (printedOptions.size() < options.size() || !d->subCommands.empty()) {
-                ss << " [options]";
-            }
-
+            // usage
+            ss << command->helpText(Symbol::HP_Usage, displayOptions, &options);
             ss << std::endl;
         }
 
         // Arguments
         if (!d->arguments.empty()) {
-            collectItems(
-                ss, dd->_arg, dd->_argIndexes, d->argumentNameIndexes,
-                Strings::text(Strings::Title, Strings::Arguments),
+            collectItems(ss, dd->_arg, dd->_argIndexes, d->argumentNameIndexes,
+                         Strings::text(Strings::Title, Strings::Arguments),
 
-                // getter
-                [&](size_t idx) -> std::pair<std::string, std::string> {
-                    const auto &arg = d->arguments[idx];
-
-                    const auto &d1 = arg.d_func();
-                    std::string appendix;
-
-                    // Required
-                    if (d1->required && (displayOptions & Parser::ShowArgumentIsRequired)) {
-                        appendix += " [" + Strings::text(Strings::Title, Strings::Required) + "]";
-                    }
-
-                    // Default Value
-                    if (d1->defaultValue.type() != Value::Null &&
-                        (displayOptions & Parser::ShowArgumentDefaultValue)) {
-                        appendix += " [" + Strings::text(Strings::Title, Strings::Default) + ": " +
-                                    d1->defaultValue.toString() + "]";
-                    }
-
-                    // Expected Values
-                    if (!d1->expectedValues.empty() &&
-                        (displayOptions & Parser::ShowArgumentExpectedValues)) {
-                        std::vector<std::string> values;
-                        values.reserve(d1->expectedValues.size());
-                        for (const auto &item : d1->expectedValues) {
-                            switch (item.type()) {
-                                case Value::String:
-                                    values.push_back("\"" + item.toString() + "\"");
-                                    break;
-                                default:
-                                    values.push_back(item.toString());
-                                    break;
-                            }
-                        }
-                        appendix += " [" + Strings::text(Strings::Title, Strings::ExpectedValues) +
-                                    ": " + Utils::join<char>(values, ", ") + "]";
-                    }
-                    return {arg.displayedText(), d1->desc + appendix};
-                });
+                         // getter
+                         [d, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
+                             const auto &arg = d->arguments[idx];
+                             return {
+                                 arg.helpText(Symbol::HP_FirstColumn, displayOptions),
+                                 arg.helpText(Symbol::HP_SecondColumn, displayOptions),
+                             };
+                         });
         }
 
         // Options
         if (!options.empty()) {
-            collectItems(ss, dd->_opt, dd->_optIndexes, optionNameIndexes,
-                         Strings::text(Strings::Title, Strings::Options),
+            collectItems(
+                ss, dd->_opt, dd->_optIndexes, optionNameIndexes,
+                Strings::text(Strings::Title, Strings::Options),
 
-                         // getter
-                         [&](size_t idx) -> std::pair<std::string, std::string> {
-                             const auto &opt = options[idx];
-
-                             const auto &d1 = opt.d_func();
-                             std::string appendix;
-
-                             // Required
-                             if (d1->required && (displayOptions & Parser::ShowOptionIsRequired)) {
-                                 appendix +=
-                                     " [" + Strings::text(Strings::Title, Strings::Required) + "]";
-                             }
-                             return {opt.displayedText(), d1->desc + appendix};
-                         });
+                // getter
+                [&options, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
+                    const auto &opt = options[idx];
+                    return {
+                        opt.helpText(Symbol::HP_FirstColumn, displayOptions),
+                        opt.helpText(Symbol::HP_SecondColumn, displayOptions),
+                    };
+                });
         }
 
         // Commands
@@ -297,11 +172,12 @@ namespace SysCmdLine {
                          Strings::text(Strings::Title, Strings::Commands),
 
                          // getter
-                         [&](size_t idx) -> std::pair<std::string, std::string> {
+                         [d, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
                              const auto &cmd = d->subCommands[idx];
-
-                             const auto &d1 = cmd.d_func();
-                             return {d1->name, d1->desc};
+                             return {
+                                 cmd.helpText(Symbol::HP_FirstColumn, displayOptions),
+                                 cmd.helpText(Symbol::HP_SecondColumn, displayOptions),
+                             };
                          });
         }
 
@@ -496,6 +372,11 @@ namespace SysCmdLine {
     std::string ParseResult::correctionText() const {
         SYSCMDLINE_GET_DATA(const ParseResult);
         return d->correctionText();
+    }
+
+    std::string ParseResult::cancellationToken() const {
+        SYSCMDLINE_GET_DATA(const ParseResult);
+        return d->cancellationToken;
     }
 
     Command ParseResult::command() const {
@@ -702,7 +583,7 @@ namespace SysCmdLine {
     }
 
     void Parser::setIntro(Position pos, const std::string &text) {
-        SYSCMDLINE_GET_DATA( Parser);
+        SYSCMDLINE_GET_DATA(Parser);
         d->intro[pos] = text;
     }
 
@@ -712,7 +593,7 @@ namespace SysCmdLine {
     }
 
     void Parser::setDisplayOptions(int displayOptions) {
-        SYSCMDLINE_GET_DATA( Parser);
+        SYSCMDLINE_GET_DATA(Parser);
         d->displayOptions = displayOptions;
     }
 
@@ -722,17 +603,19 @@ namespace SysCmdLine {
     }
 
     void Parser::setRootCommand(const Command &rootCommand) {
-        SYSCMDLINE_GET_DATA( Parser);
+        SYSCMDLINE_GET_DATA(Parser);
         if (rootCommand.d_func()->name.empty()) {
             throw std::runtime_error("empty root command name");
         }
         d->rootCommand = rootCommand;
     }
 
-    ParseResult Parser::parse(const std::vector<std::string> &args, int parseOptions) const{
+    ParseResult Parser::parse(const std::vector<std::string> &args, int parseOptions) {
         auto result = new ParseResultData(d_ptr, args);
         auto &error = result->error;
         auto &errorPlaceholders = result->errorPlaceholders;
+        auto &cancellationToken = result->cancellationToken;
+        auto displayOptions = this->displayOptions();
 
         // Search command
         const Command *cmd = &d_ptr->rootCommand;
@@ -994,9 +877,11 @@ namespace SysCmdLine {
                     if (token.front() == '-') {
                         error = ParseResult::InvalidOptionPosition;
                         errorPlaceholders = {token, arg->name()};
+                        cancellationToken = token;
                     } else {
                         error = ParseResult::InvalidArgumentValue;
                         errorPlaceholders = {token, arg->name()};
+                        cancellationToken = token;
                     }
                 }
                 return false;
@@ -1009,6 +894,7 @@ namespace SysCmdLine {
                 }
                 error = ParseResult::ArgumentValidateFailed;
                 errorPlaceholders = {token, arg->name(), errorMessage};
+                cancellationToken = token;
                 return false;
             }
 
@@ -1038,6 +924,7 @@ namespace SysCmdLine {
             }
             error = ParseResult::ArgumentTypeMismatch;
             errorPlaceholders = {token, arg->name(), expected};
+            cancellationToken = token;
             return false;
         };
 
@@ -1064,16 +951,59 @@ namespace SysCmdLine {
             return nullptr;
         };
 
+        const Option *priorOpt = nullptr;
         auto checkOptionCommon =
-            [&](const Option *opt, const std::vector<ParseResultData::ArgResult> &resVec) -> bool {
+            [&](const std::string &token, const Option *opt,
+                const std::vector<ParseResultData::ArgResult> &resVec) -> bool {
             // Check max occurrence
             if (opt->maxOccurrence() > 0 && resVec.size() == opt->maxOccurrence()) {
                 error = ParseResult::OptionOccurTooMuch;
                 errorPlaceholders = {
-                    opt->displayedTokens(),
+                    opt->helpText(Symbol::HP_ErrorText, displayOptions),
                     std::to_string(opt->maxOccurrence()),
                 };
+                cancellationToken = token;
                 return false;
+            }
+
+            // Check priority
+            if (priorOpt) {
+                switch (priorOpt->priorLevel()) {
+                    case Option::ExclusiveToArguments: {
+                        if (!result->argResult.empty()) {
+                            error = ParseResult::PriorOptionWithArguments;
+                            errorPlaceholders = {
+                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions)};
+                            cancellationToken = token;
+                        }
+                        break;
+                    }
+                    case Option::ExclusiveToOptions: {
+                        if (!result->optResult.empty()) {
+                            error = ParseResult::PriorOptionWithOptions;
+                            errorPlaceholders = {
+                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions)};
+                            cancellationToken = token;
+                        }
+                        break;
+                    }
+                    case Option::ExclusiveToAll: {
+                        if (!result->argResult.empty()) {
+                            error = ParseResult::PriorOptionWithArguments;
+                            errorPlaceholders = {
+                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions)};
+                            cancellationToken = token;
+                        } else if (!result->optResult.empty()) {
+                            error = ParseResult::PriorOptionWithOptions;
+                            errorPlaceholders = {
+                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions)};
+                            cancellationToken = token;
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                }
             }
 
             // Check exclusive
@@ -1083,9 +1013,10 @@ namespace SysCmdLine {
                 if (exclusiveOpt) {
                     error = ParseResult::MutuallyExclusiveOptions;
                     errorPlaceholders = {
-                        exclusiveOpt->displayedText(),
-                        opt->displayedText(),
+                        exclusiveOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                        opt->helpText(Symbol::HP_ErrorText, displayOptions),
                     };
+                    cancellationToken = token;
                     return false;
                 }
 
@@ -1098,7 +1029,6 @@ namespace SysCmdLine {
 
         // Parse options
         std::vector<std::string> positionalArguments;
-        const Option *priorOpt = nullptr;
         for (auto j = i; j < args.size(); ++j) {
             const auto &token = args[j];
 
@@ -1122,7 +1052,7 @@ namespace SysCmdLine {
                 }
 
                 // Check option common
-                if (!checkOptionCommon(opt, resVec)) {
+                if (!checkOptionCommon(token, opt, resVec)) {
                     break;
                 }
 
@@ -1182,7 +1112,7 @@ namespace SysCmdLine {
                     for (const auto &opt : std::as_const(opts)) {
                         auto &resVec = result->optResult[opt->name()];
                         // Check option common
-                        if (!checkOptionCommon(opt, resVec)) {
+                        if (!checkOptionCommon(token, opt, resVec)) {
                             failed = true;
                             break;
                         }
@@ -1261,6 +1191,7 @@ namespace SysCmdLine {
                 if (token.front() == '-') {
                     error = ParseResult::UnknownOption;
                     errorPlaceholders = {token};
+                    cancellationToken = token;
                     goto out_parse_arguments;
                 }
 
@@ -1271,6 +1202,7 @@ namespace SysCmdLine {
 
                 error = ParseResult::UnknownCommand;
                 errorPlaceholders = {token};
+                cancellationToken = token;
                 goto out_parse_arguments;
             }
 
@@ -1294,38 +1226,7 @@ namespace SysCmdLine {
             if ((cmd->d_func()->showHelpIfNoArg && result->optResult.empty() &&
                  result->argResult.empty()) ||
                 (priorOpt && priorOpt->priorLevel() >= Option::IgnoreMissingSymbols)) {
-
-                if (priorOpt) {
-                    switch (priorOpt->priorLevel()) {
-                        case Option::ExclusiveToArguments: {
-                            if (!result->argResult.empty()) {
-                                error = ParseResult::PriorOptionWithArguments;
-                                errorPlaceholders = {priorOpt->displayedTokens()};
-                            }
-                            break;
-                        }
-                        case Option::ExclusiveToOptions: {
-                            if (!result->optResult.empty()) {
-                                error = ParseResult::PriorOptionWithOptions;
-                                errorPlaceholders = {priorOpt->displayedTokens()};
-                            }
-                            break;
-                        }
-                        case Option::ExclusiveToAll: {
-                            if (!result->argResult.empty()) {
-                                error = ParseResult::PriorOptionWithArguments;
-                                errorPlaceholders = {priorOpt->displayedTokens()};
-                            } else if (!result->optResult.empty()) {
-                                error = ParseResult::PriorOptionWithOptions;
-                                errorPlaceholders = {priorOpt->displayedTokens()};
-                            }
-                            break;
-                        }
-                        default:
-                            break;
-                    }
-                }
-
+                // ...
             } else if (missingArgument) {
                 // Required arguments
                 error = ParseResult::MissingCommandArgument;
@@ -1352,7 +1253,9 @@ namespace SysCmdLine {
 
                 if (missingOpt) {
                     error = ParseResult::MissingRequiredOption;
-                    errorPlaceholders = {missingOpt->displayedTokens()};
+                    errorPlaceholders = {
+                        missingOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                    };
                 }
             }
         }

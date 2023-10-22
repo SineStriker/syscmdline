@@ -1,19 +1,19 @@
 /****************************************************************************
  *
  * MIT License
- * 
+ *
  * Copyright (c) 2023 SineStriker
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -75,6 +75,7 @@ namespace SysCmdLine {
         Error error() const;
         std::string errorText() const;
         std::string correctionText() const;
+        std::string cancellationToken() const;
 
         Command command() const;
         std::vector<Option> globalOptions() const;
@@ -198,9 +199,9 @@ namespace SysCmdLine {
         Command rootCommand() const;
         void setRootCommand(const Command &rootCommand);
 
-        ParseResult parse(const std::vector<std::string> &args, int parseOptions = Standard) const;
+        ParseResult parse(const std::vector<std::string> &args, int parseOptions = Standard);
         inline int invoke(const std::vector<std::string> &args, int errCode = -1,
-                          int parseOptions = Standard) const;
+                          int parseOptions = Standard);
 
     protected:
         SharedDataPointer<ParserData> d_ptr;
@@ -208,8 +209,7 @@ namespace SysCmdLine {
         friend class ParserData;
     };
 
-    inline int Parser::invoke(const std::vector<std::string> &args, int errCode,
-                              int parseOptions) const {
+    inline int Parser::invoke(const std::vector<std::string> &args, int errCode, int parseOptions) {
         return parse(args, parseOptions).invoke(errCode);
     }
 

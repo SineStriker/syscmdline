@@ -15,11 +15,13 @@ namespace SysCmdLine {
     }
 
     Symbol::SymbolType Symbol::type() const {
-        return d_ptr->type;
+        SYSCMDLINE_GET_DATA(const Symbol);
+        return d->type;
     }
 
     std::string Symbol::name() const {
-        return d_ptr->name;
+        SYSCMDLINE_GET_DATA(const Symbol);
+        return d->name;
     }
 
     void Symbol::setName(const std::string &name) {
@@ -27,11 +29,30 @@ namespace SysCmdLine {
     }
 
     std::string Symbol::description() const {
-        return d_ptr->desc;
+        SYSCMDLINE_GET_DATA(const Symbol);
+        return d->desc;
     }
 
     void Symbol::setDescription(const std::string &desc) {
-        d_ptr->desc = desc;
+        SYSCMDLINE_GET_DATA(Symbol);
+        d->desc = desc;
+    }
+
+    Symbol::HelpProvider Symbol::helpProvider() const {
+        SYSCMDLINE_GET_DATA(const Symbol);
+        return d->helpProvider;
+    }
+
+    void Symbol::setHelpProvider(const Symbol::HelpProvider &helpProvider) {
+        SYSCMDLINE_GET_DATA(Symbol);
+        d->helpProvider = helpProvider;
+    }
+
+    std::string Symbol::helpText(Symbol::HelpPosition pos, int displayOptions, void *extra) const {
+        SYSCMDLINE_GET_DATA(const Symbol);
+        if (d->helpProvider)
+            return d->helpProvider(this, pos, displayOptions, extra);
+        return {};
     }
 
     Symbol::Symbol(SymbolData *d) : d_ptr(d) {

@@ -281,37 +281,116 @@ namespace SysCmdLine {
         return *this;
     }
 
-    std::string Command::displayedArguments() const {
+    std::string Command::helpText(Symbol::HelpPosition pos, int displayOptions, void *extra) const {
         SYSCMDLINE_GET_DATA(const Command);
-        auto &_arguments = d->arguments;
+        if (d->helpProvider)
+            return d->helpProvider(this, pos, displayOptions, extra);
 
-        std::stringstream ss;
+        switch (pos) {
+            case HP_Usage: {
+                auto &options = *reinterpret_cast<const decltype(d->options) *>(extra);
 
-        std::string::size_type optionalIdx = _arguments.size();
-        for (std::string::size_type i = 0; i < _arguments.size(); ++i) {
-            if (!_arguments.at(i).isRequired()) {
-                optionalIdx = i;
-                break;
+                std::stringstream ss;
+                ss << d->name;
+
+                auto displayArgumentsHelp = [&](bool front) {
+                    if (bool(displayOptions & Parser::ShowOptionsBehindArguments) != front &&
+                        !d->arguments.empty()) {
+                        ss << " " << displayedArguments(displayOptions);
+                    }
+                };
+
+                // arguments
+                displayArgumentsHelp(true);
+
+                std::unordered_set<std::string> printedOptions;
+                auto printExclusiveOptions = [&](const Option &opt, bool needParen) {
+                    auto it = d->exclusiveGroupIndexes.find(opt.name());
+                    if (it == d->exclusiveGroupIndexes.end()) {
+                        ss << opt.helpText(Symbol::HP_Usage, displayOptions);
+                        printedOptions.insert(opt.name());
+                        return;
+                    }
+
+                    const auto &arr = d->exclusiveGroups.find(it->second)->second;
+                    if (arr.size() <= 1) {
+                        ss << opt.helpText(Symbol::HP_Usage, displayOptions);
+                        printedOptions.insert(opt.name());
+                        return;
+                    }
+
+                    if (needParen)
+                        ss << "(";
+                    std::vector<std::string> exclusiveOptions;
+                    for (const auto &item : arr) {
+                        const auto &curOpt = d->options[item];
+                        exclusiveOptions.push_back(
+                            curOpt.helpText(Symbol::HP_Usage, displayOptions));
+                        printedOptions.insert(curOpt.name());
+                    }
+
+                    ss << Utils::join<char>(exclusiveOptions, " | ");
+                    if (needParen)
+                        ss << ")";
+                };
+
+                // required options
+                if (!(displayOptions & Parser::DontShowRequiredOptionsOnUsage)) {
+                    for (const auto &opt : options) {
+                        if (!opt.isRequired()) {
+                            continue;
+                        }
+
+                        if (printedOptions.count(opt.name()))
+                            continue;
+
+                        // check exclusive
+                        ss << " ";
+                        printExclusiveOptions(opt, true);
+                    }
+                }
+
+                // optional options
+                if ((displayOptions & Parser::ShowOptionalOptionsOnUsage) &&
+                    printedOptions.size() < options.size()) {
+                    for (const auto &opt : options) {
+                        if (opt.isRequired()) {
+                            continue;
+                        }
+
+                        if (printedOptions.count(opt.name()))
+                            continue;
+
+                        // check exclusive
+                        ss << " [";
+                        printExclusiveOptions(opt, false);
+                        ss << "]";
+                    }
+                }
+
+                // arguments
+                displayArgumentsHelp(false);
+
+                // command
+                if (!d->subCommands.empty()) {
+                    ss << " [commands]";
+                }
+
+                // options
+                if (printedOptions.size() < options.size() || !d->subCommands.empty()) {
+                    ss << " [options]";
+                }
+                return ss.str();
+            }
+            case HP_ErrorText:
+            case HP_FirstColumn: {
+                return d->name;
+            }
+            case HP_SecondColumn: {
+                return d->desc;
             }
         }
-
-        if (optionalIdx > 0) {
-            for (std::string::size_type i = 0; i < optionalIdx - 1; ++i) {
-                ss << _arguments[i].displayedText() << " ";
-            }
-            ss << _arguments[optionalIdx - 1].displayedText();
-        }
-
-        if (optionalIdx < _arguments.size()) {
-            ss << " [";
-            for (std::string::size_type i = optionalIdx; i < _arguments.size() - 1; ++i) {
-                ss << _arguments[i].displayedText() << " ";
-            }
-            ss << _arguments[_arguments.size() - 1].displayedText();
-            ss << "]";
-        }
-
-        return ss.str();
+        return {};
     }
 
     Command Command::command(const std::string &name) const {

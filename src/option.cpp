@@ -5,6 +5,8 @@
 #include <sstream>
 
 #include "utils.h"
+#include "strings.h"
+#include "parser.h"
 
 namespace SysCmdLine {
 
@@ -90,23 +92,41 @@ namespace SysCmdLine {
         return *this;
     }
 
-    std::string Option::displayedTokens() const {
+    std::string Option::helpText(Symbol::HelpPosition pos, int displayOptions, void *extra) const {
         SYSCMDLINE_GET_DATA(const Option);
-        return Utils::join<char>(d->tokens, ", ");
-    }
+        if (d->helpProvider)
+            return d->helpProvider(this, pos, displayOptions, extra);
 
-    std::string Option::displayedText(bool allTokens) const {
-        SYSCMDLINE_GET_DATA(const Option);
+        switch (pos) {
+            case Symbol::HP_Usage: {
+                std::string appendix;
+                if (!d->arguments.empty()) {
+                    appendix = " " + displayedArguments(displayOptions);
+                }
+                return d->tokens.front() + appendix;
+            }
+            case Symbol::HP_ErrorText: {
+                return d->tokens.front();
+            }
+            case Symbol::HP_FirstColumn: {
+                std::string appendix;
+                if (!d->arguments.empty()) {
+                    appendix = " " + displayedArguments(displayOptions);
+                }
+                return Utils::join<char>(d->tokens, ", ") + appendix;
+            }
+            case Symbol::HP_SecondColumn: {
+                std::string appendix;
 
-        const auto &_arguments = d->arguments;
-        const auto &_tokens = d->tokens;
-
-        std::stringstream ss;
-        ss << (allTokens ? Utils::join<char>(_tokens, ", ") : _tokens.front());
-        if (!_arguments.empty()) {
-            ss << " " << displayedArguments();
+                // Required
+                if (d->required && (displayOptions & Parser::ShowOptionIsRequired)) {
+                    appendix += " [" + Strings::text(Strings::Title, Strings::Required) + "]";
+                }
+                return d->desc + appendix;
+            }
         }
-        return ss.str();
+
+        return {};
     }
 
     const std::vector<std::string> &Option::tokens() const {

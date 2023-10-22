@@ -3,7 +3,6 @@
 
 #include <syscmdline/parser.h>
 #include <syscmdline/system.h>
-#include <syscmdline/strings.h>
 
 int main(int /* argc */, char * /* argv */[]) {
     using SysCmdLine::Argument;

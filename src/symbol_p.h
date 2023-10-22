@@ -17,6 +17,7 @@ namespace SysCmdLine {
         Symbol::SymbolType type;
         std::string name;
         std::string desc;
+        Symbol::HelpProvider helpProvider;
     };
 
 }

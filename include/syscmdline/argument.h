@@ -34,11 +34,7 @@
 #include <syscmdline/value.h>
 
 namespace SysCmdLine {
-
-    class Parser;
-    class ParserData;
-    class ParseResult;
-    class ParseResultData;
+    
     class ArgumentHolder;
     class ArgumentHolderData;
     class Command;
@@ -69,6 +65,9 @@ namespace SysCmdLine {
         Argument &operator=(Argument &&other) noexcept;
 
         std::string displayedText() const;
+
+        using Symbol::helpText;
+        std::string helpText(HelpPosition pos, int displayOptions, void *extra) const override;
 
     public:
         const std::vector<Value> &expectedValues() const;
@@ -116,8 +115,6 @@ namespace SysCmdLine {
     public:
         ~ArgumentHolder();
 
-        virtual std::string displayedArguments() const;
-
     public:
         Argument argument(const std::string &name) const;
         Argument argument(int index) const;
@@ -126,6 +123,10 @@ namespace SysCmdLine {
         bool hasArgument(const std::string &name) const;
         void addArgument(const Argument &argument);
         void setArguments(const std::vector<Argument> &arguments);
+
+        std::string displayedArguments(int displayOptions) const;
+
+        using Symbol::helpText;
 
     protected:
         ArgumentHolder(ArgumentHolderData *d);

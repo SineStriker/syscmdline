@@ -31,6 +31,7 @@ namespace SysCmdLine {
 
         ParseResult::Error error;
         std::vector<std::string> errorPlaceholders;
+        std::string cancellationToken;
         std::vector<int> stack;
         std::vector<const Option *> globalOptions;
 
