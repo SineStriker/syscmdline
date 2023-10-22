@@ -27,7 +27,7 @@ namespace SysCmdLine {
 
         std::vector<std::string> res;
         for (const auto &item : contents) {
-            auto lines = Utils::split<char>(item.second, "\n");
+            auto lines = Utils::split(item.second, "\n");
             if (lines.empty())
                 lines.emplace_back();
 
@@ -38,12 +38,6 @@ namespace SysCmdLine {
                 ss += std::string(widest - item.first.size(), ' ');
                 ss += std::string(helpLayout.size(HelpLayout::ST_Spacing), ' ');
                 ss += lines.front();
-
-                // std::stringstream ss;
-                // ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' '  //
-                //    << std::left << std::setw(widest) << item.first              //
-                //    << std::setw(helpLayout.size(HelpLayout::ST_Spacing)) << ' ' //
-                //    << lines.front();
                 res.push_back(ss);
             }
 
@@ -53,12 +47,6 @@ namespace SysCmdLine {
                 ss += std::string(widest, ' ');
                 ss += std::string(helpLayout.size(HelpLayout::ST_Spacing), ' ');
                 ss += lines.at(i);
-
-                // std::stringstream ss;
-                // ss << std::setw(helpLayout.size(HelpLayout::ST_Indent)) << ' '  //
-                //    << std::left << std::setw(widest) << ' '                     //
-                //    << std::setw(helpLayout.size(HelpLayout::ST_Spacing)) << ' ' //
-                //    << lines.at(i) << std::endl;
                 res.push_back(ss);
             }
         }

@@ -4,7 +4,6 @@
 #include <set>
 #include <stdexcept>
 #include <algorithm>
-#include <iostream>
 
 #include "option_p.h"
 #include "strings.h"
@@ -336,7 +335,7 @@ namespace SysCmdLine {
                         printedOptions.insert(curOpt.name());
                     }
 
-                    ss += Utils::join<char>(exclusiveOptions, " | ");
+                    ss += Utils::join(exclusiveOptions, " | ");
                     if (needParen)
                         ss += ")";
                 };

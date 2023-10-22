@@ -125,7 +125,7 @@ namespace SysCmdLine {
                         }
                     }
                     appendix += " [" + Strings::text(Strings::Title, Strings::ExpectedValues) +
-                                ": " + Utils::join<char>(values, ", ") + "]";
+                                ": " + Utils::join(values, ", ") + "]";
                 }
                 return d->desc + appendix;
             }

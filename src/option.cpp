@@ -112,7 +112,7 @@ namespace SysCmdLine {
                 if (!d->arguments.empty()) {
                     appendix = " " + displayedArguments(displayOptions);
                 }
-                return Utils::join<char>(d->tokens, ", ") + appendix;
+                return Utils::join(d->tokens, ", ") + appendix;
             }
             case Symbol::HP_SecondColumn: {
                 std::string appendix;

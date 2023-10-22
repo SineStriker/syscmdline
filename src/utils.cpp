@@ -4,6 +4,32 @@
 
 namespace SysCmdLine::Utils {
 
+    std::vector<std::string> split(const std::string &s, const std::string &delimiter) {
+        std::vector<std::string> tokens;
+        std::string::size_type start = 0;
+        std::string::size_type end = s.find(delimiter);
+        while (end != std::string::npos) {
+            tokens.push_back(s.substr(start, end - start));
+            start = end + delimiter.size();
+            end = s.find(delimiter, start);
+        }
+        tokens.push_back(s.substr(start));
+        return tokens;
+    }
+
+    std::string join(const std::vector<std::string> &v, const std::string &delimiter) {
+        if (v.empty())
+            return {};
+
+        std::string res;
+        for (int i = 0; i < v.size() - 1; ++i) {
+            res.append(v[i]);
+            res.append(delimiter);
+        }
+        res.append(v.back());
+        return res;
+    }
+
     std::string formatText(const std::string &format, const std::vector<std::string> &args) {
         std::string result = format;
         for (size_t i = 0; i < args.size(); i++) {
@@ -41,7 +67,7 @@ namespace SysCmdLine::Utils {
     }
 
     std::vector<std::string> calcClosestTexts(const std::vector<std::string> &texts,
-                                             const std::string &input, int threshold) {
+                                              const std::string &input, int threshold) {
 
         std::vector<std::string> suggestions;
         for (const auto &cmd : texts) {
