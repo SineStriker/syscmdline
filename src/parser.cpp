@@ -210,7 +210,7 @@ namespace SysCmdLine {
                         expectedValues.push_back(token);
                     }
                 }
-                for (const auto &opt : command->options()) {
+                for (const auto &opt : command->d_func()->options) {
                     for (const auto &token : opt.tokens()) {
                         expectedValues.push_back(token);
                     }
@@ -223,7 +223,7 @@ namespace SysCmdLine {
             }
             case ParseResult::InvalidArgumentValue: {
                 const auto &arg = command->argument(errorPlaceholders[1]);
-                for (const auto &item : arg.expectedValues()) {
+                for (const auto &item : arg.d_func()->expectedValues) {
                     expectedValues.push_back(item.toString());
                 }
 
@@ -233,7 +233,7 @@ namespace SysCmdLine {
                 // Fallback as unknown command case
             }
             case ParseResult::UnknownCommand: {
-                for (const auto &cmd : command->commands()) {
+                for (const auto &cmd : command->d_func()->subCommands) {
                     expectedValues.push_back(cmd.name());
                 }
                 break;

@@ -28,7 +28,6 @@
 #define STRINGS_H
 
 #include <string>
-#include <iomanip>
 
 #include <syscmdline/global.h>
 
