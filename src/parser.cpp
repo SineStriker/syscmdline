@@ -19,10 +19,10 @@ namespace SysCmdLine {
 
     static std::vector<std::string>
         listItems(const HelpLayout &helpLayout,
-                  const std::vector<std::pair<std::string, std::string>> &contents) {
-        int widest = 0;
-        for (const auto &item : contents) {
-            widest = std::max<int>(int(item.first.size()), widest);
+                  const std::vector<std::pair<std::string, std::string>> &contents, int widest) {
+        if (widest == 0) {
+            for (const auto &item : contents)
+                widest = std::max(widest, int(item.first.size()));
         }
 
         std::vector<std::string> res;
@@ -54,11 +54,14 @@ namespace SysCmdLine {
         return res;
     }
 
-    static std::vector<std::pair<std::string, std::vector<std::string>>> collectItems(
-        const HelpLayout &helpLayout, const std::vector<std::unordered_set<std::string>> &catalogue,
-        const std::unordered_map<std::string, size_t> &catalogueIndexes,
-        const std::unordered_map<std::string, size_t> &itemIndexes, const std::string &defaultTitle,
-        const std::function<std::pair<std::string, std::string>(size_t)> &getter) {
+    static std::vector<std::pair<std::string, std::vector<std::string>>>
+        collectItems(int widest, const HelpLayout &helpLayout,
+                     const std::vector<std::unordered_set<std::string>> &catalogue,
+                     const std::unordered_map<std::string, size_t> &catalogueIndexes,
+                     const std::unordered_map<std::string, size_t> &itemIndexes,
+                     const std::string &defaultTitle,
+                     const std::function<std::string(size_t)> &getFirstColumn,
+                     const std::function<std::string(size_t)> &getSecondColumn) {
         std::vector<std::pair<std::string, std::vector<std::string>>> res;
 
         auto indexes = itemIndexes;
@@ -74,9 +77,9 @@ namespace SysCmdLine {
 
             std::vector<std::pair<std::string, std::string>> texts;
             for (const auto &subscript : std::as_const(subscriptSet)) {
-                texts.emplace_back(getter(subscript));
+                texts.emplace_back(getFirstColumn(subscript), getSecondColumn(subscript));
             }
-            res.emplace_back(pair.first, listItems(helpLayout, texts));
+            res.emplace_back(pair.first, listItems(helpLayout, texts, widest));
         }
 
         {
@@ -88,114 +91,11 @@ namespace SysCmdLine {
             std::vector<std::pair<std::string, std::string>> texts;
             texts.reserve(subscriptSet.size());
             for (const auto &subscript : std::as_const(subscriptSet)) {
-                texts.emplace_back(getter(subscript));
+                texts.emplace_back(getFirstColumn(subscript), getSecondColumn(subscript));
             }
-            res.emplace_back(defaultTitle, listItems(helpLayout, texts));
+            res.emplace_back(defaultTitle, listItems(helpLayout, texts, widest));
         }
         return res;
-    }
-
-    ParseResultData::HelpText ParseResultData::helpText() const {
-        HelpText result;
-
-        const auto &d = command->d_func();
-        const auto &dd = d->catalogue.d_func();
-        const auto displayOptions = parserData->displayOptions;
-        const auto &helpLayout = parserData->helpLayout;
-
-        // Build option indexes
-        auto options = d->options;
-        auto optionNameIndexes = d->optionNameIndexes;
-
-        options.reserve(options.size() + globalOptions.size());
-        optionNameIndexes.reserve(optionNameIndexes.size() + globalOptions.size());
-        for (const auto &item : globalOptions) {
-            optionNameIndexes.insert(std::make_pair(item->name(), options.size()));
-            options.push_back(*item);
-        }
-
-        // Description
-        {
-            const auto &desc = d->detailedDescription.empty() ? d->desc : d->detailedDescription;
-            result.description.first = Strings::text(Strings::Title, Strings::Description);
-            if (!desc.empty()) {
-                std::string ss;
-                ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ') + desc;
-                result.description.second = {ss};
-            }
-        }
-
-        // Usage
-        {
-            std::string ss;
-            ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ');
-
-            // parent commands
-            {
-                const Command *p = &parserData->rootCommand;
-                for (const auto &item : std::as_const(stack)) {
-                    ss += p->name() + " ";
-                    p = &p->d_func()->subCommands[item];
-                }
-            }
-
-            // usage
-            ss += command->helpText(Symbol::HP_Usage, displayOptions, &options);
-
-            result.usage = {
-                Strings::text(Strings::Title, Strings::Usage),
-                {ss},
-            };
-        }
-
-        // Arguments
-        if (!d->arguments.empty()) {
-            result.arguments = collectItems(
-                helpLayout, dd->_arg, dd->_argIndexes, d->argumentNameIndexes,
-                Strings::text(Strings::Title, Strings::Arguments),
-
-                // getter
-                [d, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
-                    const auto &arg = d->arguments[idx];
-                    return {
-                        arg.helpText(Symbol::HP_FirstColumn, displayOptions),
-                        arg.helpText(Symbol::HP_SecondColumn, displayOptions),
-                    };
-                });
-        }
-
-        // Options
-        if (!options.empty()) {
-            result.options = collectItems(
-                helpLayout, dd->_opt, dd->_optIndexes, optionNameIndexes,
-                Strings::text(Strings::Title, Strings::Options),
-
-                // getter
-                [&options, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
-                    const auto &opt = options[idx];
-                    return {
-                        opt.helpText(Symbol::HP_FirstColumn, displayOptions),
-                        opt.helpText(Symbol::HP_SecondColumn, displayOptions),
-                    };
-                });
-        }
-
-        // Commands
-        if (!d->subCommands.empty()) {
-            result.commands = collectItems(
-                helpLayout, dd->_cmd, dd->_cmdIndexes, d->subCommandNameIndexes,
-                Strings::text(Strings::Title, Strings::Commands),
-
-                // getter
-                [d, displayOptions](size_t idx) -> std::pair<std::string, std::string> {
-                    const auto &cmd = d->subCommands[idx];
-                    return {
-                        cmd.helpText(Symbol::HP_FirstColumn, displayOptions),
-                        cmd.helpText(Symbol::HP_SecondColumn, displayOptions),
-                    };
-                });
-        }
-        return result;
     }
 
     std::string ParseResultData::correctionText() const {
@@ -305,7 +205,192 @@ namespace SysCmdLine {
                                       const std::string &err, bool noHelp) const {
         const auto &d = parserData.data();
         const auto &dd = parserData->helpLayout.d_func();
-        const auto &ht = helpText();
+
+        struct HelpText {
+            std::pair<std::string, std::vector<std::string>> description;
+            std::pair<std::string, std::vector<std::string>> usage;
+            std::vector<std::pair<std::string, std::vector<std::string>>> arguments;
+            std::vector<std::pair<std::string, std::vector<std::string>>> options;
+            std::vector<std::pair<std::string, std::vector<std::string>>> commands;
+        };
+        const auto &ht = [noHelp, this]() {
+            HelpText result;
+
+            const auto &d = command->d_func();
+            const auto &dd = d->catalogue.d_func();
+            const auto displayOptions = parserData->displayOptions;
+            const auto &helpLayout = parserData->helpLayout;
+
+            // Build option indexes
+            auto options = d->options;
+            auto optionNameIndexes = d->optionNameIndexes;
+
+            options.reserve(options.size() + globalOptions.size());
+            optionNameIndexes.reserve(optionNameIndexes.size() + globalOptions.size());
+            for (const auto &item : globalOptions) {
+                optionNameIndexes.insert(std::make_pair(item->name(), options.size()));
+                options.push_back(*item);
+            }
+
+            // Description
+            {
+                const auto &desc =
+                    d->detailedDescription.empty() ? d->desc : d->detailedDescription;
+                result.description.first = Strings::text(Strings::Title, Strings::Description);
+                if (!desc.empty()) {
+                    std::string ss;
+                    ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ') + desc;
+                    result.description.second = {ss};
+                }
+            }
+
+            // Usage
+            {
+                std::string ss;
+                ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ');
+
+                // parent commands
+                {
+                    const Command *p = &parserData->rootCommand;
+                    for (const auto &item : std::as_const(stack)) {
+                        ss += p->name() + " ";
+                        p = &p->d_func()->subCommands[item];
+                    }
+                }
+
+                // usage
+                ss += command->helpText(Symbol::HP_Usage, displayOptions, &options);
+
+                result.usage = {
+                    Strings::text(Strings::Title, Strings::Usage),
+                    {ss},
+                };
+            }
+
+            if (!noHelp) {
+                int allWidest = 0;
+                bool allAlign = displayOptions & Parser::AlignAllCatalogues;
+                bool sameAlign = displayOptions & Parser::AlignSameCatalogues;
+
+                bool hasArgs = false;
+                bool hasOptions = false;
+                bool hasCommands = false;
+                for (const auto &item : parserData->helpLayout.d_func()->layoutItems) {
+                    switch (item.item) {
+                        case HelpLayout::HI_Arguments:
+                            hasArgs = true;
+                            break;
+                        case HelpLayout::HI_Options:
+                            hasOptions = true;
+                            break;
+                        case HelpLayout::HI_Commands:
+                            hasCommands = true;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                const auto &helper_d = parserData->helpLayout.d_func();
+                if (allAlign) {
+                    if (hasArgs) {
+                        for (const auto &item : d->arguments) {
+                            allWidest = std::max<int>(
+                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
+                                allWidest);
+                        }
+                    }
+                    if (hasOptions) {
+                        for (const auto &item : std::as_const(options)) {
+                            allWidest = std::max<int>(
+                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
+                                allWidest);
+                        }
+                    }
+                    if (hasCommands) {
+                        for (const auto &item : d->subCommands) {
+                            allWidest = std::max<int>(
+                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
+                                allWidest);
+                        }
+                    }
+                }
+
+                // Arguments
+                if (!d->arguments.empty() && hasArgs) {
+                    int widest = allWidest;
+                    if (sameAlign && !allAlign) {
+                        for (const auto &item : d->arguments) {
+                            widest = std::max<int>(
+                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
+                                widest);
+                        }
+                    }
+                    result.arguments = collectItems(
+                        widest, helpLayout, dd->_arg, dd->_argIndexes, d->argumentNameIndexes,
+                        Strings::text(Strings::Title, Strings::Arguments),
+
+                        // getter
+                        [d, displayOptions](size_t idx) {
+                            return d->arguments[idx].helpText(Symbol::HP_FirstColumn,
+                                                              displayOptions);
+                        },
+                        [d, displayOptions](size_t idx) {
+                            return d->arguments[idx].helpText(Symbol::HP_SecondColumn,
+                                                              displayOptions);
+                        });
+                }
+
+                // Options
+                if (!options.empty() && hasOptions) {
+                    int widest = allWidest;
+                    if (sameAlign && !allAlign) {
+                        for (const auto &item : std::as_const(options)) {
+                            widest = std::max<int>(
+                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
+                                widest);
+                        }
+                    }
+                    result.options = collectItems(
+                        widest, helpLayout, dd->_opt, dd->_optIndexes, optionNameIndexes,
+                        Strings::text(Strings::Title, Strings::Options),
+
+                        // getter
+                        [&options, displayOptions](size_t idx) {
+                            return options[idx].helpText(Symbol::HP_FirstColumn, displayOptions);
+                        },
+                        [&options, displayOptions](size_t idx) {
+                            return options[idx].helpText(Symbol::HP_SecondColumn, displayOptions);
+                        });
+                }
+
+                // Commands
+                if (!d->subCommands.empty() && hasCommands) {
+                    int widest = allWidest;
+                    if (sameAlign && !allAlign) {
+                        for (const auto &item : d->subCommands) {
+                            widest = std::max<int>(
+                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
+                                widest);
+                        }
+                    }
+                    result.commands = collectItems(
+                        widest, helpLayout, dd->_cmd, dd->_cmdIndexes, d->subCommandNameIndexes,
+                        Strings::text(Strings::Title, Strings::Commands),
+
+                        // getter
+                        [d, displayOptions](size_t idx) {
+                            return d->subCommands[idx].helpText(Symbol::HP_FirstColumn,
+                                                                displayOptions);
+                        },
+                        [d, displayOptions](size_t idx) {
+                            return d->subCommands[idx].helpText(Symbol::HP_SecondColumn,
+                                                                displayOptions);
+                        });
+                }
+            }
+            return result;
+        }();
 
         int last = -1;
         for (int i = 0; i < dd->layoutItems.size(); ++i) {
@@ -410,7 +495,7 @@ namespace SysCmdLine {
         auto displayArr =
             [](const HelpLayoutData::LayoutItem &item, bool hasNext,
                const std::vector<std::pair<std::string, std::vector<std::string>>> &arr) {
-                int last = -1;
+                int last = int(arr.size()) - 1;
                 if (!hasNext) {
                     for (int j = 0; j < arr.size(); ++j) {
                         if (!arr.at(j).second.empty()) {

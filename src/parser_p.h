@@ -57,16 +57,6 @@ namespace SysCmdLine {
             return new ParseResultData(*this);
         }
 
-        struct HelpText {
-            std::pair<std::string, std::vector<std::string>> description;
-            std::pair<std::string, std::vector<std::string>> usage;
-            std::vector<std::pair<std::string, std::vector<std::string>>> arguments;
-            std::vector<std::pair<std::string, std::vector<std::string>>> options;
-            std::vector<std::pair<std::string, std::vector<std::string>>> commands;
-        };
-
-        HelpText helpText() const;
-
         std::string correctionText() const;
         static Value getDefaultResult(const ArgumentHolder *argumentHolder,
                                       const std::string &argName);
