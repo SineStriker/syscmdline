@@ -65,7 +65,7 @@ namespace SysCmdLine {
     class SYSCMDLINE_EXPORT Command : public ArgumentHolder {
         SYSCMDLINE_DECL_DATA(Command)
     public:
-        using Handler = std::function<int /* code */ (const ParseResult & /* parser */)>;
+        using Handler = std::function<int /* code */ (const ParseResult & /* result */)>;
 
         Command();
         Command(const std::string &name, const std::string &desc = {},
