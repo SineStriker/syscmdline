@@ -1,4 +1,4 @@
-file(GLOB_RECURSE _src ../include/syscmdline/*.h *.h *.cpp)
+file(GLOB_RECURSE _src ../include/syscmdline/*.h *.h *.hpp *.cpp)
 
 # Add library
 if(SYSCMDLINE_BUILD_STATIC)
