@@ -189,6 +189,8 @@ namespace SysCmdLine {
             ShowArgumentExpectedValues = 0x40,
             ShowArgumentIsRequired = 0x80,
             ShowOptionIsRequired = 0x100,
+            AlignSameCatalogues = 0x200,
+            AlignAllCatalogues = 0x400,
         };
 
         std::string intro(Position pos) const;

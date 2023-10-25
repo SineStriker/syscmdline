@@ -22,6 +22,9 @@
 
 namespace SysCmdLine {
 
+    /*!
+        Returns the wide string converted from UTF-8 multi-byte string.
+    */
     std::string wideToUtf8(const std::wstring &utf16Str) {
 #ifdef _WIN32
         if (utf16Str.empty()) {
@@ -46,6 +49,9 @@ namespace SysCmdLine {
 #endif
     }
 
+    /*!
+        Returns the UTF-8 multi-byte string converted from wide string.
+    */
     std::wstring utf8ToWide(const std::string &utf8Str) {
 #ifdef _WIN32
         if (utf8Str.empty()) {
@@ -70,6 +76,9 @@ namespace SysCmdLine {
 #endif
     }
 
+    /*!
+        Returns the application file path, the path separator of which is <tt>/</tt>.
+    */
     std::string appPath() {
 #ifdef _WIN32
         UINT bufferSize = MAX_PATH;
@@ -100,6 +109,9 @@ namespace SysCmdLine {
 #endif
     }
 
+    /*!
+        Returns the application directory path, the path separator of which is <tt>/</tt>.
+    */
     std::string appDirectory() {
         auto appDir = appPath();
         auto slashIdx = appDir.find_last_of('/');
@@ -109,6 +121,9 @@ namespace SysCmdLine {
         return appDir;
     }
 
+    /*!
+        Returns the application file name.
+    */
     std::string appFileName() {
         auto appName = appPath();
         auto slashIdx = appName.find_last_of('/');
@@ -118,6 +133,9 @@ namespace SysCmdLine {
         return appName;
     }
 
+    /*!
+        Returns the application name. On Windows, the file extension will be stripped.
+    */
     std::string appName() {
         auto appName = appFileName();
 #ifdef _WIN32
@@ -132,6 +150,9 @@ namespace SysCmdLine {
         return appName;
     }
 
+    /*!
+        Returns the command line argument list in UTF-8.
+    */
     std::vector<std::string> commandLineArguments() {
         std::vector<std::string> res;
 #ifdef _WIN32
@@ -249,6 +270,9 @@ namespace SysCmdLine {
 #endif
     };
 
+    /*!
+        Prints the formatted text in UTF-8 with given message type.
+    */
     int u8debug(MessageType messageType, bool highlight, const char *fmt, ...) {
         PrintScopeGuard::Color color;
         switch (messageType) {
@@ -277,6 +301,9 @@ namespace SysCmdLine {
         return res;
     }
 
+    /*!
+        Prints the formatted text in UTF-8.
+    */
     int u8printf(const char *fmt, ...) {
         PrintScopeGuard _guard;
 

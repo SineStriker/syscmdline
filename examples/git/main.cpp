@@ -43,6 +43,6 @@ int main(int /* argc */, char * /* argv */[]) {
 
     Parser parser(rootCommand);
     parser.setDisplayOptions(Parser::ShowArgumentDefaultValue | Parser::ShowArgumentExpectedValues |
-                             Parser::DontShowHelpOnError);
+                             Parser::DontShowHelpOnError | Parser::AlignAllCatalogues);
     return parser.invoke(SysCmdLine::commandLineArguments());
 }

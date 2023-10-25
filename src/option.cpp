@@ -2,7 +2,6 @@
 #include "option_p.h"
 
 #include <stdexcept>
-#include <sstream>
 
 #include "utils.h"
 #include "strings.h"
@@ -113,7 +112,7 @@ namespace SysCmdLine {
                 if (!d->arguments.empty()) {
                     appendix = " " + displayedArguments(displayOptions);
                 }
-                return Utils::join<char>(d->tokens, ", ") + appendix;
+                return Utils::join(d->tokens, ", ") + appendix;
             }
             case Symbol::HP_SecondColumn: {
                 std::string appendix;

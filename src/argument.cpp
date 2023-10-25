@@ -2,7 +2,6 @@
 #include "argument_p.h"
 
 #include <stdexcept>
-#include <sstream>
 
 #include "strings.h"
 #include "parser.h"
@@ -126,7 +125,7 @@ namespace SysCmdLine {
                         }
                     }
                     appendix += " [" + Strings::text(Strings::Title, Strings::ExpectedValues) +
-                                ": " + Utils::join<char>(values, ", ") + "]";
+                                ": " + Utils::join(values, ", ") + "]";
                 }
                 return d->desc + appendix;
             }
@@ -334,7 +333,7 @@ namespace SysCmdLine {
         SYSCMDLINE_GET_DATA(const ArgumentHolder);
         const auto &arguments = d->arguments;
 
-        std::stringstream ss;
+        std::string ss;
         std::string::size_type optionalIdx = arguments.size();
         for (std::string::size_type i = 0; i < arguments.size(); ++i) {
             if (!arguments.at(i).isRequired()) {
@@ -345,21 +344,23 @@ namespace SysCmdLine {
 
         if (optionalIdx > 0) {
             for (std::string::size_type i = 0; i < optionalIdx - 1; ++i) {
-                ss << arguments[i].helpText(Symbol::HP_Usage, displayOptions, nullptr) << " ";
+                ss += arguments[i].helpText(Symbol::HP_Usage, displayOptions, nullptr);
+                ss += " ";
             }
-            ss << arguments[optionalIdx - 1].helpText(Symbol::HP_Usage, displayOptions, nullptr);
+            ss += arguments[optionalIdx - 1].helpText(Symbol::HP_Usage, displayOptions, nullptr);
         }
 
         if (optionalIdx < arguments.size()) {
-            ss << " [";
+            ss += " [";
             for (std::string::size_type i = optionalIdx; i < arguments.size() - 1; ++i) {
-                ss << arguments[i].helpText(Symbol::HP_Usage, displayOptions, nullptr) << " ";
+                ss += arguments[i].helpText(Symbol::HP_Usage, displayOptions, nullptr);
+                ss += " ";
             }
-            ss << arguments[arguments.size() - 1].helpText(Symbol::HP_Usage, displayOptions,
-                                                           nullptr)
-               << "]";
+            ss +=
+                arguments[arguments.size() - 1].helpText(Symbol::HP_Usage, displayOptions, nullptr);
+            ss += "]";
         }
-        return ss.str();
+        return ss;
     }
 
     ArgumentHolder::ArgumentHolder(ArgumentHolderData *d) : Symbol(d) {

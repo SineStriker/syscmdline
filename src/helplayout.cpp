@@ -1,8 +1,6 @@
 #include "helplayout.h"
 #include "helplayout_p.h"
 
-#include "system.h"
-
 namespace SysCmdLine {
 
     HelpLayout::HelpLayout() : d_ptr(new HelpLayoutData()) {
