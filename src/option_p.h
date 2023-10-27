@@ -2,23 +2,18 @@
 #define OPTION_P_H
 
 #include "argument_p.h"
-#include "option.h"
 
 namespace SysCmdLine {
 
-    class OptionData : public ArgumentHolderData {
+    class OptionPrivate : public ArgumentHolderPrivate {
     public:
-        OptionData(const std::string &name, const std::string &desc,
-                   const std::vector<std::string> &tokens, bool required,
-                   const std::vector<Argument> &args, Option::ShortMatchRule shortMatchRule,
-                   Option::PriorLevel priorLevel, bool global, int maxOccurrence);
-        ~OptionData();
+        OptionPrivate(Option::SpecialType specialType, const std::vector<std::string> &tokens,
+                      const std::string &desc, bool required);
 
-        SymbolData *clone() const override;
+        SymbolPrivate *clone() const override;
 
     public:
-        void setTokens(const std::vector<std::string> &tokens);
-
+        Option::SpecialType specialType;
         std::vector<std::string> tokens;
         bool required;
         Option::ShortMatchRule shortMatchRule;

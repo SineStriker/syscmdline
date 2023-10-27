@@ -3,7 +3,7 @@
 
 #include <utility>
 
-#include "./c/vector.h"
+#include "../capi/vector.h"
 
 namespace SysCmdLine {
 
@@ -32,10 +32,35 @@ namespace SysCmdLine {
         }
 
         ~Vector() {
-            for (int i = 0; i < _vec.size; ++i) {
-                _handler.destroy(_vec.data[i]);
+            clear();
+            vector_fini(&_vec);
+        }
+
+        Vector(const Vector &other) : Vector() {
+            reserve(other.size());
+            for (int i = 0; i < other.size(); ++i) {
+                append(other[i]);
             }
-            vector_free(&_vec);
+        }
+
+        Vector(Vector &&other) noexcept : Vector() {
+            std::move(_vec, other._vec);
+        }
+
+        Vector &operator=(const Vector &other) {
+            if (this == &other) {
+                return *this;
+            }
+            clear();
+            reserve(other.size());
+            for (int i = 0; i < other.size(); ++i) {
+                append(other[i]);
+            }
+            return *this;
+        }
+
+        Vector &operator=(Vector &&other) noexcept {
+            std::move(_vec, other._vec);
         }
 
         int size() const {
@@ -58,7 +83,18 @@ namespace SysCmdLine {
             vector_push_back(&_vec, _handler.move(&t));
         }
 
+        void push_back(const T &t) {
+            vector_push_back(&_vec, _handler.construct(&t));
+        }
+
+        void push_back(T &&t) {
+            vector_push_back(&_vec, _handler.move(&t));
+        }
+
         void clear() {
+            for (int i = 0; i < _vec.size; ++i) {
+                _handler.destroy(_vec.data[i]);
+            }
             vector_clear(&_vec);
         }
 

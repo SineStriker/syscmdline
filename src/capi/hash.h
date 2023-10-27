@@ -1,6 +1,10 @@
 #ifndef HASH_H
 #define HASH_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct arg_hashtable_entry {
     void *k, *v;
     unsigned int h;
@@ -131,5 +135,9 @@ int arg_hashtable_itr_remove(arg_hashtable_itr_t *itr);
  * @return  Zero if not found.
  */
 int arg_hashtable_itr_search(arg_hashtable_itr_t *itr, arg_hashtable_t *h, const void *k);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // HASH_H

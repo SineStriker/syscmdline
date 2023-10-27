@@ -5,13 +5,13 @@
 
 #define INITIAL_SIZE 10
 
-void vector_init(vector_t *vector) {
+void vector_init(struct vector *vector) {
     vector->data = NULL;
     vector->size = 0;
     vector->capacity = 0;
 }
 
-void vector_reserve(vector_t *vector, int capacity) {
+void vector_reserve(struct vector *vector, int capacity) {
     if (capacity <= vector->capacity) {
         return;
     }
@@ -26,7 +26,7 @@ void vector_reserve(vector_t *vector, int capacity) {
     vector->capacity = capacity;
 }
 
-void vector_resize(vector_t *vector, int size) {
+void vector_resize(struct vector *vector, int size) {
     if (size < vector->size) {
         vector->size = size;
     } else if (size > vector->size) {
@@ -35,14 +35,11 @@ void vector_resize(vector_t *vector, int size) {
             fprintf(stderr, "Failed to allocate memory.\n");
             return;
         }
-        for (int i = vector->size; i < size; i++) {
-            vector->data[i] = NULL;
-        }
         vector->size = size;
     }
 }
 
-void vector_push_back(vector_t *vector, void *element) {
+void vector_push_back(struct vector *vector, void *element) {
     if (vector->size == vector->capacity) {
         int new_capacity = vector->capacity == 0 ? INITIAL_SIZE : vector->capacity * 2;
         vector_reserve(vector, new_capacity);
@@ -51,13 +48,11 @@ void vector_push_back(vector_t *vector, void *element) {
     vector->size++;
 }
 
-void vector_clear(vector_t *vector) {
-    vector->size = 0;
+void vector_clear(struct vector *vector) {
+    vector_resize(vector, 0);
 }
 
-void vector_free(vector_t *vector) {
+void vector_fini(struct vector *vector) {
+    vector_clear(vector);
     free(vector->data);
-    vector->data = NULL;
-    vector->size = 0;
-    vector->capacity = 0;
 }

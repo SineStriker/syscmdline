@@ -34,35 +34,18 @@
 #include <syscmdline/value.h>
 
 namespace SysCmdLine {
-    
-    class ArgumentHolder;
-    class ArgumentHolderData;
-    class Command;
-    class CommandData;
 
-    class ArgumentData;
+    class ArgumentPrivate;
 
     class SYSCMDLINE_EXPORT Argument : public Symbol {
-        SYSCMDLINE_DECL_DATA(Argument)
+        SYSCMDLINE_DECL_PRIVATE(Argument)
     public:
         using Validator = std::function<bool /* result */ (
             const std::string & /* token */, Value * /* out */, std::string * /* errorMessage */)>;
 
         Argument();
-        Argument(const std::string &name, const std::string &desc = {});
-        Argument(const std::string &name, const std::string &desc, const Value &defaultValue,
-                 bool required = true, const std::string &displayName = {},
-                 bool multipleEnabled = false);
-        Argument(const std::string &name, const std::string &desc,
-                 const std::vector<Value> &expectedValues, const Value &defaultValue,
-                 bool required = true, const std::string &displayName = {},
-                 bool multipleEnabled = false);
-        ~Argument();
-
-        Argument(const Argument &other);
-        Argument(Argument &&other) noexcept;
-        Argument &operator=(const Argument &other);
-        Argument &operator=(Argument &&other) noexcept;
+        Argument(const std::string &name, const std::string &desc = {}, bool required = true,
+                 const Value &defaultValue = false);
 
         std::string displayedText() const;
 
@@ -70,14 +53,14 @@ namespace SysCmdLine {
         std::string helpText(HelpPosition pos, int displayOptions, void *extra) const override;
 
     public:
+        std::string name() const;
+        void setName(const std::string &name);
+
         const std::vector<Value> &expectedValues() const;
         void setExpectedValues(const std::vector<Value> &expectedValues);
 
         Value defaultValue() const;
         void setDefaultValue(const Value &defaultValue);
-
-        std::string displayName() const;
-        void setDisplayName(const std::string &displayName);
 
         bool isRequired() const;
         void setRequired(bool required);
@@ -91,15 +74,8 @@ namespace SysCmdLine {
         Validator validator() const;
         void setValidator(const Validator &validator);
 
-    protected:
-        friend class ArgumentHolder;
-        friend class ArgumentHolderData;
-        friend class Command;
-        friend class CommandData;
-        friend class Parser;
-        friend class ParserData;
-        friend class ParseResult;
-        friend class ParseResultData;
+        std::string displayName() const;
+        void setDisplayName(const std::string &displayName);
     };
 
     inline bool Argument::isOptional() const {
@@ -110,34 +86,28 @@ namespace SysCmdLine {
         setRequired(!optional);
     }
 
+    class ArgumentHolderPrivate;
+
     class SYSCMDLINE_EXPORT ArgumentHolder : public Symbol {
-        SYSCMDLINE_DECL_DATA(ArgumentHolder)
+        SYSCMDLINE_DECL_PRIVATE(ArgumentHolder)
     public:
-        ~ArgumentHolder();
-
-    public:
-        Argument argument(const std::string &name) const;
-        Argument argument(int index) const;
-        const std::vector<Argument> &arguments() const;
-        int indexOfArgument(const std::string &name) const;
-        bool hasArgument(const std::string &name) const;
-        void addArgument(const Argument &argument);
-        void setArguments(const std::vector<Argument> &arguments);
-
         std::string displayedArguments(int displayOptions) const;
+
+    public:
+        int argumentCount() const;
+        Argument argument(int index) const;
+        inline void addArgument(const Argument &argument);
+        void addArguments(const std::vector<Argument> &arguments);
 
         using Symbol::helpText;
 
     protected:
-        ArgumentHolder(ArgumentHolderData *d);
-
-        friend class Command;
-        friend class CommandData;
-        friend class Parser;
-        friend class ParserData;
-        friend class ParseResult;
-        friend class ParseResultData;
+        ArgumentHolder(ArgumentHolderPrivate *d);
     };
+
+    void ArgumentHolder::addArgument(const Argument &argument) {
+        addArguments({argument});
+    }
 
 }
 

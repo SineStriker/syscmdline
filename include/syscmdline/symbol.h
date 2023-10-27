@@ -30,20 +30,14 @@
 #include <functional>
 #include <string>
 
-#include <syscmdline/global.h>
-#include <syscmdline/shareddata.h>
+#include <syscmdline/sharedbase.h>
 
 namespace SysCmdLine {
 
-    class Parser;
-    class ParserData;
-    class ParseResult;
-    class ParseResultData;
+    class SymbolPrivate;
 
-    class SymbolData;
-
-    class SYSCMDLINE_EXPORT Symbol {
-        SYSCMDLINE_DECL_DATA(Symbol)
+    class SYSCMDLINE_EXPORT Symbol : public SharedBase {
+        SYSCMDLINE_DECL_PRIVATE(Symbol)
     public:
         enum SymbolType {
             ST_Command,
@@ -57,20 +51,16 @@ namespace SysCmdLine {
             HP_FirstColumn,
             HP_SecondColumn,
         };
+
         using HelpProvider =
             std::function<std::string(const Symbol * /* this */, HelpPosition /* pos */,
                                       int /* displayOptions */, void * /* extra */)>;
-
-        virtual ~Symbol();
 
         inline std::string helpText(HelpPosition pos, int displayOptions) const;
         virtual std::string helpText(HelpPosition pos, int displayOptions, void *extra) const;
 
     public:
         SymbolType type() const;
-
-        std::string name() const;
-        void setName(const std::string &name);
 
         std::string description() const;
         void setDescription(const std::string &desc);
@@ -79,14 +69,7 @@ namespace SysCmdLine {
         void setHelpProvider(const HelpProvider &helpProvider);
 
     protected:
-        Symbol(SymbolData *d);
-
-        SharedDataPointer<SymbolData> d_ptr;
-
-        friend class Parser;
-        friend class ParserData;
-        friend class ParseResult;
-        friend class ParseResultData;
+        Symbol(SymbolPrivate *d);
     };
 
     inline std::string Symbol::helpText(Symbol::HelpPosition pos, int displayOptions) const {

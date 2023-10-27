@@ -27,6 +27,12 @@ namespace SysCmdLine::Utils {
         return s.substr(0, prefix.size()) == prefix;
     }
 
+    unsigned int hash_key_str(const void *ptr);
+    int equal_str(const void *a, const void *b);
+
+    unsigned int hash_key_ptr(const void *ptr);
+    int equal_ptr(const void *a, const void *b);
+
 }
 
 

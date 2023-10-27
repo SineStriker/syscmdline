@@ -55,7 +55,6 @@ namespace SysCmdLine {
         HelpLayout &operator=(HelpLayout &&other) noexcept;
 
         enum HelpItem {
-            HI_CustomText,
             HI_Prologue,
             HI_Information,
             HI_Warning,
@@ -88,9 +87,6 @@ namespace SysCmdLine {
 
     public:
         static HelpLayout defaultHelpLayout();
-
-    protected:
-        SharedDataPointer<HelpLayoutData> d_ptr;
 
         friend class Parser;
         friend class ParserData;

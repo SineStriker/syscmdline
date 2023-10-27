@@ -97,4 +97,27 @@ namespace SysCmdLine::Utils {
         return s;
     }
 
+    unsigned int hash_key_str(const void *ptr) {
+        auto s = reinterpret_cast<const std::string *>(ptr)->data();
+        char c;
+        unsigned int hash = 5381;
+
+        while ((c = *s++) != 0)
+            hash = ((hash << 5) + hash) + (unsigned int) c; /* hash * 33 + c */
+
+        return hash;
+    }
+
+    int equal_str(const void *a, const void *b) {
+        return reinterpret_cast<const std::string *>(a) == reinterpret_cast<const std::string *>(b);
+    }
+
+    unsigned int hash_key_ptr(const void *ptr) {
+        return reinterpret_cast<unsigned int>(ptr);
+    }
+
+    int equal_ptr(const void *a, const void *b) {
+        return a == b;
+    }
+
 }

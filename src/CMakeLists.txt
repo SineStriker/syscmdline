@@ -1,4 +1,4 @@
-file(GLOB_RECURSE _src ../include/syscmdline/*.h *.h *.hpp *.cpp)
+file(GLOB_RECURSE _src ../include/syscmdline/*.h *.h *.c *.hpp *.cpp)
 
 # Add library
 if(SYSCMDLINE_BUILD_STATIC)
@@ -15,7 +15,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 target_include_directories(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>"
 )
-target_include_directories(${PROJECT_NAME} PRIVATE . ../include/syscmdline)
+target_include_directories(${PROJECT_NAME} PRIVATE . ../include/syscmdline ../include/syscmdline/private)
 
 if(WIN32)
     set(RC_DESCRIPTION "Command Line Parser For Mordern C++")

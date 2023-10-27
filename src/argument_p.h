@@ -1,44 +1,34 @@
 #ifndef ARGUMENT_P_H
 #define ARGUMENT_P_H
 
-#include "argument.h"
+#include "argument_p.h"
 #include "symbol_p.h"
 
 namespace SysCmdLine {
 
-    class ArgumentData : public SymbolData {
+    class ArgumentPrivate : public SymbolPrivate {
     public:
-        ArgumentData(const std::string &name, const std::string &desc,
-                     const std::vector<Value> &expectedValues, const Value &defaultValue,
-                     bool required, const std::string &displayName, bool multipleEnabled);
-        ~ArgumentData();
+        ArgumentPrivate(std::string name, const std::string &desc, bool required,
+                        Value defaultValue);
 
-        SymbolData *clone() const override;
+        SymbolPrivate *clone() const override;
 
     public:
-        void setExpectedValues(const std::vector<Value> &values);
-
-        std::vector<Value> expectedValues;
-        Value defaultValue;
+        std::string name;
         bool required;
+        Value defaultValue;
+        std::vector<Value> expectedValues;
         std::string displayName;
         bool multiple;
         Argument::Validator validator;
     };
 
-    class ArgumentHolderData : public SymbolData {
+    class ArgumentHolderPrivate : public SymbolPrivate {
     public:
-        ArgumentHolderData(Symbol::SymbolType type, const std::string &name,
-                           const std::string &desc, const std::vector<Argument> &args);
-        ~ArgumentHolderData();
+        ArgumentHolderPrivate(Symbol::SymbolType type, const std::string &desc);
 
     public:
-        void addArgument(const Argument &arg);
-        void setArguments(const std::vector<Argument> &args);
-
-        int multiValueIndex;
         std::vector<Argument> arguments;
-        std::unordered_map<std::string, size_t> argumentNameIndexes;
     };
 
 }

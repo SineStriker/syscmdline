@@ -239,8 +239,8 @@ void arg_hashtable_remove(arg_hashtable_t *h, const void *k) {
         if ((hashvalue == e->h) && (h->eqfn(k, e->k))) {
             *pE = e->next;
             h->entrycount--;
-            xfree(e->k);
-            xfree(e->v);
+//            xfree(e->k);
+//            xfree(e->v);
             xfree(e);
             return;
         }
@@ -270,7 +270,7 @@ void arg_hashtable_fini(arg_hashtable_t *h /*, int free_values*/) {
         while (NULL != e) {
             f = e;
             e = e->next;
-            xfree(f->k);
+//            xfree(f->k);
             xfree(f);
         }
     }
@@ -299,7 +299,6 @@ void arg_hashtable_itr_init(arg_hashtable_t *h, arg_hashtable_itr_t *itr) {
             break;
         }
     }
-    return;
 }
 
 // void arg_hashtable_itr_destroy(arg_hashtable_itr_t *itr) {
@@ -367,8 +366,8 @@ int arg_hashtable_itr_remove(arg_hashtable_itr_t *itr) {
     /* itr->e is now outside the hashtable */
     remember_e = itr->e;
     itr->h->entrycount--;
-    xfree(remember_e->k);
-    xfree(remember_e->v);
+//    xfree(remember_e->k);
+//    xfree(remember_e->v);
 
     /* Advance the iterator, correcting the parent */
     remember_parent = itr->parent;
@@ -417,7 +416,7 @@ int arg_hashtable_change(arg_hashtable_t *h, void *k, void *v) {
     while (e != NULL) {
         /* Check hash value to short circuit heavier comparison */
         if ((hashvalue == e->h) && (h->eqfn(k, e->k))) {
-            xfree(e->v);
+//            xfree(e->v);
             e->v = v;
             return -1;
         }
