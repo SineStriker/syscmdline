@@ -26,7 +26,7 @@ namespace SysCmdLine {
 
     bool SharedBase::isDetached() const {
         Q_D2(SharedBase);
-        return d->ref.load() == 1;
+        return d && d->ref.load() == 1;
     }
 
     void SharedBase::detach() {

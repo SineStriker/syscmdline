@@ -1,7 +1,7 @@
 #include "symbol.h"
+#include "symbol_p.h"
 
 #include <utility>
-#include "symbol_p.h"
 
 namespace SysCmdLine {
 

@@ -14,1039 +14,300 @@
 #include "command_p.h"
 #include "option_p.h"
 #include "helplayout_p.h"
+#include "parseresult_p.h"
 
 namespace SysCmdLine {
 
-    static std::vector<std::string>
-        listItems(const HelpLayout &helpLayout,
-                  const std::vector<std::pair<std::string, std::string>> &contents, int widest) {
-        if (widest == 0) {
-            for (const auto &item : contents)
-                widest = std::max(widest, int(item.first.size()));
-        }
+    namespace Strings::en_US {
 
-        std::vector<std::string> res;
-        for (const auto &item : contents) {
-            auto lines = Utils::split(item.second, "\n");
-            if (lines.empty())
-                lines.emplace_back();
-
-            {
-                std::string ss;
-                ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ');
-                ss += item.first;
-                ss += std::string(widest - item.first.size(), ' ');
-                ss += std::string(helpLayout.size(HelpLayout::ST_Spacing), ' ');
-                ss += lines.front();
-                res.push_back(ss);
-            }
-
-            for (int i = 1; i < lines.size(); ++i) {
-                std::string ss;
-                ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ');
-                ss += std::string(widest, ' ');
-                ss += std::string(helpLayout.size(HelpLayout::ST_Spacing), ' ');
-                ss += lines.at(i);
-                res.push_back(ss);
-            }
-        }
-
-        return res;
-    }
-
-    static std::vector<std::pair<std::string, std::vector<std::string>>>
-        collectItems(int widest, const HelpLayout &helpLayout,
-                     const std::vector<std::unordered_set<std::string>> &catalogue,
-                     const std::unordered_map<std::string, size_t> &catalogueIndexes,
-                     const std::unordered_map<std::string, size_t> &itemIndexes,
-                     const std::string &defaultTitle,
-                     const std::function<std::string(size_t)> &getFirstColumn,
-                     const std::function<std::string(size_t)> &getSecondColumn) {
-        std::vector<std::pair<std::string, std::vector<std::string>>> res;
-
-        auto indexes = itemIndexes;
-        for (const auto &pair : catalogueIndexes) {
-            std::set<size_t> subscriptSet;
-            for (const auto &name : catalogue[pair.second]) {
-                auto it = indexes.find(name);
-                if (it == indexes.end())
-                    continue;
-                subscriptSet.insert(it->second);
-                indexes.erase(it);
-            }
-
-            std::vector<std::pair<std::string, std::string>> texts;
-            for (const auto &subscript : std::as_const(subscriptSet)) {
-                texts.emplace_back(getFirstColumn(subscript), getSecondColumn(subscript));
-            }
-            res.emplace_back(pair.first, listItems(helpLayout, texts, widest));
-        }
-
-        {
-            std::set<size_t> subscriptSet;
-            for (const auto &pair : std::as_const(indexes)) {
-                subscriptSet.insert(pair.second);
-            }
-
-            std::vector<std::pair<std::string, std::string>> texts;
-            texts.reserve(subscriptSet.size());
-            for (const auto &subscript : std::as_const(subscriptSet)) {
-                texts.emplace_back(getFirstColumn(subscript), getSecondColumn(subscript));
-            }
-            res.emplace_back(defaultTitle, listItems(helpLayout, texts, widest));
-        }
-        return res;
-    }
-
-    std::string ParseResultData::correctionText() const {
-        const auto &helpLayout = parserData->helpLayout;
-
-        std::vector<std::string> expectedValues;
-        switch (error) {
-            case ParseResult::UnknownOption:
-            case ParseResult::InvalidOptionPosition: {
-                for (const auto &opt : globalOptions) {
-                    for (const auto &token : opt->tokens()) {
-                        expectedValues.push_back(token);
-                    }
-                }
-                for (const auto &opt : command->d_func()->options) {
-                    for (const auto &token : opt.tokens()) {
-                        expectedValues.push_back(token);
-                    }
-                }
-
-                if (error == ParseResult::UnknownOption)
-                    break;
-
-                // Fallback as invalid argument case
-            }
-            case ParseResult::InvalidArgumentValue: {
-                const auto &arg = command->argument(errorPlaceholders[1]);
-                for (const auto &item : arg.d_func()->expectedValues) {
-                    expectedValues.push_back(item.toString());
-                }
-
-                if (!command->hasArgument(arg.name())) // option argument?
-                    break;
-
-                // Fallback as unknown command case
-            }
-            case ParseResult::UnknownCommand: {
-                for (const auto &cmd : command->d_func()->subCommands) {
-                    expectedValues.push_back(cmd.name());
-                }
-                break;
-            }
-            default:
-                return {};
-        }
-
-        auto input = errorPlaceholders[0];
-        auto suggestions = Utils::calcClosestTexts(expectedValues, input, int(input.size()) / 2);
-        if (suggestions.empty())
-            return {};
-
-        std::string ss;
-        ss +=
-            Utils::formatText(Strings::text(Strings::Information, Strings::MatchCommand), {input});
-        for (const auto &item : std::as_const(suggestions)) {
-            ss += "\n" + std::string(helpLayout.size(HelpLayout::ST_Indent), ' ') + item;
-        }
-        return ss;
-    }
-
-    Value ParseResultData::getDefaultResult(const SysCmdLine::ArgumentHolder *argumentHolder,
-                                            const std::string &argName) {
-        const auto &d2 = argumentHolder->d_func();
-        auto it2 = d2->argumentNameIndexes.find(argName);
-        if (it2 == d2->argumentNameIndexes.end())
-            return {};
-        return d2->arguments.at(it2->second).defaultValue();
-    }
-
-    Value ParseResultData::getDefaultResult(const std::string &optName,
-                                            const std::string &argName) const {
-        const auto &d = command->d_func();
-        auto it = d->optionNameIndexes.find(optName);
-        if (it == d->optionNameIndexes.end())
-            return {};
-        return getDefaultResult(&d->options.at(it->second), argName);
-    }
-
-    static void defaultPrinter(MessageType messageType, const std::string &title,
-                               const std::vector<std::string> &lines, bool hasNext) {
-        bool highlight = false;
-        switch (messageType) {
-            case MT_Information:
-            case MT_Healthy:
-            case MT_Warning:
-            case MT_Critical:
-                highlight = true;
-                break;
-            default:
-                break;
-        }
-
-        if (!title.empty()) {
-            u8printf("%s:\n", title.data());
-        }
-
-        for (const auto &item : lines) {
-            u8debug(messageType, highlight, "%s\n", item.data());
-        }
-
-        if (hasNext) {
-            u8printf("\n");
-        }
-    }
-
-    void ParseResultData::showMessage(const std::string &info, const std::string &warn,
-                                      const std::string &err, bool noHelp) const {
-        const auto &d = parserData.data();
-        const auto &dd = parserData->helpLayout.d_func();
-
-        struct HelpText {
-            std::pair<std::string, std::vector<std::string>> description;
-            std::pair<std::string, std::vector<std::string>> usage;
-            std::vector<std::pair<std::string, std::vector<std::string>>> arguments;
-            std::vector<std::pair<std::string, std::vector<std::string>>> options;
-            std::vector<std::pair<std::string, std::vector<std::string>>> commands;
-        };
-        const auto &ht = [noHelp, this]() {
-            HelpText result;
-
-            const auto &d = command->d_func();
-            const auto &dd = d->catalogue.d_func();
-            const auto displayOptions = parserData->displayOptions;
-            const auto &helpLayout = parserData->helpLayout;
-
-            // Build option indexes
-            auto options = d->options;
-            auto optionNameIndexes = d->optionNameIndexes;
-
-            options.reserve(options.size() + globalOptions.size());
-            optionNameIndexes.reserve(optionNameIndexes.size() + globalOptions.size());
-            for (const auto &item : globalOptions) {
-                optionNameIndexes.insert(std::make_pair(item->name(), options.size()));
-                options.push_back(*item);
-            }
-
-            // Description
-            {
-                const auto &desc =
-                    d->detailedDescription.empty() ? d->desc : d->detailedDescription;
-                result.description.first = Strings::text(Strings::Title, Strings::Description);
-                if (!desc.empty()) {
-                    std::string ss;
-                    ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ') + desc;
-                    result.description.second = {ss};
-                }
-            }
-
-            // Usage
-            {
-                std::string ss;
-                ss += std::string(helpLayout.size(HelpLayout::ST_Indent), ' ');
-
-                // parent commands
-                {
-                    const Command *p = &parserData->rootCommand;
-                    for (const auto &item : std::as_const(stack)) {
-                        ss += p->name() + " ";
-                        p = &p->d_func()->subCommands[item];
-                    }
-                }
-
-                // usage
-                ss += command->helpText(Symbol::HP_Usage, displayOptions, &options);
-
-                result.usage = {
-                    Strings::text(Strings::Title, Strings::Usage),
-                    {ss},
-                };
-            }
-
-            if (!noHelp) {
-                int allWidest = 0;
-                bool allAlign = displayOptions & Parser::AlignAllCatalogues;
-                bool sameAlign = displayOptions & Parser::AlignSameCatalogues;
-
-                bool hasArgs = false;
-                bool hasOptions = false;
-                bool hasCommands = false;
-                for (const auto &item : parserData->helpLayout.d_func()->layoutItems) {
-                    switch (item.item) {
-                        case HelpLayout::HI_Arguments:
-                            hasArgs = true;
-                            break;
-                        case HelpLayout::HI_Options:
-                            hasOptions = true;
-                            break;
-                        case HelpLayout::HI_Commands:
-                            hasCommands = true;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
-                const auto &helper_d = parserData->helpLayout.d_func();
-                if (allAlign) {
-                    if (hasArgs) {
-                        for (const auto &item : d->arguments) {
-                            allWidest = std::max<int>(
-                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
-                                allWidest);
-                        }
-                    }
-                    if (hasOptions) {
-                        for (const auto &item : std::as_const(options)) {
-                            allWidest = std::max<int>(
-                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
-                                allWidest);
-                        }
-                    }
-                    if (hasCommands) {
-                        for (const auto &item : d->subCommands) {
-                            allWidest = std::max<int>(
-                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
-                                allWidest);
-                        }
-                    }
-                }
-
-                // Arguments
-                if (!d->arguments.empty() && hasArgs) {
-                    int widest = allWidest;
-                    if (sameAlign && !allAlign) {
-                        for (const auto &item : d->arguments) {
-                            widest = std::max<int>(
-                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
-                                widest);
-                        }
-                    }
-                    result.arguments = collectItems(
-                        widest, helpLayout, dd->_arg, dd->_argIndexes, d->argumentNameIndexes,
-                        Strings::text(Strings::Title, Strings::Arguments),
-
-                        // getter
-                        [d, displayOptions](size_t idx) {
-                            return d->arguments[idx].helpText(Symbol::HP_FirstColumn,
-                                                              displayOptions);
-                        },
-                        [d, displayOptions](size_t idx) {
-                            return d->arguments[idx].helpText(Symbol::HP_SecondColumn,
-                                                              displayOptions);
-                        });
-                }
-
-                // Options
-                if (!options.empty() && hasOptions) {
-                    int widest = allWidest;
-                    if (sameAlign && !allAlign) {
-                        for (const auto &item : std::as_const(options)) {
-                            widest = std::max<int>(
-                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
-                                widest);
-                        }
-                    }
-                    result.options = collectItems(
-                        widest, helpLayout, dd->_opt, dd->_optIndexes, optionNameIndexes,
-                        Strings::text(Strings::Title, Strings::Options),
-
-                        // getter
-                        [&options, displayOptions](size_t idx) {
-                            return options[idx].helpText(Symbol::HP_FirstColumn, displayOptions);
-                        },
-                        [&options, displayOptions](size_t idx) {
-                            return options[idx].helpText(Symbol::HP_SecondColumn, displayOptions);
-                        });
-                }
-
-                // Commands
-                if (!d->subCommands.empty() && hasCommands) {
-                    int widest = allWidest;
-                    if (sameAlign && !allAlign) {
-                        for (const auto &item : d->subCommands) {
-                            widest = std::max<int>(
-                                int(item.helpText(Symbol::HP_FirstColumn, displayOptions).size()),
-                                widest);
-                        }
-                    }
-                    result.commands = collectItems(
-                        widest, helpLayout, dd->_cmd, dd->_cmdIndexes, d->subCommandNameIndexes,
-                        Strings::text(Strings::Title, Strings::Commands),
-
-                        // getter
-                        [d, displayOptions](size_t idx) {
-                            return d->subCommands[idx].helpText(Symbol::HP_FirstColumn,
-                                                                displayOptions);
-                        },
-                        [d, displayOptions](size_t idx) {
-                            return d->subCommands[idx].helpText(Symbol::HP_SecondColumn,
-                                                                displayOptions);
-                        });
-                }
-            }
-            return result;
-        }();
-
-        int last = -1;
-        for (int i = 0; i < dd->layoutItems.size(); ++i) {
-            const auto &item = dd->layoutItems.at(i);
-            bool hasValue = false;
-            switch (item.item) {
-                case HelpLayout::HI_CustomText: {
-                    if (item.printer && !noHelp) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Prologue: {
-                    if (!d->intro[Parser::Prologue].empty() && !noHelp) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Information: {
-                    if (!info.empty()) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Warning: {
-                    if (!warn.empty()) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Error: {
-                    if (!err.empty()) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Description: {
-                    if (!ht.description.second.empty() && !noHelp) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Usage: {
-                    if (!ht.usage.second.empty() && !noHelp) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Arguments: {
-                    if (!ht.arguments.empty() && !noHelp) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Options: {
-                    if (!ht.options.empty() && !noHelp) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Commands: {
-                    if (!ht.commands.empty() && !noHelp) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Epilogue: {
-                    if (!d->intro[Parser::Epilogue].empty() && !noHelp) {
-                        hasValue = true;
-                    }
-                    break;
-                }
-            }
-            if (hasValue) {
-                last = i;
-            }
-        }
-
-        auto displayStr = [](const HelpLayoutData::LayoutItem &item, bool hasNext,
-                             const std::string &s, MessageType messageType = MT_Debug) {
-            if (s.empty())
-                return;
-            if (item.printer) {
-                item.printer({}, {s}, hasNext);
-            } else {
-                defaultPrinter(messageType, {}, {s}, hasNext);
-            }
+        static const char *error_strings[] = {
+            R"(No error.)",
+            R"(Unknown option "%1".)",
+            R"(Unknown command or argument "%1".)",
+            R"(Missing required argument "%1" of option "%2".)",
+            R"(Missing required argument "%1".)",
+            R"(Too many arguments.)",
+            R"(Invalid value "%1" of argument "%2".)",
+            R"(Invalid occurrence of option "%1", which should be argument "%2".)",
+            R"(Missing required option "%1".)",
+            R"(Option "%1" occurs too much, at most %2.)",
+            R"(Invalid token "%1" of argument "%2", expect "%3".)",
+            R"(Invalid token "%1" of argument "%2", reason: %3)",
+            R"(Options "%1" and "%2" are mutually exclusive.)",
+            R"(Option "%1" and other arguments cannot be specified simultaneously.)",
+            R"(Option "%1" and other options cannot be specified simultaneously.)",
         };
 
-        auto displayPair = [](const HelpLayoutData::LayoutItem &item, bool hasNext,
-                              const std::pair<std::string, std::vector<std::string>> &p,
-                              MessageType messageType = MT_Debug) {
-            if (p.second.empty())
-                return;
-            if (item.printer) {
-                item.printer(p.first, p.second, hasNext);
-            } else {
-                defaultPrinter(messageType, p.first, p.second, hasNext);
-            }
+        static const char *title_strings[] = {
+            "Error",    "Usage",    "Description", "Arguments", "Options",
+            "Commands", "Required", "Default",     "Expected",
         };
 
-        auto displayArr =
-            [](const HelpLayoutData::LayoutItem &item, bool hasNext,
-               const std::vector<std::pair<std::string, std::vector<std::string>>> &arr) {
-                int last = int(arr.size()) - 1;
-                if (!hasNext) {
-                    for (int j = 0; j < arr.size(); ++j) {
-                        if (!arr.at(j).second.empty()) {
-                            last = j;
-                        }
-                    }
-                }
-                for (int j = 0; j <= last; ++j) {
-                    const auto &item2 = arr.at(j);
-                    if (item.printer) {
-                        item.printer(item2.first, item2.second, hasNext || j < last);
-                    } else {
-                        defaultPrinter(MessageType::MT_Debug, item2.first, item2.second,
-                                       hasNext || j < last);
-                    }
-                }
-            };
+        static const char *command_strings[] = {
+            "Show version information",
+            "Show help information",
+        };
 
-        for (int i = 0; i <= last; ++i) {
-            const auto &item = dd->layoutItems.at(i);
-            bool hasNext = i < last;
-            switch (item.item) {
-                case HelpLayout::HI_CustomText: {
-                    if (item.printer && !noHelp) {
-                        item.printer({}, {}, hasNext);
-                    }
-                    break;
-                }
-                case HelpLayout::HI_Prologue: {
-                    if (!noHelp)
-                        displayStr(item, hasNext, d->intro[Parser::Prologue]);
-                    break;
-                }
-                case HelpLayout::HI_Information: {
-                    displayStr(item, hasNext, info);
-                    break;
-                }
-                case HelpLayout::HI_Warning: {
-                    displayStr(item, hasNext, warn, MT_Warning);
-                    break;
-                }
-                case HelpLayout::HI_Error: {
-                    displayStr(item, hasNext, err, MT_Critical);
-                    break;
-                }
-                case HelpLayout::HI_Description: {
-                    if (!noHelp)
-                        displayPair(item, hasNext, ht.description);
-                    break;
-                }
-                case HelpLayout::HI_Usage: {
-                    if (!noHelp)
-                        displayPair(item, hasNext, ht.usage);
-                    break;
-                }
-                case HelpLayout::HI_Arguments: {
-                    if (!noHelp)
-                        displayArr(item, hasNext, ht.arguments);
-                    break;
-                }
-                case HelpLayout::HI_Options: {
-                    if (!noHelp)
-                        displayArr(item, hasNext, ht.options);
-                    break;
-                }
-                case HelpLayout::HI_Commands: {
-                    if (!noHelp)
-                        displayArr(item, hasNext, ht.commands);
-                    break;
-                }
-                case HelpLayout::HI_Epilogue: {
-                    if (!noHelp)
-                        displayStr(item, hasNext, d->intro[Parser::Epilogue]);
-                    break;
-                }
-            }
-        }
-    }
+        static const char *info_strings[] = {
+            R"("%1" is not matched. Do you mean one of the following?)",
+        };
 
-    ParseResult::ParseResult() {
-    }
+        static const char *token_strings[] = {
+            "commands",
+            "options",
+        };
 
-    ParseResult::~ParseResult() {
-    }
+        static const char **strings[] = {
+            error_strings, title_strings, command_strings, info_strings, token_strings,
+        };
 
-    ParseResult::ParseResult(const ParseResult &other) {
-        d_ptr = other.d_ptr;
-    }
-
-    ParseResult::ParseResult(ParseResult &&other) noexcept {
-        d_ptr.swap(other.d_ptr);
-    }
-
-    ParseResult &ParseResult::operator=(const ParseResult &other) {
-        if (this == &other) {
-            return *this;
-        }
-        d_ptr = other.d_ptr;
-        return *this;
-    }
-
-    ParseResult &ParseResult::operator=(ParseResult &&other) noexcept {
-        if (this == &other) {
-            return *this;
-        }
-        d_ptr.swap(other.d_ptr);
-        return *this;
-    }
-
-    Command ParseResult::rootCommand() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        return d->parserData->rootCommand;
-    }
-
-    const std::vector<std::string> &ParseResult::arguments() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        return d->arguments;
-    }
-
-    int ParseResult::invoke(int errCode) const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        if (d->error != NoError) {
-            showError();
-            return errCode;
-        }
-        return dispatch();
-    }
-
-    int ParseResult::dispatch() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        if (d->error != NoError) {
-            throw std::runtime_error("cannot dispatch handler when parser failed");
+        static std::string provider(int category, int index) {
+            return strings[category][index];
         }
 
-        const auto &cmd = *d->command;
-        const auto &handler = cmd.handler();
-
-        if (d->versionSet) {
-            u8printf("%s\n", cmd.version().data());
-            return 0;
-        }
-
-        if (d->helpSet) {
-            showHelpText();
-            return 0;
-        }
-
-        if (!handler) {
-            throw std::runtime_error("command \"" + cmd.name() + "\" doesn't have a valid handler");
-        }
-
-        return handler(*this);
     }
 
-    ParseResult::Error ParseResult::error() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        return d->error;
+    ParserPrivate::ParserPrivate()
+        : displayOptions(Parser::Normal), helpLayout(HelpLayout::defaultHelpLayout()),
+          textProvider(Strings::en_US::provider) {
     }
 
-    std::string ParseResult::errorText() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        if (d->error == NoError)
-            return {};
-        return Utils::formatText(Strings::text(Strings::ParseError, d->error),
-                                 d->errorPlaceholders);
+    Parser::Parser() : SharedBase(new ParserPrivate()) {
     }
 
-    std::string ParseResult::correctionText() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        return d->correctionText();
-    }
-
-    std::string ParseResult::cancellationToken() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        return d->cancellationToken;
-    }
-
-    Command ParseResult::command() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        return *d->command;
-    }
-
-    std::vector<Option> ParseResult::globalOptions() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-
-        std::vector<Option> res;
-        res.reserve(d->globalOptions.size());
-        for (const auto &item : d->globalOptions) {
-            res.push_back(*item);
-        }
-        return res;
-    }
-
-    std::vector<int> ParseResult::commandIndexStack() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        return d->stack;
-    }
-
-    void ParseResult::showError() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        if (d->error == NoError)
-            return;
-
-        const auto &displayOptions = d->parserData->displayOptions;
-        d->showMessage((!(displayOptions & Parser::SkipCorrection)) ? d->correctionText()
-                                                                    : std::string(),
-                       {}, Strings::text(Strings::Title, Strings::Error) + ": " + errorText(),
-                       displayOptions & Parser::DontShowHelpOnError);
-    }
-
-    void ParseResult::showHelpText() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        d->showMessage({}, {}, {});
-    }
-
-    void ParseResult::showMessage(const std::string &info, const std::string &warn,
-                                  const std::string &err) const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        const auto &displayOptions = d->parserData->displayOptions;
-        d->showMessage(info, warn, err, displayOptions & Parser::DontShowHelpOnError);
-    }
-
-    Value ParseResult::valueForArgument(const std::string &argName) const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        auto it = d->argResult.find(argName);
-        if (it == d->argResult.end()) {
-            return d_ptr->getDefaultResult(d_ptr->command, argName);
-        }
-        return it->second.front();
-    }
-
-    std::vector<Value> ParseResult::valuesForArgument(const std::string &argName) const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        auto it = d->argResult.find(argName);
-        if (it == d->argResult.end()) {
-            return {};
-        }
-        return it->second;
-    }
-
-    int ParseResult::optionCount(const std::string &optName) const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        const auto &map = d->optResult;
-        auto it = map.find(optName);
-        if (it == map.end()) {
-            return 0;
-        }
-        return int(it->second.size());
-    }
-
-    Value ParseResult::valueForOption(const std::string &optName, const std::string &argName,
-                                      int count) const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        auto it = d->optResult.find(optName);
-        if (it == d->optResult.end() || count >= it->second.size()) {
-            return d->getDefaultResult(optName, argName);
-        }
-
-        const auto &map = it->second.at(count);
-        auto it2 = map.find(argName);
-        if (it2 == map.end()) {
-            return {};
-        }
-        return it2->second;
-    }
-
-    Value ParseResult::valueForOption(const std::string &optName, int argIndex, int count) const {
-        const Option &opt = d_ptr->command->option(optName);
-        const auto &args = opt.arguments();
-        if (argIndex >= args.size())
-            return {};
-
-        auto it = d_ptr->optResult.find(optName);
-        if (it == d_ptr->optResult.end() || count >= it->second.size()) {
-            return d_ptr->getDefaultResult(optName, args[argIndex].name());
-        }
-
-        const auto &map = it->second.at(count);
-        auto it2 = map.find(args[argIndex].name());
-        if (it2 == map.end()) {
-            return {};
-        }
-        return it2->second;
-    }
-
-    std::vector<std::string> ParseResult::effectiveOptions() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        std::vector<std::string> res;
-        res.reserve(d->optResult.size());
-        for (const auto &item : d->optResult) {
-            res.push_back(item.first);
-        }
-        return res;
-    }
-
-    std::vector<std::string> ParseResult::effectiveArguments() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        std::vector<std::string> res;
-        res.reserve(d->argResult.size());
-        for (const auto &item : d->argResult) {
-            res.push_back(item.first);
-        }
-        return res;
-    }
-
-    bool ParseResult::isHelpSet() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        return d->helpSet;
-    }
-
-    bool ParseResult::isVersionSet() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        return d->versionSet;
-    }
-
-    bool ParseResult::isResultNull() const {
-        SYSCMDLINE_GET_DATA(const ParseResult);
-        return d->argResult.empty() && d->optResult.empty();
-    }
-
-    ParseResult::ParseResult(ParseResultData *d) : d_ptr(d) {
-    }
-
-    Parser::Parser() : d_ptr(new ParserData()) {
-    }
-
-    Parser::Parser(const Command &rootCommand) : d_ptr(new ParserData()) {
+    Parser::Parser(const Command &rootCommand) : Parser() {
         setRootCommand(rootCommand);
     }
 
     Parser::~Parser() {
     }
 
-    Parser::Parser(const Parser &other) {
-        d_ptr = other.d_ptr;
-    }
-
-    Parser::Parser(Parser &&other) noexcept {
-        d_ptr.swap(other.d_ptr);
-    }
-
-    Parser &Parser::operator=(const Parser &other) {
-        if (this == &other) {
-            return *this;
-        }
-        d_ptr = other.d_ptr;
-        return *this;
-    }
-
-    Parser &Parser::operator=(Parser &&other) noexcept {
-        if (this == &other) {
-            return *this;
-        }
-        d_ptr.swap(other.d_ptr);
-        return *this;
-    }
-
-    std::string Parser::intro(Position pos) const {
-        SYSCMDLINE_GET_DATA(const Parser);
-        return d->intro[pos];
-    }
-
-    void Parser::setIntro(Position pos, const std::string &text) {
-        SYSCMDLINE_GET_DATA(Parser);
-        d->intro[pos] = text;
-    }
-
     int Parser::displayOptions() const {
-        SYSCMDLINE_GET_DATA(const Parser);
+        Q_D2(Parser);
         return d->displayOptions;
     }
 
     void Parser::setDisplayOptions(int displayOptions) {
-        SYSCMDLINE_GET_DATA(Parser);
+        Q_D(Parser);
         d->displayOptions = displayOptions;
     }
 
     HelpLayout Parser::helpLayout() const {
-        SYSCMDLINE_GET_DATA(const Parser);
+        Q_D2(Parser);
         return d->helpLayout;
     }
 
     void Parser::setHelpLayout(const HelpLayout &helpLayout) {
-        SYSCMDLINE_GET_DATA(Parser);
+        Q_D(Parser);
         d->helpLayout = helpLayout;
     }
 
     Command Parser::rootCommand() const {
-        SYSCMDLINE_GET_DATA(const Parser);
+        Q_D2(Parser);
         return d->rootCommand;
     }
 
     void Parser::setRootCommand(const Command &rootCommand) {
-        SYSCMDLINE_GET_DATA(Parser);
+        Q_D(Parser);
         if (rootCommand.d_func()->name.empty()) {
             throw std::runtime_error("empty root command name");
         }
         d->rootCommand = rootCommand;
     }
 
-    ParseResult Parser::parse(const std::vector<std::string> &args, int parseOptions) {
-        auto result = new ParseResultData(d_ptr, args);
-        auto &error = result->error;
-        auto &errorPlaceholders = result->errorPlaceholders;
-        auto &cancellationToken = result->cancellationToken;
+    ParseResult Parser::parse(const std::vector<std::string> &params, int parseOptions) {
+        Q_D2(Parser);
+        auto result = new ParseResultPrivate();
+        auto &core = result->core;
         auto displayOptions = this->displayOptions();
 
         // Search command
-        const Command *cmd = &d_ptr->rootCommand;
-        std::list<const Option *> globalOptions;
-        std::unordered_map<std::string, decltype(globalOptions)::iterator> globalOptionIndexes;
-        std::unordered_map<std::string, decltype(globalOptions)::iterator> globalOptionTokenIndexes;
-
-        auto removeDuplicatedOptions = [&](const Option &opt) {
-            // Search name
+        const Command *targetCommand = &d->rootCommand;
+        size_t nonCommandIndex = 1;
+        {
+            // Find target command
+            size_t globalOptionCount = 0;
             {
-                auto optIdxIt = globalOptionIndexes.find(opt.name());
-                if (optIdxIt != globalOptionIndexes.end()) {
-                    auto optIt = optIdxIt->second;
-                    const auto &targetOpt = *optIt;
+                auto cmd = targetCommand;
+                size_t i = 1;
+                for (; i < params.size(); ++i) {
+                    const auto &dd = cmd->d_func();
+                    const auto &param = params[i];
 
-                    // Remove all token indexes
-                    for (const auto &targetToken : targetOpt->d_func()->tokens) {
-                        globalOptionTokenIndexes.erase(targetToken);
+                    size_t j = 0;
+                    size_t size = dd->commands.size();
+                    for (; j < size; ++j) {
+                        if (dd->commands[j].name() == param) {
+                            j = i;
+                            break;
+                        }
                     }
 
-                    // Remove name index
-                    globalOptionIndexes.erase(optIdxIt);
+                    if (j == size) {
+                        // Try case insensitive
+                        if (parseOptions & Parser::IgnoreCommandCase) {
+                            for (j = 0; j < size; ++j) {
+                                if (Utils::toLower(dd->commands[j].name()) ==
+                                    Utils::toLower(param)) {
+                                    j = i;
+                                    break;
+                                }
+                            }
 
-                    // Remove option
-                    globalOptions.erase(optIt);
-                }
-            }
-
-            // Search tokens
-            for (const auto &token : opt.d_func()->tokens) {
-                auto optTokenIdxIt = globalOptionTokenIndexes.find(token);
-                if (optTokenIdxIt != globalOptionTokenIndexes.end()) {
-                    auto optIt = optTokenIdxIt->second;
-                    const auto &targetOpt = *optIt;
-
-                    // Remove all token indexes
-                    for (const auto &targetToken : targetOpt->d_func()->tokens) {
-                        globalOptionTokenIndexes.erase(targetToken);
-                    }
-
-                    // Remove name index
-                    globalOptionIndexes.erase(targetOpt->name());
-
-                    // Remove option
-                    globalOptions.erase(optIt);
-                }
-            }
-        };
-
-        // Find target command
-        size_t i = 1;
-        for (; i < args.size(); ++i) {
-            auto lastCmd = cmd;
-            {
-                const auto &d = cmd->d_func();
-                const auto &arg = args[i];
-
-                auto it = d->subCommandNameIndexes.find(arg);
-                if (it == d->subCommandNameIndexes.end()) {
-                    if (parseOptions & Parser::IgnoreCommandCase) {
-                        // Search
-                        bool found = false;
-                        for (int j = 0; j < d->subCommands.size(); ++j) {
-                            const auto &subCmd = d->subCommands.at(j);
-                            if (Utils::toLower(subCmd.name()) == Utils::toLower(arg)) {
-                                result->stack.push_back(j);
-                                cmd = &subCmd;
-
-                                found = true;
+                            // Not found
+                            if (j == size) {
                                 break;
                             }
-                        }
-
-                        if (!found)
+                        } else {
                             break;
-
-                    } else {
-                        break;
+                        }
                     }
-                } else {
-                    result->stack.push_back(int(it->second));
-                    cmd = &cmd->d_func()->subCommands.at(it->second);
+
+                    result->stack.push_back(j);
+                    globalOptionCount += cmd->optionCount();
+                    cmd = &cmd->d_func()->commands.at(j);
                 }
+                nonCommandIndex = i;
+                targetCommand = cmd;
             }
 
             // Collect global options
-            for (const auto &opt : lastCmd->d_func()->options) {
-                if (!opt.isGlobal())
-                    continue;
+            const Option **globalOptionList = new const Option *[globalOptionCount]; // Alloc
+            {
+                int globalOptionListIndex = 0;
+                auto cmd = &d->rootCommand;
+                for (size_t i = 0; i < result->stack.size(); ++i) {
+                    const auto &dd = cmd->d_func();
 
-                removeDuplicatedOptions(opt);
-
-                // Add option
-                auto targetIterator = globalOptions.insert(globalOptions.end(), &opt);
-
-                // Add name index
-                globalOptionIndexes.insert(std::make_pair(opt.name(), targetIterator));
-
-                // Add token indexes
-                for (const auto &token : opt.d_func()->tokens) {
-                    globalOptionTokenIndexes.insert(std::make_pair(token, targetIterator));
+                    // Add options
+                    for (size_t j = 0; j < dd->options.size(); ++j) {
+                        globalOptionList[globalOptionListIndex++] = &dd->options[j];
+                    }
+                    cmd = &dd->commands[i];
                 }
             }
+
+            // Remove duplicated options from end
+            int realGlobalOptionCount = globalOptionCount;
+            {
+                StringMap visitedTokens;
+                for (int i = globalOptionCount - 1; i >= 0; --i) {
+                    auto &opt = globalOptionList[i];
+                    const auto &dd = opt->d_func();
+
+                    bool visited = false;
+                    for (const auto &token : dd->tokens) {
+                        if (visitedTokens.count(token)) {
+                            visited = true;
+                        }
+                    }
+
+                    if (visited) {
+                        realGlobalOptionCount--;
+                        opt = nullptr; // mark invalid
+                        continue;
+                    }
+
+                    for (const auto &token : dd->tokens) {
+                        visitedTokens.insert(std::make_pair(token, 0));
+                    }
+                }
+            }
+
+            // Alloc option spaces in result data
+            {
+                auto initOptionData = [](ParseResultData2::OptionData &data, const Option *opt) {
+                    const auto &dd = opt->d_func();
+                    data.option = opt;
+                    data.argSize = dd->arguments.size();
+                    data.argResult = nullptr;
+
+                    data.optionalArgIndex = -1;
+                    data.multiValueArgIndex = -1;
+
+                    // Build arg name indexes
+                    for (size_t i = 0; i < dd->arguments.size(); ++i) {
+                        const auto &arg = dd->arguments[i];
+                        if (arg.isOptional() && data.optionalArgIndex < 0) {
+                            data.optionalArgIndex = i;
+                        }
+                        if (arg.multiValueEnabled() && data.multiValueArgIndex < 0) {
+                            data.multiValueArgIndex = i;
+                        }
+                        data.argNameIndexes.insert(std::make_pair(arg.name(), i));
+                    }
+                };
+
+                const auto &dd = targetCommand->d_func();
+                core.allOptionsSize = realGlobalOptionCount + dd->options.size();
+                core.globalOptionsSize = realGlobalOptionCount;
+                core.allOptionsResult = new ParseResultData2::OptionData[core.allOptionsSize];
+
+                // init options
+                int allOptionsIndex = 0;
+                for (int i = 0; i < globalOptionCount; ++i) {
+                    auto opt = globalOptionList[i];
+                    if (!opt)
+                        continue;
+                    initOptionData(core.allOptionsResult[allOptionsIndex++], opt);
+                }
+
+                for (size_t i = 0; i < dd->options.size(); ++i) {
+                    initOptionData(core.allOptionsResult[allOptionsIndex++], &dd->options[i]);
+                }
+            }
+
+            delete[] globalOptionList; // Free
         }
 
-        // Remove duplicated global options
-        if (!globalOptionIndexes.empty()) {
-            for (const auto &opt : cmd->d_func()->options) {
-                removeDuplicatedOptions(opt);
+        const auto &targetCommandData = targetCommand->d_func();
+
+        {
+            // Alloc command argument space
+            core.argResult = new std::vector<Value>[targetCommandData->arguments.size()];
+            core.optionalArgIndex = -1;
+            core.multiValueArgIndex = -1;
+
+            // Build arg name indexes
+            for (size_t i = 0; i < targetCommandData->arguments.size(); ++i) {
+                const auto &arg = targetCommandData->arguments[i];
+                if (arg.isOptional() && core.optionalArgIndex < 0) {
+                    core.optionalArgIndex = i;
+                }
+                if (arg.multiValueEnabled() && core.multiValueArgIndex < 0) {
+                    core.multiValueArgIndex = i;
+                }
+                core.argNameIndexes.insert(std::make_pair(arg.name(), i));
             }
         }
-        result->command = cmd;
-        result->globalOptions = {globalOptions.begin(), globalOptions.end()};
 
         // Build option indexes
-        std::map<std::string, const Option *> allOptionIndexes;
-        for (const auto &item : std::as_const(globalOptions)) {
-            for (const auto &token : item->d_func()->tokens) {
-                allOptionIndexes.insert(std::make_pair(token, item));
-            }
-        }
-        for (const auto &item : std::as_const(cmd->d_func()->options)) {
-            for (const auto &token : item.d_func()->tokens) {
-                allOptionIndexes.insert(std::make_pair(token, &item));
+        StringMap &allOptionTokenIndexes = core.allOptionTokenIndexes;
+        for (size_t i = 0; i < core.allOptionsSize; ++i) {
+            const auto &opt = core.allOptionsResult[i].option;
+            for (const auto &token : opt->d_func()->tokens) {
+                allOptionTokenIndexes.insert(std::make_pair(token, i));
             }
         }
 
         // Build case-insensitive option indexes if needed
-        std::map<std::string, const Option *> lowerCaseOptionIndexes;
+        StringMap lowerOptionTokenIndexes;
         if (parseOptions & Parser::IgnoreOptionCase) {
-            for (const auto &item : std::as_const(globalOptions)) {
-                for (const auto &token : item->d_func()->tokens) {
-                    lowerCaseOptionIndexes.insert(std::make_pair(Utils::toLower(token), item));
-                }
-            }
-            for (const auto &item : std::as_const(cmd->d_func()->options)) {
-                for (const auto &token : item.d_func()->tokens) {
-                    lowerCaseOptionIndexes.insert(std::make_pair(Utils::toLower(token), &item));
+            for (size_t i = 0; i < core.allOptionsSize; ++i) {
+                const auto &opt = core.allOptionsResult[i].option;
+                for (const auto &token : opt->d_func()->tokens) {
+                    lowerOptionTokenIndexes.insert(std::make_pair(Utils::toLower(token), i));
                 }
             }
         }
 
-        auto searchShortOptions = [](const std::map<std::string, const Option *> &indexes,
-                                     const std::string &token, char sign,
-                                     int *pos) -> const Option * {
+        // indexes: token indexes map
+        // token:   token
+        // sign:    beginning sign, '-' or '/'
+        // pos:     followed argument beginning index
+        // ->       option index
+        auto searchShortOptions = [&core](const StringMap &indexes, const std::string &token,
+                                          char sign, int *pos) -> int {
             // Search for short option
             auto it = indexes.lower_bound(token);
             if (it != indexes.begin() && it != indexes.end() && token.find(it->first) != 0) {
@@ -1054,14 +315,17 @@ namespace SysCmdLine {
             }
 
             const auto &prefix = it->first;
+
+            // Ignore `--` option because it's too special
             if (prefix == "--")
-                return nullptr;
+                return -1;
 
             if (it != indexes.end() && Utils::starts_with(token, prefix)) {
-                const auto &opt = it->second;
+                const auto &idx = it->second;
+                const auto &opt = core.allOptionsResult[idx].option;
                 const auto &args = opt->d_func()->arguments;
                 if (args.size() != 1 || !args.front().isRequired()) {
-                    return nullptr;
+                    return idx;
                 }
 
                 switch (opt->shortMatchRule()) {
@@ -1076,7 +340,7 @@ namespace SysCmdLine {
                     case Option::ShortMatchAll: {
                         if (pos)
                             *pos = int(prefix.size());
-                        return opt;
+                        return idx;
                     }
                     default:
                         break;
@@ -1085,19 +349,25 @@ namespace SysCmdLine {
                 if (token.at(prefix.size()) == sign) {
                     if (pos)
                         *pos = int(prefix.size()) + 1;
-                    return opt;
+                    return idx;
                 }
             }
-            return nullptr;
+            return -1;
         };
 
-        auto searchOptionImpl = [&](const std::map<std::string, const Option *> &indexes,
-                                    const std::string &token, int *pos) -> const Option * {
+        // indexes: token indexes map
+        // token:   token
+        // pos:     followed argument beginning index
+        // ->       option index
+        auto searchOptionImpl = [parseOptions, &core, &searchShortOptions](const StringMap &indexes,
+                                                                           const std::string &token,
+                                                                           int *pos) -> int {
             if (pos)
                 *pos = -1;
 
             if (indexes.empty())
-                return nullptr;
+                return -1;
+
 
             auto it = indexes.find(token);
             if (it != indexes.end()) {
@@ -1105,50 +375,73 @@ namespace SysCmdLine {
             }
 
             if (token.size() > 1) {
-                if (!(parseOptions & Parser::DontAllowUnixKeyValueOptions)) {
-                    if (token.front() == '-') {
-                        return searchShortOptions(indexes, token, '-', pos);
-                    }
+                // Try unix short option
+                if (!(parseOptions & Parser::DontAllowUnixShortOptions) && token.front() == '-') {
+                    return searchShortOptions(indexes, token, '-', pos);
                 }
 
-                if (parseOptions & Parser::AllowDosKeyValueOptions) {
-                    if (token.front() == '/') {
-                        return searchShortOptions(indexes, token, ':', pos);
-                    }
+                // Try dos short option
+                if (parseOptions & Parser::AllowDosShortOptions && token.front() == '/') {
+                    return searchShortOptions(indexes, token, ':', pos);
                 }
             }
-            return nullptr;
+            return -1;
         };
 
-        auto searchOption = [&](const std::string &token, int *pos = nullptr) -> const Option * {
-            auto opt = searchOptionImpl(allOptionIndexes, token, pos);
-            if (opt)
-                return opt;
+        // token:   token
+        // pos:     followed argument beginning index
+        // ->       option index
+        auto searchOption = [parseOptions, &allOptionTokenIndexes, &lowerOptionTokenIndexes,
+                             &searchOptionImpl](const std::string &token,
+                                                int *pos = nullptr) -> int {
+            // first search case sensitive map
+            if (auto idx = searchOptionImpl(allOptionTokenIndexes, token, pos); idx >= 0)
+                return idx;
+
+            // second search case insensitive map if flag is set
             if (parseOptions & Parser::IgnoreOptionCase) {
-                return searchOptionImpl(lowerCaseOptionIndexes, Utils::toLower(token), pos);
+                return searchOptionImpl(lowerOptionTokenIndexes, Utils::toLower(token), pos);
             }
-            return nullptr;
+            return -1;
         };
 
-        auto searchContinuousFlags = [&](const std::string &flags) -> std::vector<const Option *> {
-            std::vector<const Option *> res;
+        // flags: group flags without preceding '-'
+        // ->     option indexes
+        auto searchGroupFlags =
+            [&core, &allOptionTokenIndexes](const std::string &flags) -> std::vector<int> {
+            std::vector<int> res;
             for (const auto &flag : flags) {
-                auto it = allOptionIndexes.find(std::string("-") + flag);
-                if (it == allOptionIndexes.end()) {
+                auto it = allOptionTokenIndexes.find(std::string("-") + flag);
+                if (it == allOptionTokenIndexes.end()) {
                     return {};
                 }
-                const auto &opt = it->second;
-                const auto &d = opt->d_func();
-                if (!d->arguments.empty()) {
+                const auto &idx = it->second;
+                const auto &opt = core.allOptionsResult[idx].option;
+                if (!opt->d_func()->arguments.empty()) {
                     return {};
                 }
-                res.push_back(opt);
+                res.push_back(idx);
             }
             return res;
         };
 
-        auto checkArgument = [&](const Argument *arg, const std::string &token, Value *out,
-                                 bool setError = true) {
+        auto buildError = [result](ParseResult::Error error,
+                                   const std::vector<std::string> &placeholders,
+                                   const std::string &cancellationToken, const Argument *arg,
+                                   const Option *opt = nullptr) {
+            result->error = error;
+            result->errorPlaceholders = placeholders;
+            result->cancellationToken = cancellationToken;
+            result->errorArgument = arg;
+            result->errorOption = opt;
+        };
+
+        // arg:       input argument
+        // token:     token
+        // val:       return value if success
+        // setError:  whether to build error message if failed
+        auto checkArgument = [&buildError](const Argument *arg, const std::string &token,
+                                           Value *out, bool setError = true) {
             const auto &d = arg->d_func();
             const auto &expectedValues = d->expectedValues;
             if (!expectedValues.empty()) {
@@ -1161,13 +454,11 @@ namespace SysCmdLine {
                 }
                 if (setError) {
                     if (token.front() == '-') {
-                        error = ParseResult::InvalidOptionPosition;
-                        errorPlaceholders = {token, arg->name()};
-                        cancellationToken = token;
+                        buildError(ParseResult::InvalidOptionPosition, {token, arg->name()}, token,
+                                   arg);
                     } else {
-                        error = ParseResult::InvalidArgumentValue;
-                        errorPlaceholders = {token, arg->name()};
-                        cancellationToken = token;
+                        buildError(ParseResult::InvalidArgumentValue, {token, arg->name()}, token,
+                                   arg);
                     }
                 }
                 return false;
@@ -1178,9 +469,10 @@ namespace SysCmdLine {
                 if (d->validator(token, out, &errorMessage)) {
                     return true;
                 }
-                error = ParseResult::ArgumentValidateFailed;
-                errorPlaceholders = {token, arg->name(), errorMessage};
-                cancellationToken = token;
+                if (setError) {
+                    buildError(ParseResult::ArgumentValidateFailed,
+                               {token, arg->name(), errorMessage}, token, arg);
+                }
                 return false;
             }
 
@@ -1208,47 +500,51 @@ namespace SysCmdLine {
                 *out = val;
                 return true;
             }
-            error = ParseResult::ArgumentTypeMismatch;
-            errorPlaceholders = {token, arg->name(), expected};
-            cancellationToken = token;
+            if (setError) {
+                buildError(ParseResult::ArgumentTypeMismatch, {token, arg->name(), expected}, token,
+                           arg);
+            }
             return false;
         };
 
-        std::unordered_map<int, const Option *> encounteredExclusiveGroups;
-        auto searchExclusiveOption = [&](const Option *opt,
-                                         int *outGroup = nullptr) -> const Option * {
-            if (outGroup) {
-                *outGroup = -1;
+        StringMap encounteredExclusiveGroups;
+
+        // optIndex:         option index in command's list
+        // insertIfNotFound: if not colliding, set current group as visited
+        // ->                colliding option index
+        auto searchExclusiveOption = [&encounteredExclusiveGroups, targetCommandData](
+                                         int optIndex, bool insertIfNotFound = false) -> int {
+            const auto &groupName = targetCommandData->optionGroupNames[optIndex];
+            if (groupName.empty())
+                return -1;
+
+            auto it2 = encounteredExclusiveGroups.find(groupName);
+            if (it2 != encounteredExclusiveGroups.end()) {
+                return it2->second; // colliding
             }
 
-            const auto &map = cmd->d_func()->exclusiveGroupIndexes;
-            auto it = map.find(opt->name());
-            if (it != map.end()) {
-                const auto &group = it->second;
-                if (outGroup) {
-                    *outGroup = group;
-                }
-
-                auto it2 = encounteredExclusiveGroups.find(group);
-                if (it2 != encounteredExclusiveGroups.end()) {
-                    return it2->second;
-                }
+            if (insertIfNotFound) {
+                encounteredExclusiveGroups[groupName] = optIndex;
             }
-            return nullptr;
+            return -1;
         };
 
+        bool hasArgument = false;
+        bool hasOption = false;
         const Option *priorOpt = nullptr;
-        auto checkOptionCommon =
-            [&](const std::string &token, const Option *opt,
-                const std::vector<ParseResultData::ArgResult> &resVec) -> bool {
+        auto checkOptionCommon = [&hasArgument, &hasOption, &priorOpt, &buildError, displayOptions,
+                                  &core,
+                                  &searchExclusiveOption](const std::string &token, int optIndex,
+                                                          int occurrence) -> bool {
+            const auto &opt = core.allOptionsResult[optIndex].option;
             // Check max occurrence
-            if (opt->maxOccurrence() > 0 && resVec.size() == opt->maxOccurrence()) {
-                error = ParseResult::OptionOccurTooMuch;
-                errorPlaceholders = {
-                    opt->helpText(Symbol::HP_ErrorText, displayOptions),
-                    std::to_string(opt->maxOccurrence()),
-                };
-                cancellationToken = token;
+            if (opt->maxOccurrence() > 0 && occurrence == opt->maxOccurrence()) {
+                buildError(ParseResult::OptionOccurTooMuch,
+                           {
+                               opt->helpText(Symbol::HP_ErrorText, displayOptions),
+                               std::to_string(opt->maxOccurrence()),
+                           },
+                           token, nullptr, opt);
                 return false;
             }
 
@@ -1256,34 +552,38 @@ namespace SysCmdLine {
             if (priorOpt) {
                 switch (priorOpt->priorLevel()) {
                     case Option::ExclusiveToArguments: {
-                        if (!result->argResult.empty()) {
-                            error = ParseResult::PriorOptionWithArguments;
-                            errorPlaceholders = {
-                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions)};
-                            cancellationToken = token;
+                        if (hasArgument) {
+                            buildError(ParseResult::PriorOptionWithArguments,
+                                       {
+                                           priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                       },
+                                       token, nullptr, opt);
                         }
                         break;
                     }
                     case Option::ExclusiveToOptions: {
-                        if (!result->optResult.empty()) {
-                            error = ParseResult::PriorOptionWithOptions;
-                            errorPlaceholders = {
-                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions)};
-                            cancellationToken = token;
+                        if (hasOption) {
+                            buildError(ParseResult::PriorOptionWithOptions,
+                                       {
+                                           priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                       },
+                                       token, nullptr, opt);
                         }
                         break;
                     }
                     case Option::ExclusiveToAll: {
-                        if (!result->argResult.empty()) {
-                            error = ParseResult::PriorOptionWithArguments;
-                            errorPlaceholders = {
-                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions)};
-                            cancellationToken = token;
-                        } else if (!result->optResult.empty()) {
-                            error = ParseResult::PriorOptionWithOptions;
-                            errorPlaceholders = {
-                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions)};
-                            cancellationToken = token;
+                        if (hasArgument) {
+                            buildError(ParseResult::PriorOptionWithArguments,
+                                       {
+                                           priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                       },
+                                       token, nullptr, opt);
+                        } else if (hasOption) {
+                            buildError(ParseResult::PriorOptionWithOptions,
+                                       {
+                                           priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                       },
+                                       token, nullptr, opt);
                         }
                         break;
                     }
@@ -1294,115 +594,97 @@ namespace SysCmdLine {
 
             // Check exclusive
             {
-                int group;
-                const auto &exclusiveOpt = searchExclusiveOption(opt, &group);
-                if (exclusiveOpt) {
-                    error = ParseResult::MutuallyExclusiveOptions;
-                    errorPlaceholders = {
-                        exclusiveOpt->helpText(Symbol::HP_ErrorText, displayOptions),
-                        opt->helpText(Symbol::HP_ErrorText, displayOptions),
-                    };
-                    cancellationToken = token;
+                const auto &exclusiveIdx =
+                    searchExclusiveOption(optIndex - core.globalOptionsSize, true);
+                if (exclusiveIdx >= 0) {
+                    buildError(ParseResult::MutuallyExclusiveOptions,
+                               {
+                                   core.allOptionsResult[core.globalOptionsSize + exclusiveIdx]
+                                       .option->helpText(Symbol::HP_ErrorText, displayOptions),
+                                   opt->helpText(Symbol::HP_ErrorText, displayOptions),
+                               },
+                               token, nullptr, opt);
                     return false;
                 }
-
-                // Note current option
-                if (group >= 0)
-                    encounteredExclusiveGroups.insert(std::make_pair(group, opt));
             }
             return true;
         };
 
-        // Parse options
+        auto isFlags = [](const std::string &s) -> bool {
+            if (s.size() <= 1 || s.front() != '-')
+                return false;
+            return std::all_of(s.begin() + 1, s.end(), [](char c) {
+                return std::isalpha(c) || std::isdigit(c); //
+            });
+        };
+
+        struct OptionRange {
+            std::vector<int> starts;
+            std::vector<int> lengths;
+            std::vector<std::string> precedingTokens;
+        };
+
+        OptionRange *optRanges = new OptionRange[core.allOptionsSize]; // Alloc
         std::vector<std::string> positionalArguments;
-        for (auto j = i; j < args.size(); ++j) {
-            const auto &token = args[j];
+
+        // Parse options
+        for (auto i = nonCommandIndex; i < params.size(); ++i) {
+            const auto &token = params[i];
 
             // Consider option
             int pos;
-            if (auto opt = searchOption(token, &pos); opt) {
-                auto &resVec = result->optResult[opt->name()];
-                const auto &optArgs = opt->d_func()->arguments;
-                ParseResultData::ArgResult curArgResult;
-
-                // Check following argument
-                size_t x = 0;
-                if (pos >= 0) {
-                    const auto &arg = optArgs.front();
-                    Value val;
-                    if (!checkArgument(&arg, token.substr(pos), &val, false)) {
-                        break;
-                    }
-                    curArgResult.insert(std::make_pair(arg.name(), val));
-                    x = 1;
-                }
+            if (auto optIndex = searchOption(token, &pos); optIndex >= 0) {
+                const auto &optData = core.allOptionsResult[optIndex];
+                const auto &opt = optData.option;
+                auto &rangeData = optRanges[optIndex];
 
                 // Check option common
-                if (!checkOptionCommon(token, opt, resVec)) {
+                if (!checkOptionCommon(token, optIndex, rangeData.starts.size())) {
                     break;
                 }
 
-                size_t start = j + 1 - x;
-                size_t max = std::min(args.size() - start, optArgs.size());
-                for (; x < max; ++x) {
-                    const auto &nextToken = args[x + start];
-                    const auto &arg = optArgs.at(x);
+                const auto &dd = opt->d_func();
 
-                    // Break by next option
-                    if (nextToken.front() == '-' && !arg.isRequired() && searchOption(nextToken)) {
-                        break;
-                    }
+                // Collect positional arguments
+                if (!dd->arguments.empty()) {
+                    int leastArgCount = (optData.optionalArgIndex < 0)
+                                            ? dd->arguments.size()
+                                            : (optData.optionalArgIndex + 1);
+                    int maxArgCount = (optData.multiValueArgIndex < 0)
+                                          ? leastArgCount
+                                          : std::numeric_limits<int>::max();
 
-                    // Check argument
-                    Value val;
-                    if (!checkArgument(&arg, nextToken, &val, arg.isRequired())) {
-                        break;
-                    }
-                    curArgResult.insert(std::make_pair(arg.name(), val));
-                }
-
-                if (error != ParseResult::NoError)
-                    break;
-
-                // Check required arguments
-                if (x < optArgs.size()) {
-                    const auto &arg = optArgs.at(x);
-                    if (arg.isRequired()) {
-                        error = ParseResult::MissingOptionArgument;
-                        errorPlaceholders = {arg.name(), token};
-                        break;
+                    // TODO: collect arguments
+                    int count = leastArgCount;
+                    for (auto j = i + leastArgCount; j < params.size(); ++j) {
+                        const auto &curToken = params[j];
+                        if (searchOption(curToken) >= 0) {
+                        }
                     }
                 }
-
-                resVec.emplace_back(curArgResult);
 
                 if (opt->priorLevel() > (priorOpt ? priorOpt->priorLevel() : Option::NoPrior))
                     priorOpt = opt;
-                j = start - 1 + x;
                 continue;
             }
 
-            auto isFlags = [](const std::string &s) -> bool {
-                if (s.size() <= 1 || s.front() != '-')
-                    return false;
-                return std::all_of(s.begin() + 1, s.end(), [](char c) {
-                    return std::isalpha(c) || std::isdigit(c); //
-                });
-            };
-
             // Consider short flags
             if ((parseOptions & Parser::AllowUnixGroupFlags) && isFlags(token)) {
-                auto opts = searchContinuousFlags(token.substr(1));
+                auto opts = searchGroupFlags(token.substr(1));
                 if (!opts.empty()) {
                     bool failed = false;
-                    for (const auto &opt : std::as_const(opts)) {
-                        auto &resVec = result->optResult[opt->name()];
+                    for (const auto &optIdx : std::as_const(opts)) {
+                        auto &rangeData = optRanges[optIdx];
+
                         // Check option common
-                        if (!checkOptionCommon(token, opt, resVec)) {
+                        if (!checkOptionCommon(token, optIdx, rangeData.starts.size())) {
                             failed = true;
                             break;
                         }
-                        resVec.emplace_back();
+
+                        rangeData.starts.push_back(i);
+                        rangeData.lengths.push_back(0);
+                        rangeData.precedingTokens.emplace_back();
                     }
 
                     if (failed) {

@@ -31,20 +31,14 @@
 #include <vector>
 #include <functional>
 
-#include <syscmdline/global.h>
-#include <syscmdline/shareddata.h>
+#include <syscmdline/sharedbase.h>
 
 namespace SysCmdLine {
 
-    class Parser;
-    class ParserData;
-    class ParseResult;
-    class ParseResultData;
+    class HelpLayoutPrivate;
 
-    class HelpLayoutData;
-
-    class SYSCMDLINE_EXPORT HelpLayout {
-        SYSCMDLINE_DECL_DATA(HelpLayout)
+    class SYSCMDLINE_EXPORT HelpLayout : public SharedBase {
+        SYSCMDLINE_DECL_PRIVATE(HelpLayout)
     public:
         HelpLayout();
         ~HelpLayout();
@@ -54,44 +48,60 @@ namespace SysCmdLine {
         HelpLayout &operator=(const HelpLayout &other);
         HelpLayout &operator=(HelpLayout &&other) noexcept;
 
+        enum MessageItem {
+            MI_Information,
+            MI_Warning,
+            MI_Critical,
+        };
+
         enum HelpItem {
             HI_Prologue,
-            HI_Information,
-            HI_Warning,
-            HI_Error,
             HI_Description,
             HI_Usage,
             HI_Arguments,
             HI_Options,
             HI_Commands,
             HI_Epilogue,
+
+            HI_User = 1000,
         };
 
-        enum SizeType {
-            ST_Indent,
-            ST_Spacing,
-            ST_ConsoleWidth,
+        struct Text {
+            std::string title;
+            std::string lines;
         };
 
-        using Printer =
-            std::function<void(const std::string & /* title */,
+        struct List {
+            std::string title;
+            std::vector<std::string> firstColumn;
+            std::vector<std::string> secondColumn;
+        };
+
+        using PlainPrinter = std::function<void(bool /* hasNext */)>;
+
+        using TextPrinter =
+            std::function<void(int /* id */, const std::string & /* title */,
                                const std::vector<std::string> & /* lines */, bool /* hasNext */)>;
+
+        using ListPrinter =
+            std::function<void(int /* id */, const std::string & /* title */,
+                               std::vector<std::string> & /* firstColumn */,
+                               std::vector<std::string> & /* secondColumn */, bool /* hasNext */)>;
 
     public:
         bool isNull() const;
 
-        int size(SizeType sizeType) const;
-        void setSize(SizeType sizeType, int value);
+        void addHelpItem(HelpItem type);
+        void addMessageItem(MessageItem type);
+        void addUserTextItem(const Text &text, int id = -1);
+        void addUserListItem(const List &list, int id = -1);
+        void addCustomItem(const PlainPrinter &printer);
 
-        void addItem(HelpItem type, const Printer &printer = {});
+        void setTextPrinter(const TextPrinter &printer);
+        void setListPrinter(const ListPrinter &printer);
 
     public:
         static HelpLayout defaultHelpLayout();
-
-        friend class Parser;
-        friend class ParserData;
-        friend class ParseResult;
-        friend class ParseResultData;
     };
 
 }

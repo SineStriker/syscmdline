@@ -38,8 +38,9 @@ namespace SysCmdLine {
     std::string Argument::helpText(Symbol::HelpPosition pos, int displayOptions,
                                    void *extra) const {
         Q_D2(Argument);
-        if (d->helpProvider)
-            return d->helpProvider(this, pos, displayOptions, extra);
+        if (auto ss = Symbol::helpText(pos, displayOptions, extra); !ss.empty()) {
+            return ss;
+        }
 
         switch (pos) {
             case Symbol::HP_SecondColumn: {

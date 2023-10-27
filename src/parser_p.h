@@ -1,69 +1,36 @@
 #ifndef PARSER_P_H
 #define PARSER_P_H
 
+#include "sharedbase_p.h"
 #include "parser.h"
 
 namespace SysCmdLine {
 
-    class ParserData : public SharedData {
+    class ParserPrivate : public SharedBasePrivate {
     public:
+        ParserPrivate();
+        ParserPrivate *clone() const;
+
         Command rootCommand;
         std::string intro[2];
         int displayOptions;
         HelpLayout helpLayout;
 
-        ParserData() : displayOptions(Parser::Normal), helpLayout(HelpLayout::defaultHelpLayout()) {
+        int sizeConfig[3] = {
+            4,
+            4,
+            80,
+        };
+
+        Parser::TextProvider textProvider;
+
+        inline std::string indent() const {
+            return std::string(sizeConfig[Parser::ST_Indent], ' ');
         }
 
-        ~ParserData() {
+        inline std::string spacing() const {
+            return std::string(sizeConfig[Parser::ST_Spacing], ' ');
         }
-
-        ParserData *clone() const {
-            return new ParserData(*this);
-        }
-    };
-
-    class ParseResultData : public SharedData {
-    public:
-        using ArgResult = std::unordered_map<std::string, Value>;
-
-        SharedDataPointer<ParserData> parserData;
-
-        std::vector<std::string> arguments;
-
-        ParseResult::Error error;
-        std::vector<std::string> errorPlaceholders;
-        std::string cancellationToken;
-        std::vector<int> stack;
-        std::vector<const Option *> globalOptions;
-
-        const Command *command;
-        std::unordered_map<std::string, std::vector<Value>> argResult;
-        std::unordered_map<std::string, std::vector<ArgResult>> optResult;
-
-        bool versionSet;
-        bool helpSet;
-
-        ParseResultData(const SharedDataPointer<ParserData> &parserData,
-                        const std::vector<std::string> &args)
-            : parserData(parserData), arguments(args), error(ParseResult::NoError),
-              command(nullptr), versionSet(false), helpSet(false) {
-        }
-
-        ~ParseResultData() {
-        }
-
-        ParseResultData *clone() const {
-            return new ParseResultData(*this);
-        }
-
-        std::string correctionText() const;
-        static Value getDefaultResult(const ArgumentHolder *argumentHolder,
-                                      const std::string &argName);
-        Value getDefaultResult(const std::string &optName, const std::string &argName) const;
-
-        void showMessage(const std::string &info, const std::string &warn,
-                      const std::string &err, bool noHelp = false) const;
     };
 
 }

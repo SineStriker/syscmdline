@@ -1,7 +1,7 @@
 #ifndef ARGUMENT_P_H
 #define ARGUMENT_P_H
 
-#include "argument_p.h"
+#include "argument.h"
 #include "symbol_p.h"
 
 namespace SysCmdLine {

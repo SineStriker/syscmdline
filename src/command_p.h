@@ -2,12 +2,23 @@
 #define COMMAND_P_H
 
 #include "argument_p.h"
+#include "command.h"
+
+#include "map_p.h"
 
 namespace SysCmdLine {
 
     class CommandCataloguePrivate : public SharedBasePrivate {
     public:
+        CommandCataloguePrivate();
+        CommandCataloguePrivate(const CommandCataloguePrivate &other);
+        ~CommandCataloguePrivate();
+
         SharedBasePrivate *clone() const;
+
+        StringMap arg;
+        StringMap opt;
+        StringMap cmd;
     };
 
     class CommandPrivate : public ArgumentHolderPrivate {
@@ -19,7 +30,8 @@ namespace SysCmdLine {
     public:
         std::string name;
 
-        std::vector<std::pair<Option, int>> options;
+        std::vector<Option> options;
+        std::vector<std::string> optionGroupNames;
         std::vector<Command> commands;
 
         Option helpOption;
@@ -30,6 +42,10 @@ namespace SysCmdLine {
         CommandCatalogue catalogue;
 
         Command::Handler handler;
+
+        // returns a map from (token: std::string) to (indexes: std::vector<int> *)
+        // call `map_deleteAll<IntList>()` if no longer use
+        StringMap buildExclusiveOptionMap() const;
     };
 
 }

@@ -34,8 +34,9 @@ namespace SysCmdLine {
 
     std::string Option::helpText(Symbol::HelpPosition pos, int displayOptions, void *extra) const {
         Q_D2(Option);
-        if (d->helpProvider)
-            return d->helpProvider(this, pos, displayOptions, extra);
+        if (auto ss = ArgumentHolder::helpText(pos, displayOptions, extra); !ss.empty()) {
+            return ss;
+        }
 
         switch (pos) {
             case Symbol::HP_Usage: {

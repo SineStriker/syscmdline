@@ -68,6 +68,7 @@ namespace SysCmdLine {
 
     public:
         const std::vector<std::string> &tokens() const;
+        inline std::string token() const;
         void setTokens(const std::vector<std::string> &tokens);
         inline void setToken(const std::string &token);
 
@@ -92,6 +93,10 @@ namespace SysCmdLine {
         SpecialType specialType() const;
         void setSpecialType(SpecialType specialType);
     };
+
+    inline std::string Option::token() const {
+        return tokens().front();
+    }
 
     inline void Option::setToken(const std::string &token) {
         setTokens({token});

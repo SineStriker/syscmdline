@@ -67,8 +67,8 @@ enum SCL_ParseOption {
     SCL_PO_IgnoreCommandCase = 0x1,
     SCL_PO_IgnoreOptionCase = 0x2,
     SCL_PO_AllowUnixGroupFlags = 0x4,
-    SCL_PO_AllowDosKeyValueOptions = 0x8,
-    SCL_PO_DontAllowUnixKeyValueOptions = 0x10,
+    SCL_PO_AllowDosShortOptions = 0x8,
+    SCL_PO_DontAllowUnixShortOptions = 0x10,
 };
 
 enum SCL_DisplayOption {

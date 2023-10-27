@@ -27,11 +27,16 @@ namespace SysCmdLine::Utils {
         return s.substr(0, prefix.size()) == prefix;
     }
 
-    unsigned int hash_key_str(const void *ptr);
-    int equal_str(const void *a, const void *b);
-
-    unsigned int hash_key_ptr(const void *ptr);
-    int equal_ptr(const void *a, const void *b);
+    template <class T>
+    std::vector<T> concatVector(const std::vector<T> &v1, const std::vector<T> &v2) {
+        std::vector<T> res;
+        res.reserve(v1.size() + v2.size());
+        for (const auto &item : v1)
+            res.emplace_back(item);
+        for (const auto &item : v2)
+            res.emplace_back(item);
+        return res;
+    }
 
 }
 

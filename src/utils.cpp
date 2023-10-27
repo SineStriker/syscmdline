@@ -47,7 +47,11 @@ namespace SysCmdLine::Utils {
         int len1 = s1.size();
         int len2 = s2.size();
 
-        std::vector<std::vector<int>> dp(len1 + 1, std::vector<int>(len2 + 1));
+        // Alloc
+        int **dp = new int *[len1 + 1];
+        for (int i = 0; i <= len1; i++) {
+            dp[i] = new int[len2 + 1];
+        }
 
         for (int i = 0; i <= len1; i++) {
             for (int j = 0; j <= len2; j++) {
@@ -63,7 +67,15 @@ namespace SysCmdLine::Utils {
             }
         }
 
-        return dp[len1][len2];
+        int res = dp[len1][len2];
+
+        // Free
+        for (int i = 0; i <= len1; i++) {
+            delete[] dp[i];
+        }
+        delete[] dp;
+
+        return res;
     }
 
     std::vector<std::string> calcClosestTexts(const std::vector<std::string> &texts,
@@ -95,29 +107,6 @@ namespace SysCmdLine::Utils {
     std::string toLower(std::string s) {
         std::transform(s.begin(), s.end(), s.begin(), ::tolower);
         return s;
-    }
-
-    unsigned int hash_key_str(const void *ptr) {
-        auto s = reinterpret_cast<const std::string *>(ptr)->data();
-        char c;
-        unsigned int hash = 5381;
-
-        while ((c = *s++) != 0)
-            hash = ((hash << 5) + hash) + (unsigned int) c; /* hash * 33 + c */
-
-        return hash;
-    }
-
-    int equal_str(const void *a, const void *b) {
-        return reinterpret_cast<const std::string *>(a) == reinterpret_cast<const std::string *>(b);
-    }
-
-    unsigned int hash_key_ptr(const void *ptr) {
-        return reinterpret_cast<unsigned int>(ptr);
-    }
-
-    int equal_ptr(const void *a, const void *b) {
-        return a == b;
     }
 
 }

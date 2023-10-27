@@ -1,7 +1,6 @@
 #include "command.h"
 #include "command_p.h"
 
-#include <set>
 #include <stdexcept>
 #include <algorithm>
 #include <utility>
@@ -11,12 +10,58 @@
 #include "parser.h"
 #include "utils.h"
 
-#include "capi/hash.h"
-
 namespace SysCmdLine {
+
+    CommandCataloguePrivate::CommandCataloguePrivate() {
+    }
+
+    CommandCataloguePrivate::CommandCataloguePrivate(const CommandCataloguePrivate &other) {
+        arg = map_copy<StringList>(other.arg);
+        opt = map_copy<StringList>(other.opt);
+        cmd = map_copy<StringList>(other.cmd);
+    }
+
+    CommandCataloguePrivate::~CommandCataloguePrivate() {
+        map_deleteAll<StringList>(arg);
+        map_deleteAll<StringList>(opt);
+        map_deleteAll<StringList>(cmd);
+    }
 
     SharedBasePrivate *CommandCataloguePrivate::clone() const {
         return new CommandCataloguePrivate(*this);
+    }
+
+    CommandCatalogue::CommandCatalogue() : SharedBase(new CommandCataloguePrivate()) {
+    }
+
+    void CommandCatalogue::addArguments(const std::string &name, const StringList &args) {
+        Q_D(CommandCatalogue);
+        auto vec = map_search<StringList>(d->arg, name);
+        if (vec) {
+            map_insert<StringList>(d->arg, name, args);
+            return;
+        }
+        *vec = Utils::concatVector(*vec, args);
+    }
+
+    void CommandCatalogue::addOptions(const std::string &name, const StringList &options) {
+        Q_D(CommandCatalogue);
+        auto vec = map_search<StringList>(d->opt, name);
+        if (vec) {
+            map_insert<StringList>(d->opt, name, options);
+            return;
+        }
+        *vec = Utils::concatVector(*vec, options);
+    }
+
+    void CommandCatalogue::addCommands(const std::string &name, const StringList &commands) {
+        Q_D(CommandCatalogue);
+        auto vec = map_search<StringList>(d->cmd, name);
+        if (vec) {
+            map_insert<StringList>(d->cmd, name, commands);
+            return;
+        }
+        *vec = Utils::concatVector(*vec, commands);
     }
 
     CommandPrivate::CommandPrivate(std::string name, const std::string &desc)
@@ -25,7 +70,23 @@ namespace SysCmdLine {
     }
 
     SharedBasePrivate *CommandPrivate::clone() const {
-        return nullptr;
+        return new CommandPrivate(*this);
+    }
+
+    StringMap CommandPrivate::buildExclusiveOptionMap() const {
+        StringMap res;
+        for (int i = 0; i < options.size(); ++i) {
+            const auto &group = optionGroupNames[i];
+            if (group.empty())
+                continue;
+
+            if (auto optionIndexList = map_search<IntList>(res, group)) {
+                optionIndexList->push_back(i);
+                continue;
+            }
+            res[group] = size_t(new IntList({i}));
+        }
+        return res;
     }
 
     Command::Command() : Command({}, {}) {
@@ -37,103 +98,114 @@ namespace SysCmdLine {
 
     std::string Command::helpText(Symbol::HelpPosition pos, int displayOptions, void *extra) const {
         Q_D2(Command);
-        if (d->helpProvider)
-            return d->helpProvider(this, pos, displayOptions, extra);
+        if (auto ss = ArgumentHolder::helpText(pos, displayOptions, extra); !ss.empty()) {
+            return ss;
+        }
 
         switch (pos) {
             case HP_Usage: {
-                auto &options = *reinterpret_cast<const decltype(d->options) *>(extra);
+                // `extra` should be null or a 3 pointer array
+                auto a = reinterpret_cast<void **>(extra);
+
+                // all options
+                const auto *globalOptions =
+                    a ? reinterpret_cast<std::vector<Option> *>(a[0]) : nullptr;
+                auto options =
+                    globalOptions ? Utils::concatVector(*globalOptions, d->options) : d->options;
+                StringList groupNames(globalOptions ? globalOptions->size() : 0);
+                groupNames = Utils::concatVector(groupNames, d->optionGroupNames);
 
                 std::string ss;
+
+                // write command name
                 ss += d->name;
 
-                auto displayArgumentsHelp = [&](bool front) {
+                // Build exclusive option group indexes
+                // group name -> option subscripts (vector<int> *)
+                StringMap exclusiveGroupIndexes = d->buildExclusiveOptionMap();
+
+                auto addArgumentsHelp = [&](bool front) {
                     if (bool(displayOptions & Parser::ShowOptionsBehindArguments) != front &&
                         !d->arguments.empty()) {
                         ss += " " + displayedArguments(displayOptions);
                     }
                 };
 
-                // arguments
-                displayArgumentsHelp(true);
+                SSizeMap visitedOptions; // pointer -> none
+                auto addExclusiveOptions = [&](int optIdx, bool required) {
+                    const auto &opt = options[optIdx];
+                    const auto &groupName = groupNames[optIdx];
+                    const IntList *optionIndexes = nullptr;
 
-                std::set<const Option *> printedOptions;
-                auto printExclusiveOptions = [&](const Option &opt, bool needParen) {
-                    auto it = d->exclusiveGroupIndexes.find(opt.name());
-                    if (it == d->exclusiveGroupIndexes.end()) {
+                    // Search group
+                    if (groupName.empty() ||
+                        (optionIndexes = map_search<IntList>(exclusiveGroupIndexes, groupName))
+                                ->size() <= 1) {
                         ss += opt.helpText(Symbol::HP_Usage, displayOptions);
-                        printedOptions.insert(opt.name());
+                        visitedOptions.insert(std::make_pair(size_t(&opt), 0));
                         return;
                     }
 
-                    const auto &arr = d->exclusiveGroups.find(it->second)->second;
-                    if (arr.size() <= 1) {
-                        ss += opt.helpText(Symbol::HP_Usage, displayOptions);
-                        printedOptions.insert(opt.name());
-                        return;
-                    }
-
-                    if (needParen)
+                    if (required)
                         ss += "(";
-                    std::vector<std::string> exclusiveOptions;
-                    for (const auto &item : arr) {
+
+                    // Add exclusive
+                    StringList exclusiveOptions;
+                    for (const auto &item : *optionIndexes) {
                         const auto &curOpt = d->options[item];
                         exclusiveOptions.push_back(
                             curOpt.helpText(Symbol::HP_Usage, displayOptions));
-                        printedOptions.insert(&curOpt);
+                        visitedOptions.insert(std::make_pair(size_t(&opt), 0));
                     }
 
                     ss += Utils::join(exclusiveOptions, " | ");
-                    if (needParen)
+                    if (required)
                         ss += ")";
                 };
 
-                // required options
-                if (!(displayOptions & Parser::DontShowRequiredOptionsOnUsage)) {
-                    for (const auto &opt : options) {
-                        if (!opt.first.isRequired()) {
+                auto addOptionsHelp = [&](bool required) {
+                    for (int i = 0; i < options.size(); ++i) {
+                        const auto &opt = options[i];
+                        if (opt.isRequired() != required || visitedOptions.count(size_t(&opt))) {
                             continue;
                         }
 
-                        if (printedOptions.count(opt.first.name()))
-                            continue;
-
-                        // check exclusive
                         ss += " ";
-                        printExclusiveOptions(opt.first, true);
+                        if (!required)
+                            ss += "[";
+                        addExclusiveOptions(i, required);
+                        if (!required)
+                            ss += "]";
                     }
-                }
+                };
 
-                // optional options
+                // write forward arguments
+                addArgumentsHelp(true);
+
+                // write required options
+                if (!(displayOptions & Parser::DontShowRequiredOptionsOnUsage))
+                    addOptionsHelp(true);
+
+
+                // write optional options
                 if ((displayOptions & Parser::ShowOptionalOptionsOnUsage) &&
-                    printedOptions.size() < options.size()) {
-                    for (const auto &opt : options) {
-                        if (opt.isRequired()) {
-                            continue;
-                        }
+                    visitedOptions.size() < options.size())
+                    addOptionsHelp(false);
 
-                        if (printedOptions.count(opt.name()))
-                            continue;
+                // write backward arguments
+                addArgumentsHelp(false);
 
-                        // check exclusive
-                        ss += " [";
-                        printExclusiveOptions(opt, false);
-                        ss += "]";
-                    }
+                // tell the caller if commands and options should be wriiten
+                if (a) {
+                    // command
+                    *(bool *) a[1] = !d->commands.empty();
+
+                    // options
+                    *(bool *) a[2] = visitedOptions.size() < options.size() || !d->commands.empty();
                 }
 
-                // arguments
-                displayArgumentsHelp(false);
-
-                // command
-                if (!d->commands.empty()) {
-                    ss += " [commands]";
-                }
-
-                // options
-                if (printedOptions.size() < options.size() || !d->commands.empty()) {
-                    ss += " [options]";
-                }
+                // release indexes
+                map_deleteAll<IntList>(exclusiveGroupIndexes);
                 return ss;
             }
             case HP_ErrorText:
@@ -169,9 +241,7 @@ namespace SysCmdLine {
 
     void Command::addCommands(const std::vector<Command> &commands) {
         Q_D(Command);
-        d->commands.reserve(d->commands.size() + commands.size());
-        for (const auto &item : commands)
-            d->commands.push_back(item);
+        d->commands = Utils::concatVector(d->commands, commands);
     }
 
     int Command::optionCount() const {
@@ -181,14 +251,13 @@ namespace SysCmdLine {
 
     Option Command::option(int index) const {
         Q_D2(Command);
-        return d->options[index].first;
+        return d->options[index];
     }
 
-    void Command::addOptions(const std::vector<std::pair<Option, int>> &options) {
+    void Command::addOption(const Option &option, const std::string &group) {
         Q_D(Command);
-        d->options.reserve(d->options.size() + options.size());
-        for (const auto &item : options)
-            d->options.push_back(item);
+        d->options.push_back(option);
+        d->optionGroupNames.push_back(group);
     }
 
     std::string Command::detailedDescription() const {
@@ -226,20 +295,23 @@ namespace SysCmdLine {
         return d->version;
     }
 
-    void Command::addVersionOption(const std::string &ver, const std::vector<std::string> &tokens) {
+    void Command::addVersionOption(const std::string &ver, const StringList &tokens) {
         Q_D(Command);
         d->version = ver;
         d->versionOption.setTokens(tokens);
         d->versionOption.setPriorLevel(Option::IgnoreMissingSymbols);
     }
 
-    void Command::addHelpOption(bool showHelpIfNoArg, bool global,
-                                const std::vector<std::string> &tokens) {
+    void Command::addHelpOption(bool showHelpIfNoArg, bool global, const StringList &tokens) {
         Q_D(Command);
         d->helpOption.setTokens(tokens);
         d->helpOption.setPriorLevel(showHelpIfNoArg ? Option::AutoSetWhenNoSymbols
                                                     : Option::IgnoreMissingSymbols);
         d->helpOption.setGlobal(global);
+    }
+
+    bool assertCommand(const Command &command) {
+        return {};
     }
 
 }

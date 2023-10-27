@@ -20,7 +20,8 @@ namespace SysCmdLine {
     };
 
     inline void ref_ref(SharedBasePrivate *d) {
-        d->ref.fetch_add(1);
+        if (d)
+            d->ref.fetch_add(1);
     }
 
     inline void ref_deref(SharedBasePrivate *d) {
@@ -29,17 +30,19 @@ namespace SysCmdLine {
     }
 
     inline void ref_assign(SharedBasePrivate *&d, SharedBasePrivate *d2) {
-        d2->ref.fetch_add(1);
-        if (d->ref.fetch_sub(1) == 1)
+        if (d2)
+            d2->ref.fetch_add(1);
+        if (d && d->ref.fetch_sub(1) == 1)
             delete d;
         d = d2;
     }
 
 #define Q_D(T)                                                                                     \
-    detach();                                                                                      \
-    T##Private *const d = reinterpret_cast<T##Private *>(d_ptr)
+  detach();                                                                                        \
+  T##Private *const d = reinterpret_cast<T##Private *>(d_ptr)
 
-#define Q_D2(T) const T##Private *const d = reinterpret_cast<const T##Private *>(d_ptr)
+#define Q_D2(T)                                                                                    \
+    const T##Private *const d = reinterpret_cast<const T##Private *>(d_ptr)
 
 }
 

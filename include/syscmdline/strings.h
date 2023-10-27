@@ -40,6 +40,7 @@ namespace SysCmdLine::Strings {
         Title,
         DefaultCommand,
         Information,
+        Token,
     };
 
     enum TitleText {
@@ -63,13 +64,10 @@ namespace SysCmdLine::Strings {
         MatchCommand,
     };
 
-    using TextProvider = std::string (*)(int /* category */, int /* index */);
-
-    SYSCMDLINE_EXPORT void setTextProvider(TextProvider textProvider);
-
-    SYSCMDLINE_EXPORT TextProvider textProvider();
-
-    SYSCMDLINE_EXPORT std::string text(TextCategory category, int index);
+    enum TokenText {
+        OptionalCommands,
+        OptionalOptions,
+    };
 
 }
 

@@ -2,6 +2,7 @@
 #define OPTION_P_H
 
 #include "argument_p.h"
+#include "option.h"
 
 namespace SysCmdLine {
 

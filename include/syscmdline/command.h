@@ -70,9 +70,8 @@ namespace SysCmdLine {
 
         int optionCount() const;
         Option option(int index) const;
-        inline void addOption(const Option &option, int group = -1);
-        inline void addOptions(const std::vector<Option> &options);
-        void addOptions(const std::vector<std::pair<Option, int /* group */>> &options);
+        void addOption(const Option &option, const std::string &group = {});
+        inline void addOptions(const std::vector<Option> &options, const std::string &group = {});
 
         std::string detailedDescription() const;
         void setDetailedDescription(const std::string &detailedDescription);
@@ -94,14 +93,12 @@ namespace SysCmdLine {
         addCommands({command});
     }
 
-    inline void Command::addOption(const Option &option, int group) {
-        addOptions({std::make_pair(option, group)});
+    inline void Command::addOptions(const std::vector<Option> &options, const std::string &group) {
+        for (const auto &opt : options)
+            addOption(opt, group);
     }
 
-    inline void Command::addOptions(const std::vector<Option> &options) {
-        for (const auto &option : options)
-            addOption(option);
-    }
+    SYSCMDLINE_EXPORT bool assertCommand(const Command &command);
 
 }
 
