@@ -78,11 +78,10 @@ namespace SysCmdLine {
         Command rootCommand() const;
         void setRootCommand(const Command &rootCommand);
 
-        ParseResult parse(const std::vector<std::string> &params, int parseOptions = Standard);
+        ParseResult parse(const std::vector<std::string> &args, int parseOptions = Standard);
         inline int invoke(const std::vector<std::string> &params, int errCode = -1,
                           int parseOptions = Standard);
 
-        // String or Size Configuration
     public:
         HelpLayout helpLayout() const;
         void setHelpLayout(const HelpLayout &helpLayout);
@@ -99,6 +98,8 @@ namespace SysCmdLine {
 
         TextProvider textProvider();
         void setTextProvider(TextProvider textProvider);
+
+        static TextProvider defaultTextProvider();
     };
 
     inline int Parser::invoke(const std::vector<std::string> &params, int errCode, int parseOptions) {

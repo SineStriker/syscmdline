@@ -1,21 +1,18 @@
 #include "command.h"
 #include "command_p.h"
 
-#include <stdexcept>
 #include <algorithm>
 #include <utility>
 
-#include "option_p.h"
-#include "strings.h"
 #include "parser.h"
 #include "utils.h"
 
 namespace SysCmdLine {
 
-    CommandCataloguePrivate::CommandCataloguePrivate() {
-    }
+    CommandCataloguePrivate::CommandCataloguePrivate() = default;
 
-    CommandCataloguePrivate::CommandCataloguePrivate(const CommandCataloguePrivate &other) {
+    CommandCataloguePrivate::CommandCataloguePrivate(const CommandCataloguePrivate &other)
+        : SharedBasePrivate(other) {
         arg = map_copy<StringList>(other.arg);
         opt = map_copy<StringList>(other.opt);
         cmd = map_copy<StringList>(other.cmd);
@@ -37,7 +34,7 @@ namespace SysCmdLine {
     void CommandCatalogue::addArguments(const std::string &name, const StringList &args) {
         Q_D(CommandCatalogue);
         auto vec = map_search<StringList>(d->arg, name);
-        if (vec) {
+        if (!vec) {
             map_insert<StringList>(d->arg, name, args);
             return;
         }
@@ -47,7 +44,7 @@ namespace SysCmdLine {
     void CommandCatalogue::addOptions(const std::string &name, const StringList &options) {
         Q_D(CommandCatalogue);
         auto vec = map_search<StringList>(d->opt, name);
-        if (vec) {
+        if (!vec) {
             map_insert<StringList>(d->opt, name, options);
             return;
         }
@@ -57,7 +54,7 @@ namespace SysCmdLine {
     void CommandCatalogue::addCommands(const std::string &name, const StringList &commands) {
         Q_D(CommandCatalogue);
         auto vec = map_search<StringList>(d->cmd, name);
-        if (vec) {
+        if (!vec) {
             map_insert<StringList>(d->cmd, name, commands);
             return;
         }
@@ -195,7 +192,7 @@ namespace SysCmdLine {
                 // write backward arguments
                 addArgumentsHelp(false);
 
-                // tell the caller if commands and options should be wriiten
+                // tell the caller if commands and options should be written
                 if (a) {
                     // command
                     *(bool *) a[1] = !d->commands.empty();

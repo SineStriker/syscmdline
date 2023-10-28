@@ -58,25 +58,6 @@ namespace SysCmdLine {
                          const std::string &error) const;
 
     public:
-        inline Value valueForArgument(const Argument &arg) const;
-        Value valueForArgument(const std::string &argName) const;
-        inline std::vector<Value> valuesForArgument(const Argument &arg) const;
-        std::vector<Value> valuesForArgument(const std::string &argName) const;
-
-        inline int optionCount(const Option &opt) const;
-        int optionCount(const std::string &optName) const;
-
-        inline bool optionIsSet(const Option &opt) const;
-        inline bool optionIsSet(const std::string &optName) const;
-
-        inline Value valueForOption(const Option &opt, const Argument &arg, int count = 0) const;
-        Value valueForOption(const std::string &optName, const std::string &argName,
-                             int count = 0) const;
-        Value valueForOption(const std::string &optName, int argIndex = 0, int count = 0) const;
-
-        std::vector<std::string> effectiveOptions() const;
-        std::vector<std::string> effectiveArguments() const;
-
         bool isHelpSet() const;
         bool isVersionSet() const;
 

@@ -17,7 +17,7 @@ namespace SysCmdLine {
 
     template <class T, class K, class... Args>
     inline void map_insert(std::map<K, size_t> &map, const std::string &key, Args &&...args) {
-        map.insert(std::make_pair(key, size_t(new T(std::forward(args)...))));
+        map.insert(std::make_pair(key, size_t(new T(std::forward<Args>(args)...))));
     }
 
     template <class K, class T>
@@ -43,8 +43,8 @@ namespace SysCmdLine {
 
     template <class T, class K>
     inline void map_deleteAll(const std::map<K, size_t> &map) {
-        for (const auto val : map) {
-            delete reinterpret_cast<T *>(val);
+        for (const auto &val : map) {
+            delete reinterpret_cast<T *>(val.second);
         }
     }
 
@@ -55,6 +55,7 @@ namespace SysCmdLine {
             res.insert(
                 std::make_pair(it->first, size_t(new T(*reinterpret_cast<const T *>(it->second)))));
         }
+        return res;
     }
 
 }

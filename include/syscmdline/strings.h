@@ -27,13 +27,7 @@
 #ifndef STRINGS_H
 #define STRINGS_H
 
-#include <string>
-
-#include <syscmdline/global.h>
-
 namespace SysCmdLine::Strings {
-
-    // Text Configuration
 
     enum TextCategory {
         ParseError,

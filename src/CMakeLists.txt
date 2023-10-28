@@ -18,7 +18,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_include_directories(${PROJECT_NAME} PRIVATE . ../include/syscmdline ../include/syscmdline/private)
 
 if(WIN32)
-    set(RC_DESCRIPTION "Command Line Parser For Mordern C++")
+    set(RC_DESCRIPTION "C++ Advanced Command Line Parser")
     set(RC_COPYRIGHT "Copyright 2023 SineStriker")
     include("../cmake/winrc.cmake")
 endif()

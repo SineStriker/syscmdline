@@ -1,11 +1,9 @@
 #include "argument.h"
 #include "argument_p.h"
 
-#include <stdexcept>
-
+#include "utils.h"
 #include "strings.h"
 #include "parser.h"
-#include "utils.h"
 
 namespace SysCmdLine {
 
@@ -44,16 +42,21 @@ namespace SysCmdLine {
 
         switch (pos) {
             case Symbol::HP_SecondColumn: {
+                auto textProvider = reinterpret_cast<Parser::TextProvider>(extra);
+                if (!textProvider){
+                    textProvider = Parser::defaultTextProvider();
+                }
+
                 std::string appendix;
                 // Required
                 if (d->required && (displayOptions & Parser::ShowArgumentIsRequired)) {
-                    appendix += " [" + Strings::text(Strings::Title, Strings::Required) + "]";
+                    appendix += " [" + textProvider(Strings::Title, Strings::Required) + "]";
                 }
 
                 // Default Value
                 if (d->defaultValue.type() != Value::Null &&
                     (displayOptions & Parser::ShowArgumentDefaultValue)) {
-                    appendix += " [" + Strings::text(Strings::Title, Strings::Default) + ": " +
+                    appendix += " [" + textProvider(Strings::Title, Strings::Default) + ": " +
                                 d->defaultValue.toString() + "]";
                 }
 
@@ -72,7 +75,7 @@ namespace SysCmdLine {
                                 break;
                         }
                     }
-                    appendix += " [" + Strings::text(Strings::Title, Strings::ExpectedValues) +
+                    appendix += " [" + textProvider(Strings::Title, Strings::ExpectedValues) +
                                 ": " + Utils::join(values, ", ") + "]";
                 }
                 return d->desc + appendix;

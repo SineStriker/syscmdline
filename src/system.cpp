@@ -1,7 +1,7 @@
 #include "system.h"
 
-#include <filesystem>
 #include <cstdarg>
+#include <algorithm>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -17,6 +17,13 @@
 #    include <mach-o/dyld.h>
 #  else
 #    include <fstream>
+#  endif
+#  include <filesystem>
+#endif
+
+#ifdef _WIN32
+#  ifndef WC_ERR_INVALID_CHARS
+#    define WC_ERR_INVALID_CHARS 0x00000080
 #  endif
 #endif
 
@@ -81,25 +88,54 @@ namespace SysCmdLine {
     */
     std::string appPath() {
 #ifdef _WIN32
-        UINT bufferSize = MAX_PATH;
-        std::vector<wchar_t> buffer(bufferSize + 1);
-        bufferSize = ::GetModuleFileNameW(nullptr, buffer.data(), bufferSize);
-        if (bufferSize > MAX_PATH) {
-            buffer.resize(bufferSize);
-            ::GetModuleFileNameW(nullptr, buffer.data(), bufferSize);
+        UINT size = MAX_PATH;
+
+        // Alloc
+        auto buf = new wchar_t[size + 1];
+        memset(buf, 0, (size + 1) * sizeof(wchar_t));
+
+        // Call
+        size = ::GetModuleFileNameW(nullptr, buf, size);
+        if (size > MAX_PATH) {
+            // Re-alloc
+            delete[] buf;
+            buf = new wchar_t[size];
+            memset(buf, 0, size * sizeof(wchar_t));
+
+            // Call
+            ::GetModuleFileNameW(nullptr, buf, size);
         }
-        std::replace(buffer.begin(), buffer.end(), L'\\', L'/');
-        return wideToUtf8(buffer.data());
+        std::replace(buf, buf + size, L'\\', L'/');
+
+        // Return
+        std::wstring res(buf);
+        delete[] buf;
+        return wideToUtf8(res);
 #elif defined(__APPLE__)
-        unsigned int bufferSize = PATH_MAX;
-        std::vector<char> buffer(bufferSize + 1);
+        unsigned int size = PATH_MAX;
+
+        // Alloc
+        auto buf = new char[size + 1];
+        memset(buf, 0, (size + 1) * sizeof(char));
+
         // "_NSGetExecutablePath" will return "-1" if the buffer is not large enough
         // and "*bufferSize" will be set to the size required.
-        if (_NSGetExecutablePath(buffer.data(), &bufferSize) != 0) {
-            buffer.resize(bufferSize);
-            _NSGetExecutablePath(buffer.data(), &bufferSize);
+
+        // Call
+        if (_NSGetExecutablePath(buf, &size) != 0) {
+            // Re-alloc
+            delete[] buf;
+            buf = new char[size];
+            memset(buf, 0, size * sizeof(char));
+
+            // Call
+            _NSGetExecutablePath(buf, &size);
         }
-        return std::string(buffer.data());
+
+        // Return
+        std::string res(buf);
+        delete[] buf;
+        return res;
 #else
         char buf[PATH_MAX];
         if (!realpath("/proc/self/exe", buf)) {

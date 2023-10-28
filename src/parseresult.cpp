@@ -1,6 +1,8 @@
 #include "parseresult.h"
 #include "parseresult_p.h"
 
+#include <stdexcept>
+
 #include "utils.h"
 #include "strings.h"
 #include "system.h"
@@ -18,7 +20,7 @@ namespace SysCmdLine {
             case ParseResult::UnknownOption:
             case ParseResult::InvalidOptionPosition: {
                 for (int i = 0; i < core.allOptionsSize; ++i) {
-                    const auto &opt = core.allOptions[i];
+                    const auto &opt = *core.allOptionsResult[i].option;
                     for (const auto &token : opt.d_func()->tokens) {
                         expectedValues.push_back(token);
                     }
@@ -66,6 +68,10 @@ namespace SysCmdLine {
             ss += "\n" + parserData->indent() + item;
         }
         return ss;
+    }
+
+    void ParseResultPrivate::showMessage(const std::string &info, const std::string &warn,
+                                         const std::string &err, bool noHelp) const {
     }
 
     // static void defaultPrinter(MessageType messageType, const std::string &title,
@@ -554,7 +560,7 @@ namespace SysCmdLine {
         std::vector<Option> res;
         res.reserve(d->core.globalOptionsSize);
         for (int i = 0; i < d->core.globalOptionsSize; ++i) {
-            res.push_back(d->core.allOptions[i]);
+            res.push_back(*d->core.allOptionsResult[i].option);
         }
         return res;
     }
@@ -598,7 +604,7 @@ namespace SysCmdLine {
         Q_D2(ParseResult);
         return d->versionSet;
     }
-    
+
     ParseResult::ParseResult(ParseResultPrivate *d) : SharedBase(d) {
     }
 

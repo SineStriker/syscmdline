@@ -1,8 +1,6 @@
 #include "option.h"
 #include "option_p.h"
 
-#include <stdexcept>
-
 #include "utils.h"
 #include "strings.h"
 #include "parser.h"
@@ -21,7 +19,8 @@ namespace SysCmdLine {
         return new OptionPrivate(*this);
     }
 
-    Option::Option(SpecialType specialType) : ArgumentHolder(new OptionPrivate(specialType, {}, {}, false)) {
+    Option::Option(SpecialType specialType)
+        : ArgumentHolder(new OptionPrivate(specialType, {}, {}, false)) {
     }
 
     Option::Option(const std::string &token, const std::string &desc, bool required)
@@ -57,11 +56,16 @@ namespace SysCmdLine {
                 return Utils::join(d->tokens, ", ") + appendix;
             }
             case Symbol::HP_SecondColumn: {
+                auto textProvider = reinterpret_cast<Parser::TextProvider>(extra);
+                if (!textProvider) {
+                    textProvider = Parser::defaultTextProvider();
+                }
+
                 std::string appendix;
 
                 // Required
                 if (d->required && (displayOptions & Parser::ShowOptionIsRequired)) {
-                    appendix += " [" + Strings::text(Strings::Title, Strings::Required) + "]";
+                    appendix += " [" + textProvider(Strings::Title, Strings::Required) + "]";
                 }
                 return d->desc + appendix;
             }

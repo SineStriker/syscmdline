@@ -8,33 +8,33 @@
 
 namespace SysCmdLine {
 
-    struct ParseResultData2 {
-        struct OptionData {
-            const Option *option;           // pointer to the current option
-            std::vector<Value> **argResult; // arg result
-            int count;                      // arg result count
-            int argSize;                    // equal to `option->argumentCount()`
-            int optionalArgIndex;
-            int multiValueArgIndex;
-            StringMap argNameIndexes; // name -> index of `argResult`
+    struct ArgumentHolderData {
+        int optionalArgIndex;
+        int multiValueArgIndex;
+        StringMap argNameIndexes; // name -> index of `argResult`
+        int argSize;              // equal to `argumentCount()`
+    };
 
-            ~OptionData() {
-                for (int i = 0; i < count; ++i) {
-                    delete[] argResult[i];
-                }
-                delete[] argResult;
+    struct OptionData : public ArgumentHolderData {
+        const Option *option;           // pointer to the current option
+        std::vector<Value> **argResult; // arg result
+        int count;                      // arg result count
+
+        ~OptionData() {
+            for (int i = 0; i < count; ++i) {
+                delete[] argResult[i];
             }
-        };
+            delete[] argResult;
+        }
+    };
+
+    struct ParseResultData2 : public ArgumentHolderData {
+        std::vector<Value> *argResult;   // arg result
 
         OptionData *allOptionsResult;    // option result
         int allOptionsSize;              // command option count + global option count
         int globalOptionsSize;           // global option count
         StringMap allOptionTokenIndexes; // token -> index of `allOptionsResult`
-
-        std::vector<Value> *argResult; // arg result
-        int optionalArgIndex;
-        int multiValueArgIndex;
-        StringMap argNameIndexes; // name -> index of `argResult`
 
         ~ParseResultData2() {
             delete[] allOptionsResult;
@@ -44,8 +44,6 @@ namespace SysCmdLine {
 
     class ParseResultPrivate : public SharedBasePrivate {
     public:
-        ParseResultPrivate();
-
         // This is a read-only class, we can store the pointers pointing to
         // its own data, and we don't need to implement the clone method
         SharedBasePrivate *clone() const {
@@ -57,11 +55,10 @@ namespace SysCmdLine {
         std::vector<std::string> arguments;
 
         // error related
-        ParseResult::Error error;
+        ParseResult::Error error = ParseResult::NoError;
         std::vector<std::string> errorPlaceholders;
-        const Option *errorOption;
-        const Argument *errorArgument;
-
+        const Option *errorOption = nullptr;
+        const Argument *errorArgument = nullptr;
         std::string cancellationToken;
 
         // success results

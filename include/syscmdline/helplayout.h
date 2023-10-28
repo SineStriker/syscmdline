@@ -43,27 +43,23 @@ namespace SysCmdLine {
         HelpLayout();
         ~HelpLayout();
 
-        HelpLayout(const HelpLayout &other);
-        HelpLayout(HelpLayout &&other) noexcept;
-        HelpLayout &operator=(const HelpLayout &other);
-        HelpLayout &operator=(HelpLayout &&other) noexcept;
+        enum HelpTextItem {
+            HT_Prologue,
+            HT_Description,
+            HT_Usage,
+            HT_Epilogue,
+        };
+
+        enum HelpListItem {
+            HL_Arguments,
+            HL_Options,
+            HL_Commands,
+        };
 
         enum MessageItem {
             MI_Information,
             MI_Warning,
             MI_Critical,
-        };
-
-        enum HelpItem {
-            HI_Prologue,
-            HI_Description,
-            HI_Usage,
-            HI_Arguments,
-            HI_Options,
-            HI_Commands,
-            HI_Epilogue,
-
-            HI_User = 1000,
         };
 
         struct Text {
@@ -77,28 +73,18 @@ namespace SysCmdLine {
             std::vector<std::string> secondColumn;
         };
 
-        using PlainPrinter = std::function<void(bool /* hasNext */)>;
-
-        using TextPrinter =
-            std::function<void(int /* id */, const std::string & /* title */,
-                               const std::vector<std::string> & /* lines */, bool /* hasNext */)>;
-
-        using ListPrinter =
-            std::function<void(int /* id */, const std::string & /* title */,
-                               std::vector<std::string> & /* firstColumn */,
-                               std::vector<std::string> & /* secondColumn */, bool /* hasNext */)>;
+        using TextOutput = std::function<void(const Text & /* text */, bool /* hasNext */)>;
+        using ListOptput = std::function<void(const List & /* list */, bool /* hasNext */)>;
+        using PlainOutput = std::function<void(bool /* hasNext */)>;
 
     public:
-        bool isNull() const;
+        void addHelpTextItem(HelpTextItem type, const TextOutput &out = {});
+        void addHelpListItem(HelpListItem type, const ListOptput &out = {});
+        void addMessageItem(MessageItem type, const TextOutput &out = {});
 
-        void addHelpItem(HelpItem type);
-        void addMessageItem(MessageItem type);
-        void addUserTextItem(const Text &text, int id = -1);
-        void addUserListItem(const List &list, int id = -1);
-        void addCustomItem(const PlainPrinter &printer);
-
-        void setTextPrinter(const TextPrinter &printer);
-        void setListPrinter(const ListPrinter &printer);
+        void addUserHelpTextItem(const Text &text, const TextOutput &out = {});
+        void addUserHelpListItem(const List &list, const ListOptput &out = {});
+        void addUserHelpPlainItem(const PlainOutput &out);
 
     public:
         static HelpLayout defaultHelpLayout();

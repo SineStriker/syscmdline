@@ -2,15 +2,10 @@
 #include "parser_p.h"
 
 #include <list>
-#include <map>
-#include <set>
-#include <stdexcept>
 #include <cctype>
 #include <algorithm>
 
-#include "strings.h"
 #include "utils.h"
-#include "system.h"
 #include "command_p.h"
 #include "option_p.h"
 #include "helplayout_p.h"
@@ -72,6 +67,10 @@ namespace SysCmdLine {
           textProvider(Strings::en_US::provider) {
     }
 
+    ParserPrivate *ParserPrivate::clone() const {
+        return new ParserPrivate(*this);
+    }
+
     Parser::Parser() : SharedBase(new ParserPrivate()) {
     }
 
@@ -80,6 +79,26 @@ namespace SysCmdLine {
     }
 
     Parser::~Parser() {
+    }
+
+    std::string Parser::prologue() const {
+        Q_D2(Parser);
+        return d->prologue;
+    }
+
+    void Parser::setPrologue(const std::string &prologue) {
+        Q_D(Parser);
+        d->prologue = prologue;
+    }
+
+    std::string Parser::epilogue() const {
+        Q_D2(Parser);
+        return d->epilogue;
+    }
+
+    void Parser::setEpilogue(const std::string &epilogue) {
+        Q_D(Parser);
+        d->epilogue = epilogue;
     }
 
     int Parser::displayOptions() const {
@@ -109,9 +128,6 @@ namespace SysCmdLine {
 
     void Parser::setRootCommand(const Command &rootCommand) {
         Q_D(Parser);
-        if (rootCommand.d_func()->name.empty()) {
-            throw std::runtime_error("empty root command name");
-        }
         d->rootCommand = rootCommand;
     }
 
@@ -120,16 +136,45 @@ namespace SysCmdLine {
         ParserCore(const std::vector<std::string> &params, int parseOptions, int displayOptions,
                    const Command *rootCommand)
             : params(params), parseOptions(parseOptions), displayOptions(displayOptions),
-              rootCommand(rootCommand), result(new ParseResultPrivate()), core(result->core),
-              nonCommandIndex(1) {
+              rootCommand(rootCommand), result(new ParseResultPrivate()), core(result->core) {
         }
 
         ~ParserCore() {
+            delete[] optRanges;
+            core.allOptionTokenIndexes = std::move(allOptionTokenIndexes);
+        }
+
+        bool parse() {
+            searchTargetCommandAndBuildIndexes();
+            extractOptionsAndArguments();
+            if (result->error == ParseResult::NoError) {
+                return false;
+            }
+            parsePositionalArguments();
+            if (result->error == ParseResult::NoError) {
+                return false;
+            }
+
+            for (int i = 0; i < core.allOptionsSize; ++i) {
+                const auto &resultData = core.allOptionsResult[i];
+                if (resultData.count > 0) {
+                    if (resultData.option->specialType() == Option::Help) {
+                        result->helpSet = true;
+                        continue;
+                    }
+                    if (resultData.option->specialType() == Option::Version) {
+                        result->versionSet = true;
+                        continue;
+                    }
+                }
+            }
+            return true;
         }
 
         void searchTargetCommandAndBuildIndexes() {
+            int globalOptionCount = 0;
+
             // 1. Find target command
-            size_t globalOptionCount = 0;
             {
                 auto cmd = rootCommand;
                 size_t i = 1;
@@ -147,7 +192,7 @@ namespace SysCmdLine {
                     }
 
                     if (j == size) {
-                        // Try case insensitive
+                        // Try case-insensitive
                         if (parseOptions & Parser::IgnoreCommandCase) {
                             for (j = 0; j < size; ++j) {
                                 if (Utils::toLower(dd->commands[j].name()) ==
@@ -171,12 +216,12 @@ namespace SysCmdLine {
                     cmd = &cmd->d_func()->commands.at(j);
                 }
                 nonCommandIndex = i;
-                targetCommand = cmd;
+                result->command = cmd;
                 targetCommandData = cmd->d_func();
             }
 
             // 2. Collect options along the command path
-            const Option **globalOptionList = new const Option *[globalOptionCount]; // Alloc
+            const auto **globalOptionList = new const Option *[globalOptionCount]; // Alloc
             {
                 int globalOptionListIndex = 0;
                 auto cmd = rootCommand;
@@ -184,8 +229,8 @@ namespace SysCmdLine {
                     const auto &d = cmd->d_func();
 
                     // Add options
-                    for (size_t j = 0; j < d->options.size(); ++j) {
-                        globalOptionList[globalOptionListIndex++] = &d->options[j];
+                    for (const auto &option : d->options) {
+                        globalOptionList[globalOptionListIndex++] = &option;
                     }
                     cmd = &d->commands[i];
                 }
@@ -220,9 +265,10 @@ namespace SysCmdLine {
 
             // 4. Alloc option spaces
             {
-                core.allOptionsSize = realGlobalOptionCount + targetCommandData->options.size();
+                core.allOptionsSize =
+                    realGlobalOptionCount + int(targetCommandData->options.size());
                 core.globalOptionsSize = realGlobalOptionCount;
-                core.allOptionsResult = new ParseResultData2::OptionData[core.allOptionsSize];
+                core.allOptionsResult = new OptionData[core.allOptionsSize];
 
                 // init options
                 int allOptionsIndex = 0;
@@ -233,9 +279,8 @@ namespace SysCmdLine {
                     initOptionData(core.allOptionsResult[allOptionsIndex++], opt);
                 }
 
-                for (size_t i = 0; i < targetCommandData->options.size(); ++i) {
-                    initOptionData(core.allOptionsResult[allOptionsIndex++],
-                                   &targetCommandData->options[i]);
+                for (const auto &option : targetCommandData->options) {
+                    initOptionData(core.allOptionsResult[allOptionsIndex++], &option);
                 }
             }
 
@@ -243,36 +288,220 @@ namespace SysCmdLine {
 
             // 5. Alloc command argument space
             core.argResult = new std::vector<Value>[targetCommandData->arguments.size()];
-            core.optionalArgIndex = -1;
-            core.multiValueArgIndex = -1;
-
-            // Build arg name indexes
-            for (size_t i = 0; i < targetCommandData->arguments.size(); ++i) {
-                const auto &arg = targetCommandData->arguments[i];
-                if (arg.isOptional() && core.optionalArgIndex < 0) {
-                    core.optionalArgIndex = i;
-                }
-                if (arg.multiValueEnabled() && core.multiValueArgIndex < 0) {
-                    core.multiValueArgIndex = i;
-                }
-                core.argNameIndexes.insert(std::make_pair(arg.name(), i));
-            }
+            initArgumentHolderData(core, targetCommandData->arguments);
 
             // 6. Build option indexes
-            for (size_t i = 0; i < core.allOptionsSize; ++i) {
-                const auto &opt = core.allOptionsResult[i].option;
-                for (const auto &token : opt->d_func()->tokens) {
-                    allOptionTokenIndexes.insert(std::make_pair(token, i));
-                }
-            }
+            buildOptionTokenIndexes(allOptionTokenIndexes, [](const std::string &s) { return s; });
 
             // Build case-insensitive option indexes if needed
             if (parseOptions & Parser::IgnoreOptionCase) {
-                for (size_t i = 0; i < core.allOptionsSize; ++i) {
-                    const auto &opt = core.allOptionsResult[i].option;
-                    for (const auto &token : opt->d_func()->tokens) {
-                        lowerOptionTokenIndexes.insert(std::make_pair(Utils::toLower(token), i));
+                buildOptionTokenIndexes(lowerOptionTokenIndexes, [](const std::string &s) {
+                    return Utils::toLower(s); //
+                });
+            }
+        }
+
+        void extractOptionsAndArguments() {
+            optRanges = new OptionRange[core.allOptionsSize]; // Alloc
+
+            // Parse options
+            for (auto i = nonCommandIndex; i < params.size(); ++i) {
+                const auto &token = params[i];
+
+                // Consider option
+                int pos;
+                if (auto optIndex = searchOption(token, &pos); optIndex >= 0) {
+                    const auto &optData = core.allOptionsResult[optIndex];
+                    const auto &opt = optData.option;
+                    auto &rangeData = optRanges[optIndex];
+
+                    // Check option common
+                    if (!checkOptionCommon(token, optIndex, rangeData.starts.size())) {
+                        break;
                     }
+
+                    const auto &dd = opt->d_func();
+
+                    // Collect positional arguments
+                    if (pos >= 0) {
+                        // Must be a single value option
+                        rangeData.push(i, 1, token.substr(pos));
+                    } else if (!dd->arguments.empty()) {
+                        int minArgCount =
+                            int((optData.optionalArgIndex < 0) ? dd->arguments.size()
+                                                               : (optData.optionalArgIndex + 1));
+                        int maxArgCount = (optData.multiValueArgIndex < 0) ? minArgCount : 65536;
+
+                        auto j = i + minArgCount + 1; // next of last required index
+                        if (j > params.size()) {
+                            size_t argIndex = params.size() - i - 1;
+                            buildError(ParseResult::MissingOptionArgument,
+                                       {
+                                           dd->arguments[argIndex].helpText(Symbol::HP_ErrorText,
+                                                                            displayOptions),
+                                           opt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                       },
+                                       {}, nullptr, opt);
+                            break;
+                        }
+
+                        auto end = std::min(params.size(), i + maxArgCount + 1);
+                        for (; j < end; ++j) {
+                            const auto &curToken = params[j];
+
+                            // Break at next option
+                            if (searchOption(curToken) >= 0) {
+                                break;
+                            }
+                        }
+
+                        rangeData.push(i, j - i - 1);
+                    } else {
+                        rangeData.starts.push_back(i);
+                        rangeData.lengths.push_back(0);
+                        rangeData.precedingTokens.emplace_back();
+                        rangeData.push(i, 0);
+                    }
+
+                    if (opt->priorLevel() > (priorOpt ? priorOpt->priorLevel() : Option::NoPrior))
+                        priorOpt = opt;
+
+                    hasOption = true;
+                    continue;
+                }
+
+                // Consider short flags
+                if ((parseOptions & Parser::AllowUnixGroupFlags) && isFlags(token)) {
+                    auto opts = searchGroupFlags(token.substr(1));
+                    if (!opts.empty()) {
+                        bool failed = false;
+                        for (const auto &optIdx : std::as_const(opts)) {
+                            auto &rangeData = optRanges[optIdx];
+
+                            // Check option common
+                            if (!checkOptionCommon(token, optIdx, rangeData.starts.size())) {
+                                failed = true;
+                                break;
+                            }
+
+                            rangeData.push(i, 0);
+                        }
+
+                        if (failed) {
+                            break;
+                        }
+                        hasOption = true;
+                        continue;
+                    }
+                }
+
+                // Consider argument
+                positionalArguments.push_back(token);
+            }
+
+            if (!positionalArguments.empty()) {
+                hasArgument = true;
+            }
+        }
+
+        void parsePositionalArguments() {
+            // Parse all options
+            bool failed = false;
+            for (int i = 0; i < core.allOptionsSize; ++i) {
+                auto &resultData = core.allOptionsResult[i];
+                const auto &args = resultData.option->d_func()->arguments;
+                const auto &rangeData = optRanges[i];
+                const auto &occurrence = int(rangeData.starts.size());
+
+                resultData.count = occurrence;
+                resultData.argResult = new std::vector<Value> *[occurrence];
+                for (int j = 0; j < occurrence; ++j) {
+                    resultData.argResult[j] = new std::vector<Value>[resultData.argSize];
+                }
+
+                for (int j = 0; j < occurrence; ++j) {
+                    auto &resVec = resultData.argResult[j];
+
+                    const auto &start = rangeData.starts[j];
+                    const auto &len = rangeData.lengths[j];
+                    const auto &preceding = rangeData.precedingTokens[j];
+                    if (len == 0) {
+                        if (!preceding.empty()) {
+                            // single argument option
+                            resVec[0].emplace_back(preceding);
+                        }
+                        continue;
+                    }
+
+                    auto missingIdx = parseArgument(args, positionalArguments.data() + start + 1,
+                                                    len, resVec, resultData.multiValueArgIndex);
+                    if (result->error != ParseResult::NoError) {
+                        failed = true;
+                        break;
+                    }
+
+                    // missing index must be -1
+                    // because we have already check the integrity
+                    SYSCMDLINE_UNUSED(missingIdx)
+                }
+
+                if (failed) {
+                    break;
+                }
+            }
+
+            // Parse positional arguments
+            auto missingIdx =
+                parseArgument(targetCommandData->arguments, positionalArguments.data(),
+                              positionalArguments.size(), core.argResult, core.multiValueArgIndex);
+            if (result->error != ParseResult::NoError) {
+                return;
+            }
+
+            bool hasAutoOption = false;
+
+            // Automatic set options
+            if (!hasOption && !hasArgument) {
+                for (int i = 0; i < core.allOptionsSize; ++i) {
+                    const auto &opt = *core.allOptionsResult[i].option;
+                    if (opt.priorLevel() == Option::AutoSetWhenNoSymbols) {
+                        auto &resultData = core.allOptionsResult[i].argResult;
+                        resultData = new std::vector<Value> *[1];
+                        resultData[0] = new std::vector<Value>();
+                        hasAutoOption = true;
+                        break;
+                    }
+                }
+            }
+
+            if (priorOpt || hasAutoOption) {
+                // ...
+            } else if (missingIdx >= 0) {
+                // Required arguments
+                const auto &arg = targetCommandData->arguments[missingIdx];
+                buildError(ParseResult::MissingCommandArgument,
+                           {
+                               arg.helpText(Symbol::HP_ErrorText, displayOptions),
+                           },
+                           {}, &arg);
+            } else {
+                // Required options
+                const Option *missingOpt = nullptr;
+                for (int i = 0; i < core.allOptionsSize; ++i) {
+                    const auto &opt = *core.allOptionsResult[i].option;
+                    if (opt.isRequired() && !searchExclusiveOption(i) &&
+                        core.allOptionsResult[i].count == 0) {
+                        missingOpt = &opt;
+                        break;
+                    }
+                }
+
+                if (missingOpt) {
+                    buildError(ParseResult::MissingRequiredOption,
+                               {
+                                   missingOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                               },
+                               {}, nullptr, missingOpt);
                 }
             }
         }
@@ -284,29 +513,57 @@ namespace SysCmdLine {
 
         ParseResultPrivate *result;
         ParseResultData2 &core;
-        size_t nonCommandIndex;
-        const Command *targetCommand;
-        const CommandPrivate *targetCommandData; // for convenience
+        size_t nonCommandIndex = 1;
+        const CommandPrivate *targetCommandData = nullptr; // for convenience
+        bool hasArgument = false;
+        bool hasOption = false;
+        const Option *priorOpt = nullptr;
 
         StringMap allOptionTokenIndexes;
         StringMap lowerOptionTokenIndexes;
         StringMap encounteredExclusiveGroups;
 
-        // Resuable functions
+        struct OptionRange {
+            std::vector<int> starts;
+            std::vector<int> lengths;
+            std::vector<std::string> precedingTokens;
 
-        // ...
-        void initOptionData(ParseResultData2::OptionData &data, const Option *opt) {
-            const auto &d = opt->d_func();
-            data.option = opt;
-            data.argSize = d->arguments.size();
-            data.argResult = nullptr;
+            void push(int s, int l, std::string preceding = {}) {
+                starts.push_back(s);
+                lengths.push_back(l);
+                precedingTokens.emplace_back(std::move(preceding));
+            }
+        };
 
+        OptionRange *optRanges = nullptr;
+        std::vector<std::string> positionalArguments;
+
+        // Reusable functions
+        void buildOptionTokenIndexes(StringMap &indexes,
+                                     std::string (*f)(const std::string &)) const {
+            for (int i = 0; i < core.allOptionsSize; ++i) {
+                const auto &opt = core.allOptionsResult[i].option;
+                for (const auto &token : opt->d_func()->tokens) {
+                    indexes.insert(std::make_pair(f(token), i));
+                }
+            }
+        }
+
+        static inline void initOptionData(OptionData &data, const Option *option) {
+            data.count = 0;
+            data.option = option;
+            initArgumentHolderData(data, option->d_func()->arguments);
+        }
+
+        static void initArgumentHolderData(ArgumentHolderData &data,
+                                           const std::vector<Argument> &args) {
+            data.argSize = int(args.size());
             data.optionalArgIndex = -1;
             data.multiValueArgIndex = -1;
 
             // Build arg name indexes
-            for (size_t i = 0; i < d->arguments.size(); ++i) {
-                const auto &arg = d->arguments[i];
+            for (int i = 0; i < args.size(); ++i) {
+                const auto &arg = args[i];
                 if (arg.isOptional() && data.optionalArgIndex < 0) {
                     data.optionalArgIndex = i;
                 }
@@ -319,11 +576,11 @@ namespace SysCmdLine {
 
         // indexes: token indexes map
         // token:   token
-        // sign:    beginning sign, '-' or '/'
+        // sign:    equal sign, '=' or ':'
         // pos:     followed argument beginning index
         // ->       option index
         int searchShortOptions(const StringMap &indexes, const std::string &token, char sign,
-                               int *pos) {
+                               int *pos) const {
             // Search for short option
             auto it = indexes.lower_bound(token);
             if (it != indexes.begin() && it != indexes.end() && token.find(it->first) != 0) {
@@ -375,13 +632,12 @@ namespace SysCmdLine {
         // token:   token
         // pos:     followed argument beginning index
         // ->       option index
-        int searchOptionImpl(const StringMap &indexes, const std::string &token, int *pos) {
+        int searchOptionImpl(const StringMap &indexes, const std::string &token, int *pos) const {
             if (pos)
                 *pos = -1;
 
             if (indexes.empty())
                 return -1;
-
 
             auto it = indexes.find(token);
             if (it != indexes.end()) {
@@ -405,12 +661,12 @@ namespace SysCmdLine {
         // token:   token
         // pos:     followed argument beginning index
         // ->       option index
-        int searchOption(const std::string &token, int *pos = nullptr) {
-            // first search case sensitive map
+        int searchOption(const std::string &token, int *pos = nullptr) const {
+            // first search case-sensitive map
             if (auto idx = searchOptionImpl(allOptionTokenIndexes, token, pos); idx >= 0)
                 return idx;
 
-            // second search case insensitive map if flag is set
+            // second search case-insensitive map if flag is set
             if (parseOptions & Parser::IgnoreOptionCase) {
                 return searchOptionImpl(lowerOptionTokenIndexes, Utils::toLower(token), pos);
             }
@@ -438,21 +694,21 @@ namespace SysCmdLine {
 
         void buildError(ParseResult::Error error, const std::vector<std::string> &placeholders,
                         const std::string &cancellationToken, const Argument *arg,
-                        const Option *opt = nullptr) {
-            result->error = error;
-            result->errorPlaceholders = placeholders;
-            result->cancellationToken = cancellationToken;
-            result->errorArgument = arg;
-            result->errorOption = opt;
+                        const Option *opt = nullptr) const {
+            auto &res = *result;
+            res.error = error;
+            res.errorPlaceholders = placeholders;
+            res.cancellationToken = cancellationToken;
+            res.errorArgument = arg;
+            res.errorOption = opt;
         };
-
 
         // arg:       input argument
         // token:     token
         // val:       return value if success
         // setError:  whether to build error message if failed
         bool checkArgument(const Argument *arg, const std::string &token, Value *out,
-                           bool setError = true) {
+                           bool setError = true) const {
             const auto &d = arg->d_func();
             const auto &expectedValues = d->expectedValues;
             if (!expectedValues.empty()) {
@@ -536,23 +792,8 @@ namespace SysCmdLine {
             }
             return -1;
         };
-    };
 
-    ParseResult Parser::parse(const std::vector<std::string> &params, int parseOptions) {
-        Q_D2(Parser);
-
-
-        StringMap encounteredExclusiveGroups;
-
-
-
-        bool hasArgument = false;
-        bool hasOption = false;
-        const Option *priorOpt = nullptr;
-        auto checkOptionCommon = [&hasArgument, &hasOption, &priorOpt, &buildError, displayOptions,
-                                  &core,
-                                  &searchExclusiveOption](const std::string &token, int optIndex,
-                                                          int occurrence) -> bool {
+        bool checkOptionCommon(const std::string &token, int optIndex, int occurrence) {
             const auto &opt = core.allOptionsResult[optIndex].option;
             // Check max occurrence
             if (opt->maxOccurrence() > 0 && occurrence == opt->maxOccurrence()) {
@@ -627,7 +868,7 @@ namespace SysCmdLine {
             return true;
         };
 
-        auto isFlags = [](const std::string &s) -> bool {
+        static bool isFlags(const std::string &s) {
             if (s.size() <= 1 || s.front() != '-')
                 return false;
             return std::all_of(s.begin() + 1, s.end(), [](char c) {
@@ -635,128 +876,13 @@ namespace SysCmdLine {
             });
         };
 
-        struct OptionRange {
-            std::vector<int> starts;
-            std::vector<int> lengths;
-            std::vector<std::string> precedingTokens;
-
-            void push(int s, int l, std::string preceding = {}) {
-                starts.push_back(s);
-                lengths.push_back(l);
-                precedingTokens.emplace_back(std::move(preceding));
-            }
-        };
-
-        OptionRange *optRanges = new OptionRange[core.allOptionsSize]; // Alloc
-        std::vector<std::string> positionalArguments;
-
-        // Parse options
-        for (auto i = nonCommandIndex; i < params.size(); ++i) {
-            const auto &token = params[i];
-
-            // Consider option
-            int pos;
-            if (auto optIndex = searchOption(token, &pos); optIndex >= 0) {
-                const auto &optData = core.allOptionsResult[optIndex];
-                const auto &opt = optData.option;
-                auto &rangeData = optRanges[optIndex];
-
-                // Check option common
-                if (!checkOptionCommon(token, optIndex, rangeData.starts.size())) {
-                    break;
-                }
-
-                const auto &dd = opt->d_func();
-
-                // Collect positional arguments
-                if (pos >= 0) {
-                    // Must be a single value option
-                    rangeData.push(i, 1, token.substr(pos));
-                } else if (!dd->arguments.empty()) {
-                    int minArgCount = (optData.optionalArgIndex < 0)
-                                          ? dd->arguments.size()
-                                          : (optData.optionalArgIndex + 1);
-                    int maxArgCount = (optData.multiValueArgIndex < 0) ? minArgCount : 65536;
-
-                    // TODO: collect arguments
-                    int count = minArgCount;
-                    auto j = i + minArgCount + 1; // next of last required index
-                    if (j > params.size()) {
-                        size_t argIndex = params.size() - i - 1;
-                        buildError(ParseResult::MissingOptionArgument,
-                                   {
-                                       dd->arguments[argIndex].helpText(Symbol::HP_ErrorText,
-                                                                        displayOptions),
-                                       opt->helpText(Symbol::HP_ErrorText, displayOptions),
-                                   },
-                                   {}, nullptr, opt);
-                        break;
-                    }
-
-                    auto end = std::min(params.size(), i + maxArgCount + 1);
-                    for (; j < end; ++j) {
-                        const auto &curToken = params[j];
-
-                        // Breaked at next option
-                        if (searchOption(curToken) >= 0) {
-                            break;
-                        }
-                    }
-
-                    rangeData.push(i, j - i - 1);
-                } else {
-                    rangeData.starts.push_back(i);
-                    rangeData.lengths.push_back(0);
-                    rangeData.precedingTokens.emplace_back();
-                    rangeData.push(i, 0);
-                }
-
-                if (opt->priorLevel() > (priorOpt ? priorOpt->priorLevel() : Option::NoPrior))
-                    priorOpt = opt;
-                continue;
-            }
-
-            // Consider short flags
-            if ((parseOptions & Parser::AllowUnixGroupFlags) && isFlags(token)) {
-                auto opts = searchGroupFlags(token.substr(1));
-                if (!opts.empty()) {
-                    bool failed = false;
-                    for (const auto &optIdx : std::as_const(opts)) {
-                        auto &rangeData = optRanges[optIdx];
-
-                        // Check option common
-                        if (!checkOptionCommon(token, optIdx, rangeData.starts.size())) {
-                            failed = true;
-                            break;
-                        }
-
-                        rangeData.push(i, 0);
-                    }
-
-                    if (failed) {
-                        break;
-                    }
-                    continue;
-                }
-            }
-
-            // Consider argument
-            positionalArguments.push_back(token);
-        }
-
-        if (result->error != ParseResult::NoError) {
-            // TODO:
-        }
-
         // args:    arguments
         // tokens:  tokens
         // res:     result array
         // ->       missing index
         // if failed, the error will be set, check it first.
-        auto parseArgument = [&buildError, &checkArgument](const std::vector<Argument> &args,
-                                                           const std::vector<std::string> &tokens,
-                                                           std::vector<Value> *res,
-                                                           int multiValueIndex) -> int {
+        int parseArgument(const std::vector<Argument> &args, const std::string *tokens,
+                          size_t tokensCount, std::vector<Value> *res, int multiValueIndex) const {
             // Parse forward
             size_t end = args.size();
             if (multiValueIndex >= 0) {
@@ -764,10 +890,10 @@ namespace SysCmdLine {
             }
 
             size_t k = 0;
-            for (size_t max = std::min(tokens.size(), end); k < max; ++k) {
+            for (size_t max = std::min(tokensCount, end); k < max; ++k) {
                 const auto &arg = args.at(k);
                 Value val;
-                if (!checkArgument(&arg, tokens.at(k), &val)) {
+                if (!checkArgument(&arg, tokens[k], &val)) {
                     return -1;
                 }
                 res[k].push_back(val);
@@ -782,11 +908,10 @@ namespace SysCmdLine {
             }
 
             // Parse backward
-            end = tokens.size();
+            end = tokensCount;
             if (multiValueIndex >= 0 && multiValueIndex < args.size() - 1) {
-                size_t backwardStart = multiValueIndex + 1;
                 size_t backwardCount = args.size() - multiValueIndex - 1;
-                if (tokens.size() < backwardCount + k) {
+                if (tokensCount < backwardCount + k) {
                     return multiValueIndex + 1;
                 }
                 end -= backwardCount;
@@ -794,7 +919,7 @@ namespace SysCmdLine {
                 for (size_t j = 0; j < backwardCount; ++j) {
                     const auto &arg = args.at(multiValueIndex + j + 1);
                     Value val;
-                    if (!checkArgument(&arg, tokens.at(end + j), &val)) {
+                    if (!checkArgument(&arg, tokens[end + j], &val)) {
                         return -1;
                     }
                     res[multiValueIndex + j + 1].push_back(val);
@@ -807,7 +932,7 @@ namespace SysCmdLine {
 
             // Too many
             if (multiValueIndex < 0) {
-                const auto &token = tokens.at(k);
+                const auto &token = tokens[k];
                 if (token.front() == '-') {
                     buildError(ParseResult::UnknownOption, {token}, token, nullptr);
                     return -1;
@@ -826,7 +951,7 @@ namespace SysCmdLine {
             const auto &arg = args.at(multiValueIndex);
             auto &resVec = res[multiValueIndex];
             for (size_t j = k; j < end; ++j) {
-                const auto &token = tokens.at(j);
+                const auto &token = tokens[j];
                 Value val;
                 if (!checkArgument(&arg, token, &val)) {
                     break;
@@ -835,80 +960,41 @@ namespace SysCmdLine {
             }
             return -1;
         };
+    };
 
-    out_parse_arguments:
+    ParseResult Parser::parse(const std::vector<std::string> &args, int parseOptions) {
+        Q_D2(Parser);
+        ParserCore parserCore(args, parseOptions, d->displayOptions, &d->rootCommand);
+        std::ignore = parserCore.parse();
 
-        // Check required arguments
-        if (error == ParseResult::NoError) {
-            bool hasAutoOption = false;
+        auto res = parserCore.result;
+        res->arguments = args;
+        res->parser = *this;
+        return res;
+    }
 
-            // Automatic set options
-            if (result->argResult.empty() && result->optResult.empty()) {
-                for (const auto &opt : cmd->d_func()->options) {
-                    if (opt.priorLevel() == Option::AutoSetWhenNoSymbols) {
-                        result->optResult[opt.name()] = {};
-                        hasAutoOption = true;
-                        break;
-                    }
-                }
+    int Parser::size(Parser::SizeType sizeType) const {
+        Q_D2(Parser);
+        return d->sizeConfig[sizeType];
+    }
 
-                for (const auto &opt : std::as_const(globalOptions)) {
-                    if (opt->priorLevel() == Option::AutoSetWhenNoSymbols) {
-                        result->optResult[opt->name()] = {};
-                        hasAutoOption = true;
-                        break;
-                    }
-                }
-            }
+    void Parser::setSize(Parser::SizeType sizeType, int value) {
+        Q_D(Parser);
+        d->sizeConfig[sizeType] = value;
+    }
 
-            if (priorOpt || hasAutoOption) {
-                // ...
-            } else if (missingArgument) {
-                // Required arguments
-                error = ParseResult::MissingCommandArgument;
-                errorPlaceholders = {missingArgument->name()};
-            } else {
-                // Required options
-                const Option *missingOpt = nullptr;
-                for (const auto &opt : cmd->d_func()->options) {
-                    if (opt.isRequired() && !searchExclusiveOption(&opt) &&
-                        !result->optResult.count(opt.name())) {
-                        missingOpt = &opt;
-                        break;
-                    }
-                }
+    Parser::TextProvider Parser::textProvider() {
+        Q_D2(Parser);
+        return d->textProvider;
+    }
 
-                if (!missingOpt) {
-                    for (const auto &opt : std::as_const(globalOptions)) {
-                        if (opt->isRequired() && !result->optResult.count(opt->name())) {
-                            missingOpt = opt;
-                            break;
-                        }
-                    }
-                }
+    void Parser::setTextProvider(Parser::TextProvider textProvider) {
+        Q_D(Parser);
+        d->textProvider = textProvider;
+    }
 
-                if (missingOpt) {
-                    error = ParseResult::MissingRequiredOption;
-                    errorPlaceholders = {
-                        missingOpt->helpText(Symbol::HP_ErrorText, displayOptions),
-                    };
-                }
-            }
-        }
-
-        if (error != ParseResult::NoError) {
-            result->argResult.clear();
-            result->optResult.clear();
-        } else {
-            if (result->optResult.count("version")) {
-                result->versionSet = true;
-            }
-
-            if (result->optResult.count("help")) {
-                result->helpSet = true;
-            }
-        }
-        return result;
+    Parser::TextProvider Parser::defaultTextProvider() {
+        return Strings::en_US::provider;
     }
 
 }

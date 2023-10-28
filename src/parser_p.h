@@ -12,7 +12,7 @@ namespace SysCmdLine {
         ParserPrivate *clone() const;
 
         Command rootCommand;
-        std::string intro[2];
+        std::string prologue, epilogue;
         int displayOptions;
         HelpLayout helpLayout;
 
