@@ -3,7 +3,7 @@
 
 namespace SysCmdLine {
 
-    SharedBasePrivate::SharedBasePrivate() : ref(0) {
+    SharedBasePrivate::SharedBasePrivate() : ref(1) {
     }
 
     SharedBasePrivate::~SharedBasePrivate() = default;
