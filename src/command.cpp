@@ -23,40 +23,33 @@ namespace SysCmdLine {
         return new CommandCataloguePrivate(*this);
     }
 
+    static void addIndexes(StringMap &indexes, StringList &keys, const std::string &key,
+                           const StringList &val) {
+        auto vec = map_search<StringList>(indexes, key);
+        if (!vec) {
+            map_insert<StringList>(indexes, key, val);
+            keys.push_back(key);
+            return;
+        }
+        *vec = Utils::concatVector(*vec, val);
+    }
+
     CommandCatalogue::CommandCatalogue() : SharedBase(new CommandCataloguePrivate()) {
     }
 
     void CommandCatalogue::addArguments(const std::string &name, const StringList &args) {
         Q_D(CommandCatalogue);
-        auto vec = map_search<StringList>(d->arg.data, name);
-        if (!vec) {
-            map_insert<StringList>(d->arg.data, name, args);
-            d->arguments.push_back(name);
-            return;
-        }
-        *vec = Utils::concatVector(*vec, args);
+        addIndexes(d->arg.data, d->arguments, name, args);
     }
 
     void CommandCatalogue::addOptions(const std::string &name, const StringList &options) {
         Q_D(CommandCatalogue);
-        auto vec = map_search<StringList>(d->opt.data, name);
-        if (!vec) {
-            map_insert<StringList>(d->opt.data, name, options);
-            d->options.push_back(name);
-            return;
-        }
-        *vec = Utils::concatVector(*vec, options);
+        addIndexes(d->opt.data, d->options, name, options);
     }
 
     void CommandCatalogue::addCommands(const std::string &name, const StringList &commands) {
         Q_D(CommandCatalogue);
-        auto vec = map_search<StringList>(d->cmd.data, name);
-        if (!vec) {
-            map_insert<StringList>(d->cmd.data, name, commands);
-            d->commands.push_back(name);
-            return;
-        }
-        *vec = Utils::concatVector(*vec, commands);
+        addIndexes(d->cmd.data, d->commands, name, commands);
     }
 
     CommandPrivate::CommandPrivate(std::string name, const std::string &desc)
@@ -66,22 +59,6 @@ namespace SysCmdLine {
 
     SharedBasePrivate *CommandPrivate::clone() const {
         return new CommandPrivate(*this);
-    }
-
-    StringMap CommandPrivate::buildExclusiveOptionMap() const {
-        StringMap res;
-        for (int i = 0; i < options.size(); ++i) {
-            const auto &group = optionGroupNames[i];
-            if (group.empty())
-                continue;
-
-            if (auto optionIndexList = map_search<IntList>(res, group)) {
-                optionIndexList->push_back(i);
-                continue;
-            }
-            res[group] = size_t(new IntList({i}));
-        }
-        return res;
     }
 
     Command::Command() : Command({}, {}) {
@@ -117,7 +94,21 @@ namespace SysCmdLine {
 
                 // Build exclusive option group indexes
                 // group name -> option subscripts (vector<int> *)
-                StringMap exclusiveGroupIndexes = d->buildExclusiveOptionMap();
+                StringMap exclusiveGroupIndexes = [](const CommandPrivate *d) {
+                    StringMap res;
+                    for (int i = 0; i < d->options.size(); ++i) {
+                        const auto &group = d->optionGroupNames[i];
+                        if (group.empty())
+                            continue;
+
+                        if (auto optionIndexList = map_search<IntList>(res, group)) {
+                            optionIndexList->push_back(i);
+                            continue;
+                        }
+                        res[group] = size_t(new IntList({i}));
+                    }
+                    return res;
+                }(d);
 
                 auto addArgumentsHelp = [&](bool front) {
                     if (bool(displayOptions & Parser::ShowOptionsBehindArguments) != front &&

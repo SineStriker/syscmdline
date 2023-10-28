@@ -50,10 +50,6 @@ namespace SysCmdLine {
         CommandCatalogue catalogue;
 
         Command::Handler handler;
-
-        // returns a map from (token: std::string) to (indexes: std::vector<int> *)
-        // call `map_deleteAll<IntList>()` if no longer use
-        StringMap buildExclusiveOptionMap() const;
     };
 
 }
