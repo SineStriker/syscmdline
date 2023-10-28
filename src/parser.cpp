@@ -5,7 +5,7 @@
 #include <cctype>
 #include <algorithm>
 
-#include "utils.h"
+#include "utils_p.h"
 #include "command_p.h"
 #include "option_p.h"
 #include "helplayout_p.h"

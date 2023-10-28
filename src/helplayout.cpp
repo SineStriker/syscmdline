@@ -3,6 +3,7 @@
 
 #include "system.h"
 #include "parser_p.h"
+#include "utils_p.h"
 
 namespace SysCmdLine {
 
@@ -11,41 +12,79 @@ namespace SysCmdLine {
             u8printf("\n");
     }
 
-    static void defaultTextPrinter(const HelpLayout::Context &ctx) {
+    static void defaultTextsPrinter(MessageType messageType, bool highlight,
+                                    const HelpLayout::Context &ctx) {
         if (ctx.text->title.empty()) {
-            u8printf("%s:\n", ctx.text->title.data());
-            u8printf("%s%s\n", ctx.parser->d_func()->indent().data(), ctx.text->lines.data());
+            // Title
+            u8debug(messageType, highlight, "%s:\n", ctx.text->title.data());
+
+            // Content
+            auto lines = Utils::split(ctx.text->lines, "\n");
+            for (const auto &line : std::as_const(lines))
+                u8debug(messageType, highlight, "%s%s\n", ctx.parser->d_func()->indent().data(),
+                        line.data());
         } else {
-            u8printf("%s\n", ctx.text->lines.data());
+            // Content
+            u8debug(messageType, highlight, "%s\n", ctx.text->lines.data());
         }
         printLast(ctx.hasNext);
     }
 
-    static void defaultListPrinter(const HelpLayout::Context &ctx) {
-        printLast(ctx.hasNext);
-
-        u8printf("%s:\n", ctx.text->title.data());
+    static void defaultInfoPrinter(const HelpLayout::Context &ctx) {
+        defaultTextsPrinter(MT_Debug, false, ctx);
     }
 
     static void defaultWarnPrinter(const HelpLayout::Context &ctx) {
-        if (ctx.text->title.empty()) {
-            u8debug(MT_Warning, false, "%s:\n", ctx.text->title.data());
-            u8debug(MT_Warning, false, "%s%s\n", ctx.parser->d_func()->indent().data(),
-                    ctx.text->lines.data());
-        } else {
-            u8debug(MT_Warning, false, "%s\n", ctx.text->lines.data());
-        }
-        printLast(ctx.hasNext);
+        defaultTextsPrinter(MT_Warning, false, ctx);
     }
 
     static void defaultErrorPrinter(const HelpLayout::Context &ctx) {
-        if (ctx.text->title.empty()) {
-            u8debug(MT_Critical, true, "%s:\n", ctx.text->title.data());
-            u8debug(MT_Critical, true, "%s%s\n", ctx.parser->d_func()->indent().data(),
-                    ctx.text->lines.data());
-        } else {
-            u8debug(MT_Critical, true, "%s\n", ctx.text->lines.data());
+        defaultTextsPrinter(MT_Critical, true, ctx);
+    }
+
+    static void defaultListPrinter(const HelpLayout::Context &ctx) {
+        // Title
+        u8printf("%s:\n", ctx.text->title.data());
+
+        const auto &list = ctx.list;
+        const auto &parserData = ctx.parser->d_func();
+
+        int widest = ctx.firstColumnLength;
+        if (widest == 0) {
+            for (const auto &item : list->firstColumn)
+                widest = std::max(widest, int(item.size()));
         }
+
+        std::vector<std::string> res;
+        for (size_t i = 0; i < list->firstColumn.size(); ++i) {
+            auto lines = Utils::split(list->secondColumn[i], "\n");
+            if (lines.empty())
+                lines.emplace_back();
+
+            {
+                std::string ss;
+                ss += parserData->indent();
+                ss += list->firstColumn[i];
+                ss += std::string(widest - list->firstColumn[i].size(), ' ');
+                ss += parserData->spacing();
+                ss += lines.front();
+                res.push_back(ss);
+            }
+
+            for (const auto &line : std::as_const(lines)) {
+                std::string ss;
+                ss += parserData->indent();
+                ss += std::string(widest, ' ');
+                ss += parserData->spacing();
+                ss += line;
+                res.push_back(ss);
+            }
+        }
+
+        for (const auto &line : std::as_const(res)) {
+            u8printf("%s\n", line.data());
+        }
+
         printLast(ctx.hasNext);
     }
 
@@ -58,7 +97,7 @@ namespace SysCmdLine {
     void HelpLayout::addHelpTextItem(HelpTextItem type, const Output &out) {
         Q_D(HelpLayout);
         d->itemDataList.push_back(
-            {HelpLayoutPrivate::HelpText, type, out ? out : defaultTextPrinter, {}, {}});
+            {HelpLayoutPrivate::HelpText, type, out ? out : defaultInfoPrinter, {}, {}});
     }
     void HelpLayout::addHelpListItem(HelpListItem type, const Output &out) {
         Q_D(HelpLayout);
@@ -76,7 +115,7 @@ namespace SysCmdLine {
                                            default:
                                                break ;
                                        }
-                                       return defaultTextPrinter;
+                                       return defaultInfoPrinter;
                                    }(type), {}, {}});
     }
     void HelpLayout::addUserHelpTextItem(const Text &text, const Output &out) {

@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 
-#include "utils.h"
+#include "utils_p.h"
 #include "strings.h"
 #include "system.h"
 
@@ -365,7 +365,7 @@ namespace SysCmdLine {
                 case HelpLayoutPrivate::HelpList: {
                     if (noHelp)
                         break;
-                    ctx.spacing = maxWidth;
+                    ctx.firstColumnLength = maxWidth;
                     switch (static_cast<HelpLayout::HelpListItem>(item.index)) {
                         case HelpLayout::HL_Arguments: {
                             for (int j = 0; j < argLists.size; ++j) {
@@ -434,7 +434,7 @@ namespace SysCmdLine {
                     if (noHelp)
                         break;
                     ctx.list = &item.list;
-                    ctx.spacing = maxWidth;
+                    ctx.firstColumnLength = maxWidth;
                     item.out(ctx);
                     break;
                 }

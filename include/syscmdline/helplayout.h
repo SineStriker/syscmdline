@@ -84,7 +84,7 @@ namespace SysCmdLine {
                 // Available on `HelpListItem`, `UserHelpListItem`
                 struct {
                     const List *list;
-                    int spacing;
+                    int firstColumnLength;
                 };
             };
             bool hasNext;

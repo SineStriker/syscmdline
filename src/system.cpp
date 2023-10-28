@@ -7,7 +7,7 @@
 #  include <windows.h>
 #  include <shellapi.h>
 
-#  include "utils.h"
+#  include "utils_p.h"
 #else
 #  include <limits.h>
 #  include <sys/stat.h>
