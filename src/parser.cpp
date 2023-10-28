@@ -218,6 +218,12 @@ namespace SysCmdLine {
                 nonCommandIndex = i;
                 result->command = cmd;
                 targetCommandData = cmd->d_func();
+
+                // Build command indexes
+                for (size_t j = 0; j < targetCommandData->commands.size(); ++j) {
+                    core.cmdNameIndexes.insert(
+                        std::make_pair(targetCommandData->commands[j].name(), j));
+                }
             }
 
             // 2. Collect options along the command path

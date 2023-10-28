@@ -35,6 +35,8 @@
 
 namespace SysCmdLine {
 
+    class Parser;
+
     class HelpLayoutPrivate;
 
     class SYSCMDLINE_EXPORT HelpLayout : public SharedBase {
@@ -45,9 +47,9 @@ namespace SysCmdLine {
 
         enum HelpTextItem {
             HT_Prologue,
+            HT_Epilogue,
             HT_Description,
             HT_Usage,
-            HT_Epilogue,
         };
 
         enum HelpListItem {
@@ -73,18 +75,31 @@ namespace SysCmdLine {
             std::vector<std::string> secondColumn;
         };
 
-        using TextOutput = std::function<void(const Text & /* text */, bool /* hasNext */)>;
-        using ListOptput = std::function<void(const List & /* list */, bool /* hasNext */)>;
-        using PlainOutput = std::function<void(bool /* hasNext */)>;
+        struct Context {
+            const Parser *parser;
+            union {
+                // Available on `HelpTextItem`, `UserHelpTextItem`
+                const Text *text;
+
+                // Available on `HelpListItem`, `UserHelpListItem`
+                struct {
+                    const List *list;
+                    int spacing;
+                };
+            };
+            bool hasNext;
+        };
+
+        using Output = std::function<void(const Context & /* context */)>;
 
     public:
-        void addHelpTextItem(HelpTextItem type, const TextOutput &out = {});
-        void addHelpListItem(HelpListItem type, const ListOptput &out = {});
-        void addMessageItem(MessageItem type, const TextOutput &out = {});
+        void addHelpTextItem(HelpTextItem type, const Output &out = {});
+        void addHelpListItem(HelpListItem type, const Output &out = {});
+        void addMessageItem(MessageItem type, const Output &out = {});
 
-        void addUserHelpTextItem(const Text &text, const TextOutput &out = {});
-        void addUserHelpListItem(const List &list, const ListOptput &out = {});
-        void addUserHelpPlainItem(const PlainOutput &out);
+        void addUserHelpTextItem(const Text &text, const Output &out = {});
+        void addUserHelpListItem(const List &list, const Output &out = {});
+        void addUserHelpPlainItem(const Output &out);
 
     public:
         static HelpLayout defaultHelpLayout();

@@ -16,6 +16,9 @@ namespace SysCmdLine {
         arg = map_copy<StringList>(other.arg);
         opt = map_copy<StringList>(other.opt);
         cmd = map_copy<StringList>(other.cmd);
+        arguments = other.arguments;
+        options = other.options;
+        commands = other.commands;
     }
 
     CommandCataloguePrivate::~CommandCataloguePrivate() {
@@ -36,6 +39,7 @@ namespace SysCmdLine {
         auto vec = map_search<StringList>(d->arg, name);
         if (!vec) {
             map_insert<StringList>(d->arg, name, args);
+            d->arguments.push_back(name);
             return;
         }
         *vec = Utils::concatVector(*vec, args);
@@ -46,6 +50,7 @@ namespace SysCmdLine {
         auto vec = map_search<StringList>(d->opt, name);
         if (!vec) {
             map_insert<StringList>(d->opt, name, options);
+            d->options.push_back(name);
             return;
         }
         *vec = Utils::concatVector(*vec, options);
@@ -56,6 +61,7 @@ namespace SysCmdLine {
         auto vec = map_search<StringList>(d->cmd, name);
         if (!vec) {
             map_insert<StringList>(d->cmd, name, commands);
+            d->commands.push_back(name);
             return;
         }
         *vec = Utils::concatVector(*vec, commands);

@@ -19,6 +19,10 @@ namespace SysCmdLine {
         StringMap arg;
         StringMap opt;
         StringMap cmd;
+
+        StringList arguments;
+        StringList options;
+        StringList commands;
     };
 
     class CommandPrivate : public ArgumentHolderPrivate {

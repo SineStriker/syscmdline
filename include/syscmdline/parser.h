@@ -54,15 +54,15 @@ namespace SysCmdLine {
         enum DisplayOption {
             Normal = 0,
             DontShowHelpOnError = 0x1,
-            SkipCorrection = 0x2,
-            DontShowRequiredOptionsOnUsage = 0x4,
-            ShowOptionalOptionsOnUsage = 0x8,
-            ShowOptionsBehindArguments = 0x10,
-            ShowArgumentDefaultValue = 0x20,
-            ShowArgumentExpectedValues = 0x40,
-            ShowArgumentIsRequired = 0x80,
-            ShowOptionIsRequired = 0x100,
-            AlignSameCatalogues = 0x200,
+            DontShowIntroOnError = 0x2,
+            SkipCorrection = 0x4,
+            DontShowRequiredOptionsOnUsage = 0x8,
+            ShowOptionalOptionsOnUsage = 0x10,
+            ShowOptionsBehindArguments = 0x20,
+            ShowArgumentDefaultValue = 0x40,
+            ShowArgumentExpectedValues = 0x80,
+            ShowArgumentIsRequired = 0x100,
+            ShowOptionIsRequired = 0x200,
             AlignAllCatalogues = 0x400,
         };
 
@@ -102,7 +102,8 @@ namespace SysCmdLine {
         static TextProvider defaultTextProvider();
     };
 
-    inline int Parser::invoke(const std::vector<std::string> &params, int errCode, int parseOptions) {
+    inline int Parser::invoke(const std::vector<std::string> &params, int errCode,
+                              int parseOptions) {
         return parse(params, parseOptions).invoke(errCode);
     }
 

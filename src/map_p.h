@@ -25,12 +25,12 @@ namespace SysCmdLine {
         return map.find(key)->second;
     }
 
-    template <class K>
-    inline const void *map_search(const std::map<K, size_t> &map, const K &key) {
+    template <class T, class K>
+    inline const T *map_search(const std::map<K, size_t> &map, const K &key) {
         auto it = map.find(key);
         if (it == map.end())
             return nullptr;
-        return reinterpret_cast<const void *>(it->second);
+        return reinterpret_cast<const T *>(it->second);
     }
 
     template <class T, class K>

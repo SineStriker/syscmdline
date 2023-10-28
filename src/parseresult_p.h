@@ -11,7 +11,7 @@ namespace SysCmdLine {
     struct ArgumentHolderData {
         int optionalArgIndex;
         int multiValueArgIndex;
-        StringMap argNameIndexes; // name -> index of `argResult`
+        StringMap argNameIndexes; // name -> index of argument
         int argSize;              // equal to `argumentCount()`
     };
 
@@ -35,6 +35,8 @@ namespace SysCmdLine {
         int allOptionsSize;              // command option count + global option count
         int globalOptionsSize;           // global option count
         StringMap allOptionTokenIndexes; // token -> index of `allOptionsResult`
+
+        StringMap cmdNameIndexes;        // name -> index of command
 
         ~ParseResultData2() {
             delete[] allOptionsResult;
@@ -71,8 +73,8 @@ namespace SysCmdLine {
         bool helpSet;
 
         std::string correctionText() const;
-        void showMessage(const std::string &info, const std::string &warn, const std::string &err,
-                         bool noHelp = false) const;
+        void showMessage(const std::string &info, const std::string &catalogNames,
+                         const std::string &symbolIndexes, bool isMsg = false) const;
     };
 
 }
