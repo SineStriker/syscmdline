@@ -9,22 +9,14 @@
 
 namespace SysCmdLine {
 
-    CommandCataloguePrivate::CommandCataloguePrivate() = default;
+    StringListMapWrapper::StringListMapWrapper() = default;
 
-    CommandCataloguePrivate::CommandCataloguePrivate(const CommandCataloguePrivate &other)
-        : SharedBasePrivate(other) {
-        arg = map_copy<StringList>(other.arg);
-        opt = map_copy<StringList>(other.opt);
-        cmd = map_copy<StringList>(other.cmd);
-        arguments = other.arguments;
-        options = other.options;
-        commands = other.commands;
+    StringListMapWrapper::StringListMapWrapper(const StringListMapWrapper &other) {
+        data = map_copy<StringList>(other.data);
     }
 
-    CommandCataloguePrivate::~CommandCataloguePrivate() {
-        map_deleteAll<StringList>(arg);
-        map_deleteAll<StringList>(opt);
-        map_deleteAll<StringList>(cmd);
+    StringListMapWrapper::~StringListMapWrapper() {
+        map_deleteAll<StringList>(data);
     }
 
     SharedBasePrivate *CommandCataloguePrivate::clone() const {
@@ -36,9 +28,9 @@ namespace SysCmdLine {
 
     void CommandCatalogue::addArguments(const std::string &name, const StringList &args) {
         Q_D(CommandCatalogue);
-        auto vec = map_search<StringList>(d->arg, name);
+        auto vec = map_search<StringList>(d->arg.data, name);
         if (!vec) {
-            map_insert<StringList>(d->arg, name, args);
+            map_insert<StringList>(d->arg.data, name, args);
             d->arguments.push_back(name);
             return;
         }
@@ -47,9 +39,9 @@ namespace SysCmdLine {
 
     void CommandCatalogue::addOptions(const std::string &name, const StringList &options) {
         Q_D(CommandCatalogue);
-        auto vec = map_search<StringList>(d->opt, name);
+        auto vec = map_search<StringList>(d->opt.data, name);
         if (!vec) {
-            map_insert<StringList>(d->opt, name, options);
+            map_insert<StringList>(d->opt.data, name, options);
             d->options.push_back(name);
             return;
         }
@@ -58,9 +50,9 @@ namespace SysCmdLine {
 
     void CommandCatalogue::addCommands(const std::string &name, const StringList &commands) {
         Q_D(CommandCatalogue);
-        auto vec = map_search<StringList>(d->cmd, name);
+        auto vec = map_search<StringList>(d->cmd.data, name);
         if (!vec) {
-            map_insert<StringList>(d->cmd, name, commands);
+            map_insert<StringList>(d->cmd.data, name, commands);
             d->commands.push_back(name);
             return;
         }

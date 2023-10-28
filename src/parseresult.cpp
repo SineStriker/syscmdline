@@ -147,39 +147,40 @@ namespace SysCmdLine {
 
         // Alloc
         int maxWidth = 0;
-        Lists argLists = noHelp
-                             ? Lists()
+        Lists argLists =
+            noHelp ? Lists{nullptr, 0}
+                   : getLists(
+                         displayOptions, catalogueData->arg.data, catalogueData->arguments,
+                         core.argNameIndexes, int(d->arguments.size()),
+                         [](int i, const void *user) -> const Symbol * {
+                             return &reinterpret_cast<decltype(d)>(user)->arguments[i]; //
+                         },
+                         d,
+                         [](const Symbol *s) {
+                             return static_cast<const Argument *>(s)->name(); //
+                         },
+                         &maxWidth);
+
+        Lists optLists = noHelp
+                             ? Lists{nullptr, 0}
                              : getLists(
-                                   displayOptions, catalogueData->arg, catalogueData->arguments,
-                                   core.argNameIndexes, int(d->arguments.size()),
+                                   displayOptions, catalogueData->opt.data, catalogueData->options,
+                                   core.allOptionTokenIndexes, int(core.allOptionsSize),
                                    [](int i, const void *user) -> const Symbol * {
-                                       return &reinterpret_cast<decltype(d)>(user)->arguments[i]; //
+                                       return reinterpret_cast<const ParseResultData2 *>(user)
+                                           ->allOptionsResult[i]
+                                           .option; //
                                    },
-                                   d,
+                                   &core,
                                    [](const Symbol *s) {
-                                       return static_cast<const Argument *>(s)->name(); //
+                                       return static_cast<const Option *>(s)->token(); //
                                    },
                                    &maxWidth);
 
-        Lists optLists = noHelp ? Lists()
-                                : getLists(
-                                      displayOptions, catalogueData->opt, catalogueData->options,
-                                      core.allOptionTokenIndexes, int(core.allOptionsSize),
-                                      [](int i, const void *user) -> const Symbol * {
-                                          return reinterpret_cast<const ParseResultData2 *>(user)
-                                              ->allOptionsResult[i]
-                                              .option; //
-                                      },
-                                      &core,
-                                      [](const Symbol *s) {
-                                          return static_cast<const Option *>(s)->token(); //
-                                      },
-                                      &maxWidth);
-
         Lists cmdLists = noHelp
-                             ? Lists()
+                             ? Lists{nullptr, 0}
                              : getLists(
-                                   displayOptions, catalogueData->cmd, catalogueData->commands,
+                                   displayOptions, catalogueData->cmd.data, catalogueData->commands,
                                    core.argNameIndexes, int(d->commands.size()),
                                    [](int i, const void *user) -> const Symbol * {
                                        return &reinterpret_cast<decltype(d)>(user)->commands[i]; //
@@ -214,22 +215,28 @@ namespace SysCmdLine {
             bool empty = true;
             switch (item.itemType) {
                 case HelpLayoutPrivate::HelpText: {
-                    if (noHelp)
-                        break;
                     switch (static_cast<HelpLayout::HelpTextItem>(item.index)) {
                         case HelpLayout::HT_Prologue: {
+                            if (noIntro)
+                                break;
                             empty = parserData->prologue.empty();
                             break;
                         }
                         case HelpLayout::HT_Epilogue: {
+                            if (noIntro)
+                                break;
                             empty = parserData->epilogue.empty();
                             break;
                         }
                         case HelpLayout::HT_Description: {
+                            if (noHelp)
+                                break;
                             empty = cmdDesc.empty();
                             break;
                         }
                         case HelpLayout::HT_Usage: {
+                            if (noHelp)
+                                break;
                             empty = false;
                             break;
                         }
@@ -556,8 +563,7 @@ namespace SysCmdLine {
         const auto &displayOptions = parserData->displayOptions;
         d->showMessage(
             (!(displayOptions & Parser::SkipCorrection)) ? d->correctionText() : std::string(), {},
-            parserData->textProvider(Strings::Title, Strings::Error) + ": " + errorText(),
-            displayOptions & Parser::DontShowHelpOnError);
+            parserData->textProvider(Strings::Title, Strings::Error) + ": " + errorText(), true);
     }
 
     void ParseResult::showHelpText() const {
@@ -569,7 +575,7 @@ namespace SysCmdLine {
                                   const std::string &err) const {
         Q_D2(ParseResult);
         const auto &displayOptions = d->parser.d_func()->displayOptions;
-        d->showMessage(info, warn, err, displayOptions & Parser::DontShowHelpOnError);
+        d->showMessage(info, warn, err, true);
     }
 
     bool ParseResult::isHelpSet() const {
