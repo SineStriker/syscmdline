@@ -125,7 +125,7 @@ namespace SysCmdLine {
                                   int *maxWidth, void *extra,
                                   const std::string &defaultTitle) -> Lists {
             Lists res;
-            res.size = 0;
+            res.size = 0; // use as index
             res.data = new HelpLayout::List[catalogNames.size() + 1];
 
             // symbol indexes
@@ -160,12 +160,12 @@ namespace SysCmdLine {
                 }
 
                 if (!empty)
-                    res.size++;
+                    res.size++; // index inc
             }
 
             // rest
             if (!restIndexes.empty()) {
-                auto &list = res.data[res.size++];
+                auto &list = res.data[res.size++]; // index inc
                 list.title = defaultTitle;
                 for (const auto &pair : restIndexes) {
                     const auto &sym = getter(pair.first, user);
@@ -395,7 +395,7 @@ namespace SysCmdLine {
 
                             {
                                 // get parent names
-                                auto p = command;
+                                auto p = &parserData->rootCommand;
                                 for (int index : stack) {
                                     text.lines = p->name() + " ";
                                     p = &p->d_func()->commands[index];

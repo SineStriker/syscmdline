@@ -45,7 +45,7 @@ namespace SysCmdLine {
 
         Argument();
         Argument(const std::string &name, const std::string &desc = {}, bool required = true,
-                 const Value &defaultValue = false);
+                 const Value &defaultValue = {});
 
         std::string displayedText() const;
 

@@ -1,4 +1,4 @@
-project(tst_hash)
+project(tst_basic)
 
 file(GLOB _src *.h *.cpp)
 

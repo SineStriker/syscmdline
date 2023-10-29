@@ -182,34 +182,25 @@ namespace SysCmdLine {
                     size_t j = 0;
                     size_t size = dd->commands.size();
                     for (; j < size; ++j) {
-                        if (dd->commands[j].name() == param) {
-                            j = i;
+                        const auto &name = dd->commands[j].name();
+                        if (name == param || ((parseOptions & Parser::IgnoreCommandCase) &&
+                                              Utils::toLower(name) == Utils::toLower(param))) {
                             break;
                         }
                     }
 
                     if (j == size) {
-                        // Try case-insensitive
-                        if (parseOptions & Parser::IgnoreCommandCase) {
-                            for (j = 0; j < size; ++j) {
-                                if (Utils::toLower(dd->commands[j].name()) ==
-                                    Utils::toLower(param)) {
-                                    j = i;
-                                    break;
-                                }
-                            }
-
-                            // Not found
-                            if (j == size) {
-                                break;
-                            }
-                        } else {
-                            break;
-                        }
+                        break;
                     }
 
                     result->stack.push_back(j);
-                    globalOptionCount += cmd->optionCount();
+                    globalOptionCount += [](const Command *cmd) {
+                        int cnt = 0;
+                        for (const auto &opt : cmd->d_func()->options)
+                            if (opt.isGlobal())
+                                cnt++;
+                        return cnt;
+                    }(cmd);
                     cmd = &cmd->d_func()->commands.at(j);
                 }
                 nonCommandIndex = i;
@@ -233,6 +224,8 @@ namespace SysCmdLine {
 
                     // Add options
                     for (const auto &option : d->options) {
+                        if (!option.isGlobal())
+                            continue;
                         globalOptionList[globalOptionListIndex++] = &option;
                     }
                     cmd = &d->commands[i];
