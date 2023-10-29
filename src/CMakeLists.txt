@@ -25,7 +25,7 @@ endif()
 
 # if(MSVC)
 #     if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
-#         target_compile_options(${PROJECT_NAME} PRIVATE /Gw /Gy /Zc:inline)
+#         target_compile_options(${PROJECT_NAME} PRIVATE /GL /Os)
 #         target_link_options(${PROJECT_NAME} PRIVATE /OPT:REF /OPT:ICF /OPT:LBR)
 #     endif()
 # endif()

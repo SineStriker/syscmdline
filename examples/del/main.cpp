@@ -1,6 +1,8 @@
 #include <syscmdline/parser.h>
 #include <syscmdline/system.h>
 
+#include <thread>
+
 namespace zh_CN {
 
     static const char *error_strings[] = {
@@ -82,10 +84,10 @@ int main(int argc, char *argv[]) {
     SYSCMDLINE_UNUSED(argc);
     SYSCMDLINE_UNUSED(argv);
 
-    Option promptOption("/P", "删除每一个文件之前提示确认");
-    Option forceOption("/F", "强制删除只读文件");
-    Option subdirOption("/S", "删除所有子目录中的指定的文件");
-    Option quietOption("/Q", "安静模式。删除全局通配符时，不要求确认");
+    Option promptOption({"/P", "-p"}, "删除每一个文件之前提示确认");
+    Option forceOption({"/F", "-f"}, "强制删除只读文件");
+    Option subdirOption({"/S", "-s"}, "删除所有子目录中的指定的文件");
+    Option quietOption({"/Q", "-q"}, "安静模式。删除全局通配符时，不要求确认");
 
     Argument fileArg("files", "指定一个或多个文件或者目录列表");
     fileArg.setDisplayName("files");
@@ -107,5 +109,6 @@ int main(int argc, char *argv[]) {
     Parser parser(rootCommand);
     parser.setTextProvider(zh_CN::provider);
     parser.setDisplayOptions(Parser::ShowOptionalOptionsOnUsage | Parser::ShowArgumentIsRequired);
-    return parser.invoke(commandLineArguments(), -1, Parser::IgnoreOptionCase);
+    return parser.invoke(commandLineArguments(), -1,
+                         Parser::IgnoreOptionCase | Parser::AllowUnixGroupFlags);
 }

@@ -19,6 +19,15 @@ namespace SysCmdLine {
         return new OptionPrivate(*this);
     }
 
+    //        template <typename... Args>
+    //        Option(const char *firstToken, Args &&...args, const std::string &desc)
+    //            : Option(std::vector<std::string>(), desc) {
+    //            std::vector<std::string> tokens;
+    //            tokens.emplace_back(firstToken);
+    //            (tokens.emplace_back(std::forward<Args>(args)), ...);
+    //            setTokens(tokens);
+    //        }
+
     Option::Option(SpecialType specialType)
         : ArgumentHolder(new OptionPrivate(specialType, {}, {}, false)) {
     }

@@ -24,8 +24,8 @@
  *
  ****************************************************************************/
 
-#ifndef SYSTEM
-#define SYSTEM
+#ifndef SYSTEM_H
+#define SYSTEM_H
 
 #include <string>
 #include <vector>
@@ -55,4 +55,4 @@ namespace SysCmdLine {
 
 }
 
-#endif // SYSTEM
+#endif // SYSTEM_H

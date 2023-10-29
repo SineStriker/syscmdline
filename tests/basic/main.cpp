@@ -92,22 +92,10 @@ int main(int argc, char *argv[]) {
         }
         std::cout << "Mutually exclusive options: OK" << std::endl;
     }
+    std::cout << std::endl;
 
     {
         std::cout << "[Test Short Option]" << std::endl;
-
-        Option opt1("--opt1", "1");
-        Option opt2("--opt2", "2");
-
-        Command cmd("cmd");
-        cmd.addOptions({opt1, opt2}, "1");
-
-        {
-            Parser parser(cmd);
-            ParseResult res = parser.parse({"cmd", "--opt1", "--opt2"});
-            assert(res.error() == ParseResult::MutuallyExclusiveOptions);
-        }
-        std::cout << "Mutually exclusive options: OK" << std::endl;
     }
 
     return 0;

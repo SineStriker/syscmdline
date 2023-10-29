@@ -591,8 +591,10 @@ namespace SysCmdLine {
                 const auto &idx = it->second;
                 const auto &opt = core.allOptionsResult[idx].option;
                 const auto &args = opt->d_func()->arguments;
+
+                // only option with single required argument can be matched
                 if (args.size() != 1 || !args.front().isRequired()) {
-                    return idx;
+                    return -1;
                 }
 
                 switch (opt->shortMatchRule()) {
