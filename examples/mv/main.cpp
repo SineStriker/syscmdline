@@ -15,12 +15,14 @@ int main(int /* argc */, char * /* argv */[]) {
     numArg.setMultiValueEnabled(true);
     Option numOpt("-n", "Numbers");
     numOpt.addArguments({numArg});
+    Option numOpt2("-n2", "Numbers 2");
+    numOpt.addArguments({numArg});
 
     Argument destArg("dest", "Destination directory");
 
     Command rootCommand("work", "What to do on which day?");
     rootCommand.addArguments({srcArg, destArg});
-    rootCommand.addOptions({numOpt});
+    rootCommand.addOptions({numOpt, numOpt2});
     rootCommand.addHelpOption();
     rootCommand.setHandler([](const ParseResult &result) {
         u8printf("Sources:\n");
@@ -31,6 +33,10 @@ int main(int /* argc */, char * /* argv */[]) {
         u8printf("    %s\n", result.valueForArgument("dest").toString().data());
         u8printf("Numbers:\n");
         for (const auto &item : result.resultForOption("-n").valuesForArgument("nums")) {
+            u8printf("    %s\n", item.toString().data());
+        }
+        u8printf("Numbers 2:\n");
+        for (const auto &item : result.resultForOption("-n2").valuesForArgument("nums")) {
             u8printf("    %s\n", item.toString().data());
         }
         return 0;
