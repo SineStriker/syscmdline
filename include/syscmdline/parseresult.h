@@ -1,28 +1,28 @@
 /****************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2023 SineStriker
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-****************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023 SineStriker
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ ****************************************************************************/
 
 #ifndef PARSERESULT_H
 #define PARSERESULT_H
@@ -133,6 +133,7 @@ namespace SysCmdLine {
         std::vector<Option> globalOptions() const;
         std::vector<int> commandIndexStack() const;
         int indexOfArgument(const std::string &argName) const;
+        int indexOfOption(const std::string &token) const;
 
         void showError() const;
         void showHelpText() const;
@@ -155,18 +156,22 @@ namespace SysCmdLine {
 
         inline bool optionIsSet(const Option &option) const;
         inline bool optionIsSet(const std::string &token) const;
+        inline bool optionIsSet(int index) const;
 
         // Get values of single argument option which occurs multiple times
         inline std::vector<Value> valuesForOption(const Option &option) const;
         inline std::vector<Value> valuesForOption(const std::string &token) const;
+        inline std::vector<Value> valuesForOption(int index) const;
 
         // Get value of single argument option at its first occurrence or its default value
         inline Value valueForOption(const Option &option) const;
         inline Value valueForOption(const std::string &token) const;
+        inline Value valueForOption(int index) const;
 
         // Detailed result for an option
         inline OptionResult resultForOption(const Option &option) const;
-        OptionResult resultForOption(const std::string &token) const;
+        inline OptionResult resultForOption(const std::string &token) const;
+        OptionResult resultForOption(int index) const;
 
     protected:
         ParseResult(ParseResultPrivate *d);
@@ -195,40 +200,56 @@ namespace SysCmdLine {
     }
 
     inline bool ParseResult::optionIsSet(const Option &option) const {
-        return optionIsSet(option.token());
+        return resultForOption(indexOfOption(option.token())).count() > 0;
     }
 
     inline bool ParseResult::optionIsSet(const std::string &token) const {
-        return resultForOption(token).count() > 0;
+        return resultForOption(indexOfOption(token)).count() > 0;
+    }
+
+    bool ParseResult::optionIsSet(int index) const {
+        return resultForOption(index).count() > 0;
     }
 
     inline std::vector<Value> ParseResult::valuesForOption(const Option &option) const {
-        return valuesForOption(option.token());
+        return valuesForOption(indexOfOption(option.token()));
     }
 
     inline std::vector<Value> ParseResult::valuesForOption(const std::string &token) const {
-        OptionResult optionResult = resultForOption(token);
+        return valuesForOption(indexOfOption(token));
+    }
+
+    inline std::vector<Value> ParseResult::valuesForOption(int index) const {
+        OptionResult optionResult = resultForOption(index);
         if (!optionResult.isValid())
             return {};
 
         std::vector<Value> values;
         values.reserve(optionResult.count());
         for (int i = 0; i < optionResult.count(); ++i) {
-            values.emplace_back(optionResult.valueForArgument(0));
+            values.emplace_back(optionResult.valueForArgument(0, i));
         }
         return values;
     }
 
     inline Value ParseResult::valueForOption(const Option &option) const {
-        return valueForOption(option.token());
+        return resultForOption(indexOfOption(option.token())).valueForArgument(0);
     }
 
     inline Value ParseResult::valueForOption(const std::string &token) const {
-        return resultForOption(token).valueForArgument(0);
+        return resultForOption(indexOfOption(token)).valueForArgument(0);
+    }
+
+    Value ParseResult::valueForOption(int index) const {
+        return resultForOption(index).valueForArgument(0);
     }
 
     inline OptionResult ParseResult::resultForOption(const Option &option) const {
-        return resultForOption(option.token());
+        return resultForOption(indexOfOption(option.token()));
+    }
+
+    OptionResult ParseResult::resultForOption(const std::string &token) const {
+        return resultForOption(indexOfOption(token));
     }
 
 }

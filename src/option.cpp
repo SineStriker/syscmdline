@@ -83,7 +83,6 @@ namespace SysCmdLine {
                 return desc + appendix;
             }
         }
-
         return {};
     }
 
@@ -144,7 +143,7 @@ namespace SysCmdLine {
 
     void Option::setMaxOccurrence(int max) {
         Q_D(Option);
-        d->global = max;
+        d->maxOccurrence = max;
     }
 
     Option::SpecialType Option::specialType() const {

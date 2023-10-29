@@ -118,7 +118,15 @@ namespace SysCmdLine {
                     }
                 };
 
-                SSizeMap visitedOptions; // pointer -> none
+                std::vector<int> visitedOptions(options.size()); // pointer -> none
+                int visitedCount = 0;
+                auto addVisited = [&visitedOptions, &visitedCount](int idx) {
+                    if (visitedOptions[idx])
+                        return;
+                    visitedOptions[idx] = 1;
+                    visitedCount++;
+                };
+
                 auto addExclusiveOptions = [&](int optIdx, bool required) {
                     const auto &opt = options[optIdx];
                     const auto &groupName = groupNames[optIdx];
@@ -129,7 +137,7 @@ namespace SysCmdLine {
                         (optionIndexes = map_search<IntList>(exclusiveGroupIndexes, groupName))
                                 ->size() <= 1) {
                         ss += opt.helpText(Symbol::HP_Usage, displayOptions);
-                        visitedOptions.insert(std::make_pair(size_t(&opt), 0));
+                        addVisited(optIdx);
                         return;
                     }
 
@@ -138,11 +146,12 @@ namespace SysCmdLine {
 
                     // Add exclusive
                     StringList exclusiveOptions;
-                    for (const auto &item : *optionIndexes) {
-                        const auto &curOpt = d->options[item];
+                    exclusiveOptions.reserve(optionIndexes->size());
+                    for (const auto &idx : *optionIndexes) {
+                        const auto &curOpt = options[idx];
                         exclusiveOptions.push_back(
                             curOpt.helpText(Symbol::HP_Usage, displayOptions));
-                        visitedOptions.insert(std::make_pair(size_t(&opt), 0));
+                        addVisited(idx);
                     }
 
                     ss += Utils::join(exclusiveOptions, " | ");
@@ -153,7 +162,7 @@ namespace SysCmdLine {
                 auto addOptionsHelp = [&](bool required) {
                     for (int i = 0; i < options.size(); ++i) {
                         const auto &opt = options[i];
-                        if (opt.isRequired() != required || visitedOptions.count(size_t(&opt))) {
+                        if (opt.isRequired() != required || visitedOptions[i]) {
                             continue;
                         }
 
@@ -173,10 +182,9 @@ namespace SysCmdLine {
                 if (!(displayOptions & Parser::DontShowRequiredOptionsOnUsage))
                     addOptionsHelp(true);
 
-
                 // write optional options
                 if ((displayOptions & Parser::ShowOptionalOptionsOnUsage) &&
-                    visitedOptions.size() < options.size())
+                    visitedCount < options.size())
                     addOptionsHelp(false);
 
                 // write backward arguments
@@ -188,7 +196,7 @@ namespace SysCmdLine {
                     *(bool *) a[1] = !d->commands.empty();
 
                     // options
-                    *(bool *) a[2] = visitedOptions.size() < options.size() || !d->commands.empty();
+                    *(bool *) a[2] = visitedCount < options.size() || !d->commands.empty();
                 }
 
                 // release indexes

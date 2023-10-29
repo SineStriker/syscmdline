@@ -427,9 +427,8 @@ namespace SysCmdLine {
 
                     // missing index must be -1
                     // because we have already check the integrity
-                    std::ignore =
-                        parsePositionArguments(args, params.data() + start + 1, len,
-                                               resVec, resultData.multiValueArgIndex);
+                    std::ignore = parsePositionArguments(args, params.data() + start + 1, len,
+                                                         resVec, resultData.multiValueArgIndex);
                     if (result->error != ParseResult::NoError) {
                         failed = true;
                         break;
@@ -670,10 +669,14 @@ namespace SysCmdLine {
 
         // flags: group flags without preceding '-'
         // ->     option indexes
-        std::vector<int> searchGroupFlags(const std::string &flags) {
+        std::vector<int> searchGroupFlags(const std::string &flags) const {
             std::vector<int> res;
+            char token[] = {'-', '-', '\0'};
             for (const auto &flag : flags) {
-                auto it = allOptionTokenIndexes.find(std::string("-") + flag);
+                token[1] = flag;
+
+                // Must be all of flags
+                auto it = allOptionTokenIndexes.find(token);
                 if (it == allOptionTokenIndexes.end()) {
                     return {};
                 }
@@ -682,7 +685,7 @@ namespace SysCmdLine {
                 if (!opt->d_func()->arguments.empty()) {
                     return {};
                 }
-                res.push_back(idx);
+                res.push_back(int(idx));
             }
             return res;
         };

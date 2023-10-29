@@ -59,8 +59,8 @@ namespace SysCmdLine {
         };
 
         Option(SpecialType specialType = NoSpecial);
-        Option(const std::string &token, const std::string &desc, bool required = false);
-        Option(const std::vector<std::string> &tokens, const std::string &desc,
+        Option(const std::string &token, const std::string &desc = {}, bool required = false);
+        Option(const std::vector<std::string> &tokens, const std::string &desc = {},
                bool required = false);
 
         using Symbol::helpText;

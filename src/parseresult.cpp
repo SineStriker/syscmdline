@@ -43,18 +43,22 @@ namespace SysCmdLine {
         if (!data)
             return {};
         auto &v = *reinterpret_cast<const OptionData *>(data);
+        if (argIndex < 0 || argIndex >= v.argSize)
+            return {};
         if (index < 0 || index >= v.count)
             return {};
-        return v.argResult[argIndex][index];
+        return v.argResult[index][argIndex];
     }
 
     Value OptionResult::valueForArgument(int argIndex, int index) const {
         if (!data)
             return {};
         auto &v = *reinterpret_cast<const OptionData *>(data);
-        if (index <= 0 || index >= v.count)
+        if (argIndex < 0 || argIndex >= v.argSize)
+            return {};
+        if (index < 0 || index >= v.count)
             return v.option->argument(argIndex).defaultValue();
-        const auto &args = v.argResult[argIndex][index];
+        const auto &args = v.argResult[index][argIndex];
         return args.empty() ? Value() : args.front();
     }
 
@@ -137,10 +141,7 @@ namespace SysCmdLine {
             res.data = new HelpLayout::List[catalogNames.size() + 1];
 
             // symbol indexes
-            SSizeMap restIndexes;
-            for (size_t i = 0; i < symbolCount; ++i) {
-                restIndexes.insert(std::make_pair(i, 0));
-            }
+            std::vector<int> visitedIndexes(symbolCount);
 
             // catalogues
             for (const auto &catalogName : catalogNames) {
@@ -156,13 +157,12 @@ namespace SysCmdLine {
 
                     auto idx = it->second;
                     const auto &sym = getter(idx, user);
-
                     auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions, extra);
                     auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions, extra);
                     *maxWidth = std::max(int(first.size()), *maxWidth);
-                    list.firstColumn.emplace_back(first);
-                    list.secondColumn.emplace_back(second);
-                    restIndexes.erase(idx);
+                    list.firstColumn.emplace_back(std::move(first));
+                    list.secondColumn.emplace_back(std::move(second));
+                    visitedIndexes[idx] = 1;
                     empty = false;
                 }
 
@@ -171,18 +171,26 @@ namespace SysCmdLine {
             }
 
             // rest
-            if (!restIndexes.empty()) {
-                auto &list = res.data[index++]; // index inc
+            {
+                auto &list = res.data[index];
                 list.title = defaultTitle;
-                for (const auto &pair : restIndexes) {
-                    const auto &sym = getter(pair.first, user);
 
+                bool empty = true;
+                for (int i = 0; i < symbolCount; ++i) {
+                    if (visitedIndexes[i])
+                        continue;
+
+                    const auto &sym = getter(i, user);
                     auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions, extra);
                     auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions, extra);
                     *maxWidth = std::max(int(first.size()), *maxWidth);
-                    list.firstColumn.emplace_back(first);
-                    list.secondColumn.emplace_back(second);
+                    list.firstColumn.emplace_back(std::move(first));
+                    list.secondColumn.emplace_back(std::move(second));
+                    empty = false;
                 }
+
+                if (!empty)
+                    index++; // index inc
             }
 
             res.size = index;
@@ -626,6 +634,14 @@ namespace SysCmdLine {
         return int(it->second);
     }
 
+    int ParseResult::indexOfOption(const std::string &token) const {
+        Q_D2(ParseResult);
+        auto it = d->core.allOptionTokenIndexes.find(token);
+        if (it == d->core.allOptionTokenIndexes.end())
+            return -1;
+        return int(it->second);
+    }
+
     void ParseResult::showError() const {
         Q_D2(ParseResult);
         if (d->error == NoError)
@@ -662,14 +678,14 @@ namespace SysCmdLine {
 
     std::vector<Value> ParseResult::valuesForArgument(int index) const {
         Q_D2(ParseResult);
-        if (index < 0)
+        if (index < 0 || index >= d->core.argSize)
             return {};
         return d->core.argResult[index];
     }
 
     Value ParseResult::valueForArgument(int index) const {
         Q_D2(ParseResult);
-        if (index < 0)
+        if (index < 0 || index >= d->core.argSize)
             return {};
         const auto &args = d->core.argResult[index];
         if (args.empty())
@@ -677,12 +693,11 @@ namespace SysCmdLine {
         return args.front();
     }
 
-    OptionResult ParseResult::resultForOption(const std::string &token) const {
+    OptionResult ParseResult::resultForOption(int index) const {
         Q_D2(ParseResult);
-        auto it = d->core.allOptionTokenIndexes.find(token);
-        if (it == d->core.allOptionTokenIndexes.end())
+        if (index < 0 || index >= d->core.allOptionsSize)
             return {};
-        return &d->core.allOptionsResult[it->second];
+        return &d->core.allOptionsResult[index];
     }
 
     ParseResult::ParseResult(ParseResultPrivate *d) : SharedBase(d) {

@@ -11,9 +11,21 @@ namespace SysCmdLine {
 
     using IntList = std::vector<int>;
 
-    using StringMap = std::map<std::string, size_t>;
+    //    struct Element {
+    //        union {
+    //            size_t s;
+    //            int i;
+    //            IntList *il;
+    //            StringList *sl;
+    //        };
+    //        Element() : s(0){};
+    //        Element(size_t s) : s(s){};
+    //        Element(int i) : i(i){};
+    //        Element(IntList *il) : il(il){};
+    //        Element(StringList *sl) : sl(sl){};
+    //    };
 
-    using SSizeMap = std::map<size_t, size_t>;
+    using StringMap = std::map<std::string, size_t>;
 
     template <class T, class K, class... Args>
     inline void map_insert(std::map<K, size_t> &map, const std::string &key, Args &&...args) {
