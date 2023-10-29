@@ -15,6 +15,37 @@
 
 namespace SysCmdLine {
 
+    Option OptionResult::option() const {
+        auto &v = *reinterpret_cast<const OptionData *>(data);
+        return *v.option;
+    }
+
+    int OptionResult::argumentIndex(const std::string &argName) const {
+        auto &v = *reinterpret_cast<const OptionData *>(data);
+        auto it = v.argNameIndexes.find(argName);
+        if (it == v.argNameIndexes.end())
+            return -1;
+        return int(it->second);
+    }
+
+    int OptionResult::count() const {
+        auto &v = *reinterpret_cast<const OptionData *>(data);
+        return v.count;
+    }
+
+    std::vector<Value> OptionResult::valuesForArgument(int argIndex, int index) const {
+        auto &v = *reinterpret_cast<const OptionData *>(data);
+        return v.argResult[argIndex][index];
+    }
+
+    Value OptionResult::valueForArgument(int argIndex, int index) const {
+        auto &v = *reinterpret_cast<const OptionData *>(data);
+        if (v.count <= index)
+            return v.option->argument(argIndex).defaultValue();
+        const auto &args = v.argResult[argIndex][index];
+        return args.empty() ? Value() : args.front();
+    }
+
     std::string ParseResultPrivate::correctionText() const {
         std::vector<std::string> expectedValues;
         switch (error) {
@@ -554,6 +585,14 @@ namespace SysCmdLine {
         return d->stack;
     }
 
+    int ParseResult::indexOfArgument(const std::string &argName) const {
+        Q_D2(ParseResult);
+        auto it = d->core.argNameIndexes.find(argName);
+        if (it == d->core.argNameIndexes.end())
+            return -1;
+        return int(it->second);
+    }
+
     void ParseResult::showError() const {
         Q_D2(ParseResult);
         if (d->error == NoError)
@@ -586,6 +625,69 @@ namespace SysCmdLine {
     bool ParseResult::isVersionSet() const {
         Q_D2(ParseResult);
         return d->versionSet;
+    }
+
+    std::vector<Value> ParseResult::valuesForArgument(int index) const {
+        Q_D2(ParseResult);
+        return d->core.argResult[index];
+    }
+
+    Value ParseResult::valueForArgument(int index) const {
+        Q_D2(ParseResult);
+        const auto &args = d->core.argResult[index];
+        if (args.empty())
+            return d->command->argument(index).defaultValue();
+        return args.front();
+    }
+
+    bool ParseResult::optionIsSet(const std::string &token) const {
+        Q_D2(ParseResult);
+        auto it = d->core.allOptionTokenIndexes.find(token);
+        if (it == d->core.allOptionTokenIndexes.end())
+            return {};
+        return d->core.allOptionsResult[it->second].count > 0;
+    }
+
+    std::vector<Value> ParseResult::valuesForOption(const std::string &token) const {
+        Q_D2(ParseResult);
+        auto it = d->core.allOptionTokenIndexes.find(token);
+        if (it == d->core.allOptionTokenIndexes.end())
+            return {};
+        auto &resData = d->core.allOptionsResult[it->second];
+        if (resData.argSize == 0 || resData.option->argument(0).isOptional())
+            return {};
+
+        std::vector<Value> res;
+        res.reserve(resData.count);
+        for (int i = 0; i < resData.count; ++i) {
+            res.push_back(resData.argResult[i][0].front());
+        }
+        return res;
+    }
+
+    Value ParseResult::valueForOption(const std::string &token) const {
+        Q_D2(ParseResult);
+        auto it = d->core.allOptionTokenIndexes.find(token);
+        if (it == d->core.allOptionTokenIndexes.end())
+            return {};
+        auto &resData = d->core.allOptionsResult[it->second];
+        if (resData.argSize == 0)
+            return {};
+
+        if (resData.count == 0) {
+            return resData.option->argument(0).defaultValue();
+        }
+
+        const auto &v = resData.argResult[0][0];
+        return v.empty() ? resData.option->argument(0).defaultValue() : v.front();
+    }
+
+    OptionResult ParseResult::resultForOption(const std::string &token) const {
+        Q_D2(ParseResult);
+        auto it = d->core.allOptionTokenIndexes.find(token);
+        if (it == d->core.allOptionTokenIndexes.end())
+            return {};
+        return &d->core.allOptionsResult[it->second];
     }
 
     ParseResult::ParseResult(ParseResultPrivate *d) : SharedBase(d) {

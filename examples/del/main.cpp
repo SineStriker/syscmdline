@@ -90,8 +90,6 @@ int main(int argc, char *argv[]) {
     SYSCMDLINE_UNUSED(argc);
     SYSCMDLINE_UNUSED(argv);
 
-    Strings::setTextProvider(zh_CN::provider);
-
     Option promptOption("/P", "删除每一个文件之前提示确认");
     Option forceOption("/F", "强制删除只读文件");
     Option subdirOption("/S", "删除所有子目录中的指定的文件");
@@ -101,9 +99,9 @@ int main(int argc, char *argv[]) {
     fileArg.setDisplayName("files");
     fileArg.setMultiValueEnabled(true);
 
-    Command rootCommand("del");
+    Command rootCommand("del", {});
     rootCommand.addArgument(fileArg);
-    rootCommand.setOptions({
+    rootCommand.addOptions({
         promptOption,
         forceOption,
         subdirOption,
@@ -113,6 +111,7 @@ int main(int argc, char *argv[]) {
     rootCommand.setHandler(routine);
 
     Parser parser(rootCommand);
+    parser.setTextProvider(zh_CN::provider);
     parser.setDisplayOptions(Parser::ShowOptionalOptionsOnUsage | Parser::ShowArgumentIsRequired);
     return parser.invoke(commandLineArguments(), -1, Parser::IgnoreOptionCase);
 }

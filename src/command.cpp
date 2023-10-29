@@ -121,7 +121,7 @@ namespace SysCmdLine {
                 auto addExclusiveOptions = [&](int optIdx, bool required) {
                     const auto &opt = options[optIdx];
                     const auto &groupName = groupNames[optIdx];
-                    const IntList *optionIndexes = nullptr;
+                    const IntList *optionIndexes;
 
                     // Search group
                     if (groupName.empty() ||

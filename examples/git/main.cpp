@@ -20,7 +20,7 @@ int main(int /* argc */, char * /* argv */[]) {
     Command rebaseCommand("rebase", "Reapply commits on top of another base tip");
 
     Command rootCommand("git", "Git is a distributed version control system.");
-    rootCommand.setCommands({
+    rootCommand.addCommands({
         cloneCommand,
         initCommand,
         commitCommand,
@@ -36,9 +36,8 @@ int main(int /* argc */, char * /* argv */[]) {
     });
 
     CommandCatalogue cc;
-    cc.addCommandCatalogue("start a working area", {"clone", "init"});
-    cc.addCommandCatalogue("grow, mark and tweak your common history",
-                           {"commit", "merge", "rebase"});
+    cc.addCommands("start a working area", {"clone", "init"});
+    cc.addCommands("grow, mark and tweak your common history", {"commit", "merge", "rebase"});
     rootCommand.setCatalogue(cc);
 
     Parser parser(rootCommand);

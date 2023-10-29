@@ -57,11 +57,11 @@ set(SYSCMDLINE_INSTALL_NAME ${PROJECT_NAME})
 add_subdirectory(src)
 
 if(SYSCMDLINE_BUILD_TESTS)
-#    add_subdirectory(tests)
+    add_subdirectory(tests)
 endif()
 
 if(SYSCMDLINE_BUILD_EXAMPLES)
-#    add_subdirectory(examples)
+    add_subdirectory(examples)
 endif()
 
 if(SYSCMDLINE_INSTALL)

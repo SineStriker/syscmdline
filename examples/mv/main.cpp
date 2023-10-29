@@ -27,7 +27,7 @@ int main(int /* argc */, char * /* argv */[]) {
     eventArg.setRequired(false);
 
     Command rootCommand("work", "What to do on which day?");
-    rootCommand.setArguments({weekdayArg, eventArg});
+    rootCommand.addArguments({weekdayArg, eventArg});
     rootCommand.addHelpOption();
     rootCommand.setHandler([](const ParseResult &result) {
         std::cout << result.valueForArgument("weekday").toString() << std::endl;
