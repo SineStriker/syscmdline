@@ -430,7 +430,7 @@ namespace SysCmdLine {
                     // missing index must be -1
                     // because we have already check the integrity
                     std::ignore =
-                        parsePositionArguments(args, positionalArguments.data() + start + 1, len,
+                        parsePositionArguments(args, params.data() + start + 1, len,
                                                resVec, resultData.multiValueArgIndex);
                     if (result->error != ParseResult::NoError) {
                         failed = true;
