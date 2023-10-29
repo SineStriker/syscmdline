@@ -267,4 +267,30 @@ namespace SysCmdLine {
         return res;
     }
 
+    const char *Value::typeName(Value::Type type) {
+        const char *expected;
+        switch (type) {
+            case Value::Bool: {
+                expected = "boolean";
+                break;
+            }
+            case Value::Int: {
+                expected = "int";
+                break;
+            }
+            case Value::Double: {
+                expected = "double";
+                break;
+            }
+            case Value::String: {
+                expected = "string";
+                break;
+            }
+            default:
+                expected = "null";
+                break;
+        }
+        return expected;
+    }
+
 }

@@ -70,6 +70,7 @@ namespace SysCmdLine {
 
         static Value fromString(const std::string &s, Type type);
         static std::vector<std::string> toStringList(const std::vector<Value> &values);
+        static const char *typeName(Type type);
 
     protected:
         union {

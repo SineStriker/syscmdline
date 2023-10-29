@@ -743,37 +743,23 @@ namespace SysCmdLine {
                 return false;
             }
 
-            const char *expected;
             const auto &type = d->defaultValue.type();
-            switch (type) {
-                case Value::Bool: {
-                    expected = "boolean";
-                    break;
-                }
-                case Value::Int: {
-                    expected = "int";
-                    break;
-                }
-                case Value::Double: {
-                    expected = "double";
-                    break;
-                }
-                case Value::String: {
-                    expected = "string";
-                    break;
-                }
-                default: {
-                    *out = token; // no default value
-                    return true;
-                }
+            if (type == Value::Null) {
+                *out = token; // no default value
+                return true;
             }
             if (auto val = Value::fromString(token, type); val.type() != Value::Null) {
                 *out = val;
                 return true;
             }
             if (setError) {
-                buildError(ParseResult::ArgumentTypeMismatch, {token, arg->name(), expected}, token,
-                           arg);
+                buildError(ParseResult::ArgumentTypeMismatch,
+                           {
+                               token,
+                               arg->name(),
+                               Value::typeName(type),
+                           },
+                           token, arg);
             }
             return false;
         };
