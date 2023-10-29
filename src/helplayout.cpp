@@ -133,9 +133,9 @@ namespace SysCmdLine {
         d->itemDataList.push_back(
             {HelpLayoutPrivate::UserHelpList, 0, out ? out : defaultListPrinter, {}, list});
     }
-    void HelpLayout::addUserHelpPlainItem(const Output &out) {
+    void HelpLayout::addUserIntroItem(const Output &out) {
         Q_D(HelpLayout);
-        d->itemDataList.push_back({HelpLayoutPrivate::UserHelpPlain, 0, out, {}, {}});
+        d->itemDataList.push_back({HelpLayoutPrivate::UserIntro, 0, out, {}, {}});
     }
 
     HelpLayout HelpLayout::defaultHelpLayout() {

@@ -98,7 +98,7 @@ namespace SysCmdLine {
 
         void addUserHelpTextItem(const Text &text, const Output &out = {});
         void addUserHelpListItem(const List &list, const Output &out = {});
-        void addUserHelpPlainItem(const Output &out);
+        void addUserIntroItem(const Output &out);
 
     public:
         static HelpLayout defaultHelpLayout();

@@ -20,7 +20,7 @@ namespace SysCmdLine {
             Message,
             UserHelpText,
             UserHelpList,
-            UserHelpPlain,
+            UserIntro,
         };
 
         struct ItemData {

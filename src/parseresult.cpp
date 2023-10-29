@@ -347,8 +347,8 @@ namespace SysCmdLine {
                     empty = item.list.firstColumn.empty();
                     break;
                 }
-                case HelpLayoutPrivate::UserHelpPlain: {
-                    if (noHelp)
+                case HelpLayoutPrivate::UserIntro: {
+                    if (noIntro)
                         break;
                     empty = false;
                     break;
@@ -511,7 +511,7 @@ namespace SysCmdLine {
                     item.out(ctx);
                     break;
                 }
-                case HelpLayoutPrivate::UserHelpPlain: {
+                case HelpLayoutPrivate::UserIntro: {
                     if (noHelp)
                         break;
                     item.out(ctx);
