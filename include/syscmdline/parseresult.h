@@ -20,10 +20,12 @@ namespace SysCmdLine {
         int argumentIndex(const std::string &argName) const;
         int count() const;
 
+        // Get values of multi-value argument at the option's N-th occurrence
         inline std::vector<Value> valuesForArgument(const Argument &arg, int index = 0) const;
         inline std::vector<Value> valuesForArgument(const std::string &name, int index = 0) const;
         std::vector<Value> valuesForArgument(int argIndex, int index = 0) const;
 
+        // Get value of single-value argument at the option's N-th occurrence or its default value
         inline Value valueForArgument(const Argument &arg, int index = 0) const;
         inline Value valueForArgument(const std::string &name, int index = 0) const;
         Value valueForArgument(int argIndex, int index = 0) const;
@@ -115,23 +117,28 @@ namespace SysCmdLine {
         bool isHelpSet() const;
         bool isVersionSet() const;
 
+        // Get values of multi-value argument
         inline std::vector<Value> valuesForArgument(const Argument &arg) const;
         inline std::vector<Value> valuesForArgument(const std::string &name) const;
         std::vector<Value> valuesForArgument(int index) const;
 
+        // Get value of single-value argument or its default value
         inline Value valueForArgument(const Argument &arg) const;
         inline Value valueForArgument(const std::string &name) const;
         Value valueForArgument(int index) const;
 
         inline bool optionIsSet(const Option &option) const;
-        bool optionIsSet(const std::string &token) const;
+        inline bool optionIsSet(const std::string &token) const;
 
+        // Get values of single argument option which occurs multiple times
         inline std::vector<Value> valuesForOption(const Option &option) const;
-        std::vector<Value> valuesForOption(const std::string &token) const;
+        inline std::vector<Value> valuesForOption(const std::string &token) const;
 
+        // Get value of single argument option at its first occurrence or its default value
         inline Value valueForOption(const Option &option) const;
-        Value valueForOption(const std::string &token) const;
+        inline Value valueForOption(const std::string &token) const;
 
+        // Detailed result for an option
         inline OptionResult resultForOption(const Option &option) const;
         OptionResult resultForOption(const std::string &token) const;
 
@@ -165,12 +172,33 @@ namespace SysCmdLine {
         return optionIsSet(option.token());
     }
 
+    inline bool ParseResult::optionIsSet(const std::string &token) const {
+        return resultForOption(token).count() > 0;
+    }
+
     inline std::vector<Value> ParseResult::valuesForOption(const Option &option) const {
         return valuesForOption(option.token());
     }
 
-    Value ParseResult::valueForOption(const Option &option) const {
+    inline std::vector<Value> ParseResult::valuesForOption(const std::string &token) const {
+        OptionResult optionResult = resultForOption(token);
+        if (!optionResult.isValid())
+            return {};
+
+        std::vector<Value> values;
+        values.reserve(optionResult.count());
+        for (int i = 0; i < optionResult.count(); ++i) {
+            values.emplace_back(optionResult.valueForArgument(0));
+        }
+        return values;
+    }
+
+    inline Value ParseResult::valueForOption(const Option &option) const {
         return valueForOption(option.token());
+    }
+
+    inline Value ParseResult::valueForOption(const std::string &token) const {
+        return resultForOption(token).valueForArgument(0);
     }
 
     inline OptionResult ParseResult::resultForOption(const Option &option) const {

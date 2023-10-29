@@ -676,48 +676,6 @@ namespace SysCmdLine {
         return args.front();
     }
 
-    bool ParseResult::optionIsSet(const std::string &token) const {
-        Q_D2(ParseResult);
-        auto it = d->core.allOptionTokenIndexes.find(token);
-        if (it == d->core.allOptionTokenIndexes.end())
-            return {};
-        return d->core.allOptionsResult[it->second].count > 0;
-    }
-
-    std::vector<Value> ParseResult::valuesForOption(const std::string &token) const {
-        Q_D2(ParseResult);
-        auto it = d->core.allOptionTokenIndexes.find(token);
-        if (it == d->core.allOptionTokenIndexes.end())
-            return {};
-        auto &resData = d->core.allOptionsResult[it->second];
-        if (resData.argSize == 0 || resData.option->argument(0).isOptional())
-            return {};
-
-        std::vector<Value> res;
-        res.reserve(resData.count);
-        for (int i = 0; i < resData.count; ++i) {
-            res.push_back(resData.argResult[i][0].front());
-        }
-        return res;
-    }
-
-    Value ParseResult::valueForOption(const std::string &token) const {
-        Q_D2(ParseResult);
-        auto it = d->core.allOptionTokenIndexes.find(token);
-        if (it == d->core.allOptionTokenIndexes.end())
-            return {};
-        auto &resData = d->core.allOptionsResult[it->second];
-        if (resData.argSize == 0)
-            return {};
-
-        if (resData.count == 0) {
-            return resData.option->argument(0).defaultValue();
-        }
-
-        const auto &v = resData.argResult[0][0];
-        return v.empty() ? resData.option->argument(0).defaultValue() : v.front();
-    }
-
     OptionResult ParseResult::resultForOption(const std::string &token) const {
         Q_D2(ParseResult);
         auto it = d->core.allOptionTokenIndexes.find(token);
