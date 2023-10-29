@@ -287,7 +287,7 @@ namespace SysCmdLine {
         Option versionOption(Option::Version);
         versionOption.setTokens(tokens.empty() ? StringList{"-v", "--version"} : tokens);
         versionOption.setPriorLevel(Option::IgnoreMissingSymbols);
-        d->options.push_back(versionOption);
+        addOption(versionOption);
     }
 
     void Command::addHelpOption(bool showHelpIfNoArg, bool global, const StringList &tokens) {
@@ -297,7 +297,7 @@ namespace SysCmdLine {
         helpOption.setPriorLevel(showHelpIfNoArg ? Option::AutoSetWhenNoSymbols
                                                  : Option::IgnoreMissingSymbols);
         helpOption.setGlobal(global);
-        d->options.push_back(helpOption);
+        addOption(helpOption);
     }
 
     bool assertCommand(const Command &command) {

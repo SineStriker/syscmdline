@@ -125,8 +125,8 @@ namespace SysCmdLine {
                                   int *maxWidth, void *extra,
                                   const std::string &defaultTitle) -> Lists {
             Lists res;
-            res.size = catalogNames.size() + 1;
-            res.data = new HelpLayout::List[res.size];
+            res.size = 0;
+            res.data = new HelpLayout::List[catalogNames.size() + 1];
 
             // symbol indexes
             SSizeMap restIndexes;
@@ -137,12 +137,17 @@ namespace SysCmdLine {
             // catalogues
             for (size_t i = 0; i < catalogNames.size(); ++i) {
                 auto &catalogName = catalogNames[i];
-                auto &list = res.data[i];
+                auto &list = res.data[res.size];
                 list.title = catalogName;
 
                 auto &symbolNames = *map_search<StringList>(catalog, catalogName);
+                bool empty = true;
                 for (const auto &name : symbolNames) {
-                    const auto &idx = symbolIndexes.find(name)->second;
+                    auto it = symbolIndexes.find(name);
+                    if (it == symbolIndexes.end())
+                        continue;
+
+                    auto idx = it->second;
                     const auto &sym = getter(idx, user);
 
                     auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions, extra);
@@ -151,18 +156,22 @@ namespace SysCmdLine {
                     list.firstColumn.emplace_back(first);
                     list.secondColumn.emplace_back(second);
                     restIndexes.erase(idx);
+                    empty = false;
                 }
+
+                if (!empty)
+                    res.size++;
             }
 
             // rest
-            {
-                auto &list = res.data[catalogNames.size()];
+            if (!restIndexes.empty()) {
+                auto &list = res.data[res.size++];
                 list.title = defaultTitle;
                 for (const auto &pair : restIndexes) {
                     const auto &sym = getter(pair.first, user);
 
-                    auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions);
-                    auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions);
+                    auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions, extra);
+                    auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions, extra);
                     *maxWidth = std::max(int(first.size()), *maxWidth);
                     list.firstColumn.emplace_back(first);
                     list.secondColumn.emplace_back(second);
@@ -426,7 +435,7 @@ namespace SysCmdLine {
                         break;
 
                     const auto &listHasNext = [](int j, const Lists &lists) {
-                        return j < lists.size - 1 && !lists.data[j + 1].firstColumn.empty();
+                        return j < lists.size - 1;
                     };
 
                     ctx.firstColumnLength = maxWidth;
