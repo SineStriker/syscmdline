@@ -29,6 +29,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include <syscmdline/global.h>
 
@@ -40,6 +41,7 @@ namespace SysCmdLine {
             Null,
             Bool,
             Int,
+            Int64,
             Double,
             String,
         };
@@ -47,6 +49,7 @@ namespace SysCmdLine {
         Value(Type type = Null);
         inline Value(bool b);
         inline Value(int i);
+        inline Value(int64_t l);
         inline Value(double d);
         inline Value(const std::string &s);
         inline Value(const char *ch, int size = -1);
@@ -62,6 +65,7 @@ namespace SysCmdLine {
 
         bool toBool() const;
         int toInt() const;
+        int64_t toInt64() const;
         double toDouble() const;
         std::string toString() const;
 
@@ -76,6 +80,7 @@ namespace SysCmdLine {
         union {
             bool b;
             int i;
+            int64_t l;
             double d;
             std::string *s;
         } data;
@@ -88,6 +93,10 @@ namespace SysCmdLine {
 
     inline Value::Value(int i) : _type(Int) {
         data.i = i;
+    }
+
+    inline Value::Value(int64_t l) : _type(Int64) {
+        data.l = l;
     }
 
     inline Value::Value(double d) : _type(Double) {

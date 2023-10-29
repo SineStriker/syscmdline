@@ -7,12 +7,12 @@ int main(int /* argc */, char * /* argv */[]) {
     Option linkDirOption({"-L", "--linkdir"}, "Add link directory");
     linkDirOption.setShortMatchRule(Option::ShortMatchSingleChar);
     linkDirOption.addArgument(Argument("dir"));
-    linkDirOption.setUnlimitedOncurrence();
+    linkDirOption.setUnlimitedOccurrence();
 
     Option includeDirOption({"-I", "--includedir"}, "Add include directory");
     includeDirOption.setShortMatchRule(Option::ShortMatchSingleChar);
     includeDirOption.addArgument(Argument("dir"));
-    includeDirOption.setUnlimitedOncurrence();
+    includeDirOption.setUnlimitedOccurrence();
 
     Command rootCommand("gcc", "GNU C/C++ Compiler");
     rootCommand.addOptions({
