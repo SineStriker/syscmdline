@@ -78,7 +78,7 @@ namespace SysCmdLine {
         void setRootCommand(const Command &rootCommand);
 
         ParseResult parse(const std::vector<std::string> &args, int parseOptions = Standard);
-        inline int invoke(const std::vector<std::string> &params, int errCode = -1,
+        inline int invoke(const std::vector<std::string> &args, int errCode = -1,
                           int parseOptions = Standard);
 
     public:
@@ -101,9 +101,8 @@ namespace SysCmdLine {
         static TextProvider defaultTextProvider();
     };
 
-    inline int Parser::invoke(const std::vector<std::string> &params, int errCode,
-                              int parseOptions) {
-        return parse(params, parseOptions).invoke(errCode);
+    inline int Parser::invoke(const std::vector<std::string> &args, int errCode, int parseOptions) {
+        return parse(args, parseOptions).invoke(errCode);
     }
 
 }

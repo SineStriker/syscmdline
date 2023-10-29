@@ -38,16 +38,18 @@ namespace SysCmdLine {
     public:
         enum Type {
             Null,
+            Bool,
             Int,
             Double,
             String,
         };
 
         Value(Type type = Null);
-        Value(int i);
-        Value(double d);
-        Value(const std::string &s);
-        Value(const char *ch, int size = -1);
+        inline Value(bool b);
+        inline Value(int i);
+        inline Value(double d);
+        inline Value(const std::string &s);
+        inline Value(const char *ch, int size = -1);
         ~Value();
 
         Value(const Value &other);
@@ -58,6 +60,7 @@ namespace SysCmdLine {
         inline Type type() const;
         bool isEmpty() const;
 
+        bool toBool() const;
         int toInt() const;
         double toDouble() const;
         std::string toString() const;
@@ -70,12 +73,33 @@ namespace SysCmdLine {
 
     protected:
         union {
+            bool b;
             int i;
             double d;
             std::string *s;
         } data;
         Type _type;
     };
+
+    inline Value::Value(bool b) : _type(Bool) {
+        data.b = b;
+    }
+
+    inline Value::Value(int i) : _type(Int) {
+        data.i = i;
+    }
+
+    inline Value::Value(double d) : _type(Double) {
+        data.d = d;
+    }
+
+    inline Value::Value(const std::string &s) : _type(String) {
+        data.s = new std::string(s);
+    }
+
+    inline Value::Value(const char *ch, int size) : _type(String) {
+        data.s = size >= 0 ? new std::string(ch, size) : new std::string(ch);
+    }
 
     inline Value::Type Value::type() const {
         return _type;

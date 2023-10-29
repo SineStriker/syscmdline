@@ -4,6 +4,12 @@ C++ Advanced Command Line Parser.
 
 Inspired by Qt `QCommandLineParser` and C# `System.CommandLine`.
 
+## Introduction
+
+To be in line with the principle of "don't learn anything new if you don't need to", on the one hand, `syscmdline` contains as many common features as possible, on the other hand, it's simple enough to be easy to understand.
+
+Therefore, the project is designed to be configurable, but it's not intended to be as complex as a framework.
+
 ## Features
 
 + Support sub-commands
@@ -47,7 +53,7 @@ Inspired by Qt `QCommandLineParser` and C# `System.CommandLine`.
 + Short option
 + Group flags
 + Prior option
-+ Localizations
++ Localization
 
 See [Examples](docs/examples.md) to learn more.
 

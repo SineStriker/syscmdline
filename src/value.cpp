@@ -2,10 +2,18 @@
 
 #include <algorithm>
 
+#include "utils_p.h"
+
 namespace SysCmdLine {
+
+    static const char True_Literal[] = "true";
+    static const char False_Literal[] = "false";
 
     Value::Value(Value::Type type) : _type(type) {
         switch (type) {
+            case Bool:
+                data.b = false;
+                break;
             case Int:
                 data.i = 0;
                 break;
@@ -20,22 +28,6 @@ namespace SysCmdLine {
         }
     }
 
-    Value::Value(int i) : _type(Int) {
-        data.i = i;
-    }
-
-    Value::Value(double d) : _type(Double) {
-        data.d = d;
-    }
-
-    Value::Value(const std::string &s) : _type(String) {
-        data.s = new std::string(s);
-    }
-
-    Value::Value(const char *ch, int size) : _type(String) {
-        data.s = size >= 0 ? new std::string(ch, size) : new std::string(ch);
-    }
-
     Value::~Value() {
         if (_type == String)
             delete data.s;
@@ -44,6 +36,9 @@ namespace SysCmdLine {
     Value::Value(const Value &other) {
         _type = other._type;
         switch (_type) {
+            case Bool:
+                data.b = other.data.b;
+                break;
             case Int:
                 data.i = other.data.i;
                 break;
@@ -61,6 +56,9 @@ namespace SysCmdLine {
     Value::Value(Value &&other) noexcept {
         _type = other._type;
         switch (_type) {
+            case Bool:
+                data.b = other.data.b;
+                break;
             case Int:
                 data.i = other.data.i;
                 break;
@@ -86,6 +84,9 @@ namespace SysCmdLine {
         }
         _type = other._type;
         switch (_type) {
+            case Bool:
+                data.b = other.data.b;
+                break;
             case Int:
                 data.i = other.data.i;
                 break;
@@ -112,16 +113,22 @@ namespace SysCmdLine {
 
     bool Value::isEmpty() const {
         switch (_type) {
-            case String:
-                return data.s->empty();
-            case Double:
-                return data.d == 0;
+            case Bool:
+                return !data.b;
             case Int:
                 return data.i == 0;
+            case Double:
+                return data.d == 0;
+            case String:
+                return data.s->empty();
             default:
                 break;
         }
         return true;
+    }
+
+    bool Value::toBool() const {
+        return _type == Bool ? data.b : bool(toInt());
     }
 
     int Value::toInt() const {
@@ -140,6 +147,8 @@ namespace SysCmdLine {
                 return std::to_string(data.d);
             case Int:
                 return std::to_string(data.i);
+            case Bool:
+                return data.b ? True_Literal : False_Literal;
             default:
                 break;
         }
@@ -150,6 +159,8 @@ namespace SysCmdLine {
         if (_type != other._type)
             return false;
         switch (_type) {
+            case Bool:
+                return data.b == other.data.b;
             case Int:
                 return data.i == other.data.i;
             case Double:
@@ -169,7 +180,16 @@ namespace SysCmdLine {
     Value Value::fromString(const std::string &s, Value::Type type) {
         Value res;
         switch (type) {
-            case Value::Int: {
+            case Bool: {
+                if (Utils::toLower(s) == True_Literal) {
+                    res = true;
+                } else if (Utils::toLower(s) == False_Literal) {
+                    res = false;
+                }
+                break;
+            }
+
+            case Int: {
                 std::string::size_type idx;
                 try {
                     int base = 10;
@@ -215,7 +235,7 @@ namespace SysCmdLine {
                 break;
             }
 
-            case Value::Double: {
+            case Double: {
                 std::string::size_type idx;
                 try {
                     res = std::stod(s, &idx);
@@ -227,7 +247,7 @@ namespace SysCmdLine {
                 break;
             }
 
-            case Value::String: {
+            case String: {
                 if (!s.empty()) {
                     res = s;
                 }

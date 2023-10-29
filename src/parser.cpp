@@ -746,6 +746,10 @@ namespace SysCmdLine {
             const char *expected;
             const auto &type = d->defaultValue.type();
             switch (type) {
+                case Value::Bool: {
+                    expected = "boolean";
+                    break;
+                }
                 case Value::Int: {
                     expected = "int";
                     break;
