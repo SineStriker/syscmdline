@@ -89,6 +89,7 @@ namespace SysCmdLine {
 
         int maxOccurrence() const;
         void setMaxOccurrence(int max);
+        inline void setUnlimitedOncurrence();
 
         SpecialType specialType() const;
         void setSpecialType(SpecialType specialType);
@@ -108,6 +109,10 @@ namespace SysCmdLine {
 
     inline void Option::setOptional(bool optional) {
         setRequired(!optional);
+    }
+
+    inline void Option::setUnlimitedOncurrence() {
+        setMaxOccurrence(0);
     }
 
 }

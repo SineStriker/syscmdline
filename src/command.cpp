@@ -6,6 +6,8 @@
 
 #include "parser.h"
 #include "utils_p.h"
+#include "option_p.h"
+#include "system.h"
 
 namespace SysCmdLine {
 
@@ -301,7 +303,169 @@ namespace SysCmdLine {
     }
 
     bool assertCommand(const Command &command) {
-        return {};
+        auto d = command.d_func();
+
+        // Check name
+        if (d->name.empty()) {
+            u8printf("command doesn't have a name\n");
+            return false;
+        }
+
+        // Check arguments
+        const auto &checkArguments = [](const std::vector<Argument> &input,
+                                        const std::string &parent) {
+            StringMap argumentNameIndexes;
+            int multiValueIndex = -1;
+            std::vector<Argument> arguments(input.size());
+            for (const auto &arg : input) {
+                const auto &d = arg.d_func();
+                const auto &name = d->name;
+                if (name.empty()) {
+                    u8printf("%s: argument %d doesn't have a name\n", parent.data(),
+                             int(arguments.size()));
+                    return false;
+                }
+
+                if (argumentNameIndexes.count(name)) {
+                    u8printf("%s: argument name \"%s\" duplicated\n", parent.data(), name.data());
+                    return false;
+                }
+
+                if (!arguments.empty() && !arguments.back().isRequired() && d->required) {
+                    u8printf("%s: required argument after optional arguments is prohibited\n",
+                             parent.data());
+                    return false;
+                }
+
+                if (arg.multiValueEnabled()) {
+                    if (multiValueIndex >= 0) {
+                        u8printf("%s: more than one multi-value argument\n", parent.data());
+                        return false;
+                    }
+                    multiValueIndex = int(arguments.size());
+                } else if (multiValueIndex >= 0 && !d->required) {
+                    u8printf("%s: optional argument after multi-value argument is prohibited\n",
+                             parent.data());
+                    return false;
+                }
+
+                // check if default value is valid
+                {
+                    const auto &expectedValues = d->expectedValues;
+                    const auto &defaultValue = d->defaultValue;
+                    if (!expectedValues.empty() && defaultValue.type() != Value::Null &&
+                        std::find(expectedValues.begin(), expectedValues.end(), defaultValue) ==
+                            expectedValues.end()) {
+                        u8printf("%s: default value \"%s\" is not in expected values\n",
+                                 parent.data(), defaultValue.toString().data());
+                        return false;
+                    }
+                }
+                argumentNameIndexes.insert(std::make_pair(name, arguments.size()));
+                arguments.push_back(arg);
+            }
+
+            return true;
+        };
+
+        checkArguments(d->arguments, d->name.data());
+
+        // Check options
+        const auto &checkOptions = [](const std::vector<Option> &input,
+                                      const std::vector<std::string> &groups,
+                                      const std::string &parent) {
+            StringMap optionTokenIndexes;
+            std::vector<Option> options(input.size());
+            int superPriorOptionIndex = -1;
+            for (size_t i = 0; i < input.size(); ++i) {
+                const auto &option = input[i];
+                const auto &exclusiveGroup = groups[i];
+
+                const auto &d = option.d_func();
+                if (d->tokens.empty()) {
+                    u8printf("%s: null option tokens\n", parent.data());
+                    return false;
+                }
+                for (const auto &token : d->tokens) {
+                    if (token.empty() || !(token.front() == '-' || token.front() == '/')) {
+                        u8printf("%s: option token \"%s\" invalid\n", parent.data(), token.data());
+                        return false;
+                    }
+                    if (optionTokenIndexes.count(token)) {
+                        u8printf("%s: option token \"%s\" duplicated\n", parent.data(),
+                                 token.data());
+                        return false;
+                    }
+                }
+
+                if (!exclusiveGroup.empty() && option.isGlobal()) {
+                    u8printf("%s: global option \"%s\" cannot be in any exclusive group\n",
+                             parent.data(), option.token().data());
+                    return false;
+                }
+
+                switch (option.priorLevel()) {
+                    case Option::AutoSetWhenNoSymbols: {
+                        for (const auto &arg : d->arguments) {
+                            if (arg.isRequired()) {
+                                u8printf("%s: auto-option \"%s\" cannot have required arguments\n",
+                                         parent.data(), option.token().data());
+                                return false;
+                            }
+                        }
+                        break;
+                    }
+                    case Option::ExclusiveToOptions:
+                    case Option::ExclusiveToAll: {
+                        if (superPriorOptionIndex >= 0) {
+                            u8printf("%s: more than one exclusively prior option.\n",
+                                     parent.data());
+                            return false;
+                        }
+                        superPriorOptionIndex = int(options.size());
+                        break;
+                    }
+                    default:
+                        break;
+                }
+
+                auto last = options.size();
+                options.push_back(option);
+                for (const auto &token : d->tokens) {
+                    optionTokenIndexes.insert(std::make_pair(token, last));
+                }
+
+                // Check exclusive group
+                if (!exclusiveGroup.empty()) {
+                    for (size_t j = 0; j < input.size(); ++j) {
+                        if (j == i)
+                            continue;
+                        if (groups[j] == exclusiveGroup &&
+                            input[j].isRequired() != option.isRequired()) {
+                            u8printf("%s: option \"%s\" is %s, but exclusive group \"%s\" isn't\n",
+                                     parent.data(), option.token().data(),
+                                     option.isRequired() ? "required" : "optional",
+                                     exclusiveGroup.data());
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        };
+
+        checkOptions(d->options, d->optionGroupNames, d->name.data());
+
+        for (const auto &option : d->options) {
+            checkArguments(option.d_func()->arguments, option.token().data());
+        }
+
+        // Recursive
+        for (const auto &cmd : d->commands)
+            if (!assertCommand(cmd))
+                return false;
+
+        return true;
     }
 
 }

@@ -137,7 +137,7 @@ namespace SysCmdLine {
         }
 
         ~ParserCore() {
-            delete[] optRanges;
+            delete[] optionRanges;
             core.allOptionTokenIndexes = std::move(allOptionTokenIndexes);
         }
 
@@ -147,7 +147,7 @@ namespace SysCmdLine {
             if (result->error != ParseResult::NoError) {
                 return false;
             }
-            parsePositionalArguments();
+            parseArguments();
             if (result->error != ParseResult::NoError) {
                 return false;
             }
@@ -298,7 +298,7 @@ namespace SysCmdLine {
         }
 
         void extractOptionsAndArguments() {
-            optRanges = new OptionRange[core.allOptionsSize]; // Alloc
+            optionRanges = new OptionRange[core.allOptionsSize]; // Alloc
 
             // Parse options
             for (auto i = nonCommandIndex; i < params.size(); ++i) {
@@ -309,7 +309,7 @@ namespace SysCmdLine {
                 if (auto optIndex = searchOption(token, &pos); optIndex >= 0) {
                     const auto &optData = core.allOptionsResult[optIndex];
                     const auto &opt = optData.option;
-                    auto &rangeData = optRanges[optIndex];
+                    auto &rangeData = optionRanges[optIndex];
 
                     // Check option common
                     if (!checkOptionCommon(token, optIndex, rangeData.starts.size())) {
@@ -321,12 +321,12 @@ namespace SysCmdLine {
                     // Collect positional arguments
                     if (pos >= 0) {
                         // Must be a single value option
-                        rangeData.push(i, 1, token.substr(pos));
+                        rangeData.push(i, 0, token.substr(pos));
                     } else if (!dd->arguments.empty()) {
                         int minArgCount =
                             int((optData.optionalArgIndex < 0) ? dd->arguments.size()
-                                                               : (optData.optionalArgIndex + 1));
-                        int maxArgCount = (optData.multiValueArgIndex < 0) ? minArgCount : 65536;
+                                                               : optData.optionalArgIndex);
+                        int maxArgCount = (optData.multiValueArgIndex < 0) ? minArgCount : 65535;
 
                         auto j = i + minArgCount + 1; // next of last required index
                         if (j > params.size()) {
@@ -352,10 +352,8 @@ namespace SysCmdLine {
                         }
 
                         rangeData.push(i, j - i - 1);
+                        i = j - 1;
                     } else {
-                        rangeData.starts.push_back(i);
-                        rangeData.lengths.push_back(0);
-                        rangeData.precedingTokens.emplace_back();
                         rangeData.push(i, 0);
                     }
 
@@ -368,11 +366,11 @@ namespace SysCmdLine {
 
                 // Consider short flags
                 if ((parseOptions & Parser::AllowUnixGroupFlags) && isFlags(token)) {
-                    auto opts = searchGroupFlags(token.substr(1));
-                    if (!opts.empty()) {
+                    auto flags = searchGroupFlags(token.substr(1));
+                    if (!flags.empty()) {
                         bool failed = false;
-                        for (const auto &optIdx : std::as_const(opts)) {
-                            auto &rangeData = optRanges[optIdx];
+                        for (const auto &optIdx : std::as_const(flags)) {
+                            auto &rangeData = optionRanges[optIdx];
 
                             // Check option common
                             if (!checkOptionCommon(token, optIdx, rangeData.starts.size())) {
@@ -400,13 +398,13 @@ namespace SysCmdLine {
             }
         }
 
-        void parsePositionalArguments() {
+        void parseArguments() {
             // Parse all options
             bool failed = false;
             for (int i = 0; i < core.allOptionsSize; ++i) {
                 auto &resultData = core.allOptionsResult[i];
                 const auto &args = resultData.option->d_func()->arguments;
-                const auto &rangeData = optRanges[i];
+                const auto &rangeData = optionRanges[i];
                 const auto &occurrence = int(rangeData.starts.size());
 
                 resultData.count = occurrence;
@@ -429,16 +427,15 @@ namespace SysCmdLine {
                         continue;
                     }
 
-                    auto missingIdx = parseArgument(args, positionalArguments.data() + start + 1,
-                                                    len, resVec, resultData.multiValueArgIndex);
+                    // missing index must be -1
+                    // because we have already check the integrity
+                    std::ignore =
+                        parsePositionArguments(args, positionalArguments.data() + start + 1, len,
+                                               resVec, resultData.multiValueArgIndex);
                     if (result->error != ParseResult::NoError) {
                         failed = true;
                         break;
                     }
-
-                    // missing index must be -1
-                    // because we have already check the integrity
-                    SYSCMDLINE_UNUSED(missingIdx)
                 }
 
                 if (failed) {
@@ -447,9 +444,9 @@ namespace SysCmdLine {
             }
 
             // Parse positional arguments
-            auto missingIdx =
-                parseArgument(targetCommandData->arguments, positionalArguments.data(),
-                              positionalArguments.size(), core.argResult, core.multiValueArgIndex);
+            auto missingIdx = parsePositionArguments(
+                targetCommandData->arguments, positionalArguments.data(),
+                positionalArguments.size(), core.argResult, core.multiValueArgIndex);
             if (result->error != ParseResult::NoError) {
                 return;
             }
@@ -536,7 +533,7 @@ namespace SysCmdLine {
             }
         };
 
-        OptionRange *optRanges = nullptr;
+        OptionRange *optionRanges = nullptr;
         std::vector<std::string> positionalArguments;
 
         // Reusable functions
@@ -881,8 +878,9 @@ namespace SysCmdLine {
         // res:     result array
         // ->       missing index
         // if failed, the error will be set, check it first.
-        int parseArgument(const std::vector<Argument> &args, const std::string *tokens,
-                          size_t tokensCount, std::vector<Value> *res, int multiValueIndex) const {
+        int parsePositionArguments(const std::vector<Argument> &args, const std::string *tokens,
+                                   size_t tokensCount, std::vector<Value> *res,
+                                   int multiValueIndex) const {
             // Parse forward
             size_t end = args.size();
             if (multiValueIndex >= 0) {

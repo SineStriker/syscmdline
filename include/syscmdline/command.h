@@ -98,6 +98,8 @@ namespace SysCmdLine {
             addOption(opt, group);
     }
 
+    // Check if a command is valid
+    // Parsing an invalid command will cause UB
     SYSCMDLINE_EXPORT bool assertCommand(const Command &command);
 
 }

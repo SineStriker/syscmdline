@@ -3,10 +3,15 @@
 
 namespace SysCmdLine {
 
+    // static int g_cnt;
+
     SharedBasePrivate::SharedBasePrivate() : ref(1) {
+        // printf("construct %d\n", ++g_cnt);
     }
 
-    SharedBasePrivate::~SharedBasePrivate() = default;
+    SharedBasePrivate::~SharedBasePrivate() {
+        // printf("destruct %d\n", --g_cnt);
+    }
 
     SharedBase::~SharedBase() {
         ref_deref(d_ptr);

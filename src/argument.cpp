@@ -28,8 +28,6 @@ namespace SysCmdLine {
     std::string Argument::displayedText() const {
         Q_D2(Argument);
         std::string res = d->displayName.empty() ? ("<" + d->name + ">") : d->displayName;
-        if (d->multiple)
-            res += "...";
         return res;
     }
 
@@ -41,9 +39,12 @@ namespace SysCmdLine {
         }
 
         switch (pos) {
+            case Symbol::HP_Usage: {
+                return displayedText() + (d->multiple ? "..." : "");
+            }
             case Symbol::HP_SecondColumn: {
                 auto textProvider = reinterpret_cast<Parser::TextProvider>(extra);
-                if (!textProvider){
+                if (!textProvider) {
                     textProvider = Parser::defaultTextProvider();
                 }
 
@@ -84,6 +85,7 @@ namespace SysCmdLine {
             default:
                 break;
         }
+
         return displayedText();
     }
 

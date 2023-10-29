@@ -112,20 +112,27 @@ namespace SysCmdLine {
         struct Lists {
             HelpLayout::List *data;
             int size;
+
+            Lists() : data(nullptr), size(0) {
+            }
+
+            ~Lists() {
+                delete[] data;
+            }
         };
 
         const auto &getLists = [](int displayOptions, const StringMap &catalog,
-                                  const StringList &catalogNames,         // catalog
+                                  const StringList &catalogNames, // catalog
 
-                                  const StringMap &symbolIndexes,         // name -> index
+                                  const StringMap &symbolIndexes, // name -> index
                                   int symbolCount, const Symbol *(*getter)(int, const void *),
-                                  const void *user,                       // get symbol from index
+                                  const void *user, // get symbol from index
 
                                   std::string (*getName)(const Symbol *), // get name of symbol
                                   int *maxWidth, void *extra,
                                   const std::string &defaultTitle) -> Lists {
             Lists res;
-            res.size = 0; // use as index
+            int index = 0;
             res.data = new HelpLayout::List[catalogNames.size() + 1];
 
             // symbol indexes
@@ -137,7 +144,7 @@ namespace SysCmdLine {
             // catalogues
             for (size_t i = 0; i < catalogNames.size(); ++i) {
                 auto &catalogName = catalogNames[i];
-                auto &list = res.data[res.size];
+                auto &list = res.data[index];
                 list.title = catalogName;
 
                 auto &symbolNames = *map_search<StringList>(catalog, catalogName);
@@ -160,12 +167,12 @@ namespace SysCmdLine {
                 }
 
                 if (!empty)
-                    res.size++; // index inc
+                    index++; // index inc
             }
 
             // rest
             if (!restIndexes.empty()) {
-                auto &list = res.data[res.size++]; // index inc
+                auto &list = res.data[index++]; // index inc
                 list.title = defaultTitle;
                 for (const auto &pair : restIndexes) {
                     const auto &sym = getter(pair.first, user);
@@ -178,6 +185,7 @@ namespace SysCmdLine {
                 }
             }
 
+            res.size = index;
             return res;
         };
 
@@ -192,7 +200,7 @@ namespace SysCmdLine {
         // Alloc
         int maxWidth = 0;
         Lists argLists =
-            noHelp ? Lists{nullptr, 0}
+            noHelp ? Lists()
                    : getLists(
                          displayOptions, catalogueData->arg.data, catalogueData->arguments,
                          core.argNameIndexes, int(d->arguments.size()),
@@ -207,7 +215,7 @@ namespace SysCmdLine {
                          parserData->textProvider(Strings::Title, Strings::Arguments));
 
         Lists optLists = noHelp
-                             ? Lists{nullptr, 0}
+                             ? Lists()
                              : getLists(
                                    displayOptions, catalogueData->opt.data, catalogueData->options,
                                    core.allOptionTokenIndexes, int(core.allOptionsSize),
@@ -224,7 +232,7 @@ namespace SysCmdLine {
                                    parserData->textProvider(Strings::Title, Strings::Options));
 
         Lists cmdLists = noHelp
-                             ? Lists{nullptr, 0}
+                             ? Lists()
                              : getLists(
                                    displayOptions, catalogueData->cmd.data, catalogueData->commands,
                                    core.cmdNameIndexes, int(d->commands.size()),
@@ -510,11 +518,6 @@ namespace SysCmdLine {
                 }
             }
         }
-
-        // Free
-        delete[] argLists.data;
-        delete[] optLists.data;
-        delete[] cmdLists.data;
     }
 
     ParseResult::ParseResult() : SharedBase(nullptr) {
