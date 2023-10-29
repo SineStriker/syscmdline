@@ -3,7 +3,6 @@
 
 #include <syscmdline/parser.h>
 #include <syscmdline/system.h>
-#include <syscmdline/strings.h>
 
 namespace zh_CN {
 
@@ -109,6 +108,8 @@ int main(int argc, char *argv[]) {
     });
     rootCommand.addHelpOption(false, false, {"/?"});
     rootCommand.setHandler(routine);
+
+    SYSCMDLINE_ASSERT_COMMAND(rootCommand);
 
     Parser parser(rootCommand);
     parser.setTextProvider(zh_CN::provider);

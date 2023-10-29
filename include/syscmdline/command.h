@@ -27,6 +27,8 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+#include <cassert>
+
 #include <syscmdline/option.h>
 
 namespace SysCmdLine {
@@ -103,5 +105,7 @@ namespace SysCmdLine {
     SYSCMDLINE_EXPORT bool assertCommand(const Command &command);
 
 }
+
+#define SYSCMDLINE_ASSERT_COMMAND(command) assert(SysCmdLine::assertCommand(command))
 
 #endif // COMMAND_H

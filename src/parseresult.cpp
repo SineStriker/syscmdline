@@ -16,11 +16,15 @@
 namespace SysCmdLine {
 
     Option OptionResult::option() const {
+        if (!data)
+            return {};
         auto &v = *reinterpret_cast<const OptionData *>(data);
         return *v.option;
     }
 
     int OptionResult::argumentIndex(const std::string &argName) const {
+        if (!data)
+            return -1;
         auto &v = *reinterpret_cast<const OptionData *>(data);
         auto it = v.argNameIndexes.find(argName);
         if (it == v.argNameIndexes.end())
@@ -29,22 +33,26 @@ namespace SysCmdLine {
     }
 
     int OptionResult::count() const {
+        if (!data)
+            return 0;
         auto &v = *reinterpret_cast<const OptionData *>(data);
         return v.count;
     }
 
     std::vector<Value> OptionResult::valuesForArgument(int argIndex, int index) const {
-        if (index < 0)
+        if (!data)
             return {};
         auto &v = *reinterpret_cast<const OptionData *>(data);
+        if (index < 0 || index >= v.count)
+            return {};
         return v.argResult[argIndex][index];
     }
 
     Value OptionResult::valueForArgument(int argIndex, int index) const {
-        if (index < 0)
+        if (!data)
             return {};
         auto &v = *reinterpret_cast<const OptionData *>(data);
-        if (v.count <= index)
+        if (index <= 0 || index >= v.count)
             return v.option->argument(argIndex).defaultValue();
         const auto &args = v.argResult[argIndex][index];
         return args.empty() ? Value() : args.front();
@@ -108,25 +116,18 @@ namespace SysCmdLine {
 
     void ParseResultPrivate::showMessage(const std::string &info, const std::string &warn,
                                          const std::string &err, bool isMsg) const {
-        // Extract arguments, options, commands from categories
+        // Make it as a POD structure
         struct Lists {
             HelpLayout::List *data;
             int size;
-
-            Lists() : data(nullptr), size(0) {
-            }
-
-            ~Lists() {
-                delete[] data;
-            }
         };
 
         const auto &getLists = [](int displayOptions, const StringMap &catalog,
-                                  const StringList &catalogNames, // catalog
+                                  const StringList &catalogNames,         // catalog
 
-                                  const StringMap &symbolIndexes, // name -> index
+                                  const StringMap &symbolIndexes,         // name -> index
                                   int symbolCount, const Symbol *(*getter)(int, const void *),
-                                  const void *user, // get symbol from index
+                                  const void *user,                       // get symbol from index
 
                                   std::string (*getName)(const Symbol *), // get name of symbol
                                   int *maxWidth, void *extra,
@@ -142,8 +143,7 @@ namespace SysCmdLine {
             }
 
             // catalogues
-            for (size_t i = 0; i < catalogNames.size(); ++i) {
-                auto &catalogName = catalogNames[i];
+            for (const auto &catalogName : catalogNames) {
                 auto &list = res.data[index];
                 list.title = catalogName;
 
@@ -199,8 +199,9 @@ namespace SysCmdLine {
 
         // Alloc
         int maxWidth = 0;
+
         Lists argLists =
-            noHelp ? Lists()
+            noHelp ? Lists{nullptr, 0}
                    : getLists(
                          displayOptions, catalogueData->arg.data, catalogueData->arguments,
                          core.argNameIndexes, int(d->arguments.size()),
@@ -215,7 +216,7 @@ namespace SysCmdLine {
                          parserData->textProvider(Strings::Title, Strings::Arguments));
 
         Lists optLists = noHelp
-                             ? Lists()
+                             ? Lists{nullptr, 0}
                              : getLists(
                                    displayOptions, catalogueData->opt.data, catalogueData->options,
                                    core.allOptionTokenIndexes, int(core.allOptionsSize),
@@ -232,7 +233,7 @@ namespace SysCmdLine {
                                    parserData->textProvider(Strings::Title, Strings::Options));
 
         Lists cmdLists = noHelp
-                             ? Lists()
+                             ? Lists{nullptr, 0}
                              : getLists(
                                    displayOptions, catalogueData->cmd.data, catalogueData->commands,
                                    core.cmdNameIndexes, int(d->commands.size()),
@@ -518,6 +519,11 @@ namespace SysCmdLine {
                 }
             }
         }
+
+        // Free
+        delete[] argLists.data;
+        delete[] optLists.data;
+        delete[] cmdLists.data;
     }
 
     ParseResult::ParseResult() : SharedBase(nullptr) {

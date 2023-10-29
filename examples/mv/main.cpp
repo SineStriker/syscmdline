@@ -16,11 +16,11 @@ int main(int /* argc */, char * /* argv */[]) {
     Option numOpt("-n", "Numbers");
     numOpt.addArguments({numArg});
     Option numOpt2("-n2", "Numbers 2");
-    numOpt.addArguments({numArg});
+    numOpt2.addArguments({numArg});
 
     Argument destArg("dest", "Destination directory");
 
-    Command rootCommand("work", "What to do on which day?");
+    Command rootCommand("mv", "What to do on which day?");
     rootCommand.addArguments({srcArg, destArg});
     rootCommand.addOptions({numOpt, numOpt2});
     rootCommand.addHelpOption();
@@ -41,6 +41,8 @@ int main(int /* argc */, char * /* argv */[]) {
         }
         return 0;
     });
+
+    SYSCMDLINE_ASSERT_COMMAND(rootCommand);
 
     Parser parser(rootCommand);
     return parser.invoke(SysCmdLine::commandLineArguments());

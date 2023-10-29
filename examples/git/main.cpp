@@ -40,6 +40,8 @@ int main(int /* argc */, char * /* argv */[]) {
     cc.addCommands("grow, mark and tweak your common history", {"commit", "merge", "rebase"});
     rootCommand.setCatalogue(cc);
 
+    SYSCMDLINE_ASSERT_COMMAND(rootCommand);
+
     Parser parser(rootCommand);
     parser.setDisplayOptions(Parser::ShowArgumentDefaultValue | Parser::ShowArgumentExpectedValues |
                              Parser::DontShowHelpOnError | Parser::AlignAllCatalogues);

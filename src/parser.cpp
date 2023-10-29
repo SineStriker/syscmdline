@@ -343,10 +343,8 @@ namespace SysCmdLine {
 
                         auto end = std::min(params.size(), i + maxArgCount + 1);
                         for (; j < end; ++j) {
-                            const auto &curToken = params[j];
-
                             // Break at next option
-                            if (searchOption(curToken) >= 0) {
+                            if (searchOption(params[j]) >= 0) {
                                 break;
                             }
                         }
