@@ -67,7 +67,6 @@ namespace SysCmdLine {
         SYSCMDLINE_DECL_PRIVATE(ParseResult)
     public:
         ParseResult();
-        ~ParseResult();
 
         inline bool isValid() const;
 

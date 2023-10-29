@@ -39,7 +39,6 @@ namespace SysCmdLine {
     public:
         Parser();
         Parser(const Command &rootCommand);
-        ~Parser();
 
     public:
         enum ParseOption {

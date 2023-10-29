@@ -53,8 +53,7 @@ namespace SysCmdLine {
     }
 
     CommandPrivate::CommandPrivate(std::string name, const std::string &desc)
-        : ArgumentHolderPrivate(Symbol::ST_Command, desc), name(std::move(name)),
-          helpOption(Option::Help), versionOption(Option::Version) {
+        : ArgumentHolderPrivate(Symbol::ST_Command, desc), name(std::move(name)) {
     }
 
     SharedBasePrivate *CommandPrivate::clone() const {
@@ -96,7 +95,7 @@ namespace SysCmdLine {
                 // group name -> option subscripts (vector<int> *)
                 StringMap exclusiveGroupIndexes = [](const CommandPrivate *d) {
                     StringMap res;
-                    for (int i = 0; i < d->options.size(); ++i) {
+                    for (int i = 0; i < d->optionGroupNames.size(); ++i) {
                         const auto &group = d->optionGroupNames[i];
                         if (group.empty())
                             continue;
@@ -284,16 +283,21 @@ namespace SysCmdLine {
     void Command::addVersionOption(const std::string &ver, const StringList &tokens) {
         Q_D(Command);
         d->version = ver;
-        d->versionOption.setTokens(tokens);
-        d->versionOption.setPriorLevel(Option::IgnoreMissingSymbols);
+
+        Option versionOption(Option::Version);
+        versionOption.setTokens(tokens.empty() ? StringList{"-v", "--version"} : tokens);
+        versionOption.setPriorLevel(Option::IgnoreMissingSymbols);
+        d->options.push_back(versionOption);
     }
 
     void Command::addHelpOption(bool showHelpIfNoArg, bool global, const StringList &tokens) {
         Q_D(Command);
-        d->helpOption.setTokens(tokens);
-        d->helpOption.setPriorLevel(showHelpIfNoArg ? Option::AutoSetWhenNoSymbols
-                                                    : Option::IgnoreMissingSymbols);
-        d->helpOption.setGlobal(global);
+        Option helpOption(Option::Help);
+        helpOption.setTokens(tokens.empty() ? StringList{"-h", "--help"} : tokens);
+        helpOption.setPriorLevel(showHelpIfNoArg ? Option::AutoSetWhenNoSymbols
+                                                 : Option::IgnoreMissingSymbols);
+        helpOption.setGlobal(global);
+        d->options.push_back(helpOption);
     }
 
     bool assertCommand(const Command &command) {

@@ -42,9 +42,6 @@ namespace SysCmdLine {
         std::vector<std::string> optionGroupNames;
         std::vector<Command> commands;
 
-        Option helpOption;
-        Option versionOption;
-
         std::string version;
         std::string detailedDescription;
         CommandCatalogue catalogue;

@@ -20,6 +20,10 @@ namespace SysCmdLine {
         std::vector<Value> **argResult; // arg result
         int count;                      // arg result count
 
+        OptionData() : argResult(nullptr), count(0) {
+            // must set `option`
+        }
+
         ~OptionData() {
             for (int i = 0; i < count; ++i) {
                 delete[] argResult[i];

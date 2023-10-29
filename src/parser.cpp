@@ -78,9 +78,6 @@ namespace SysCmdLine {
         setRootCommand(rootCommand);
     }
 
-    Parser::~Parser() {
-    }
-
     std::string Parser::prologue() const {
         Q_D2(Parser);
         return d->prologue;
@@ -147,11 +144,11 @@ namespace SysCmdLine {
         bool parse() {
             searchTargetCommandAndBuildIndexes();
             extractOptionsAndArguments();
-            if (result->error == ParseResult::NoError) {
+            if (result->error != ParseResult::NoError) {
                 return false;
             }
             parsePositionalArguments();
-            if (result->error == ParseResult::NoError) {
+            if (result->error != ParseResult::NoError) {
                 return false;
             }
 
@@ -469,11 +466,16 @@ namespace SysCmdLine {
             // Automatic set options
             if (!hasOption && !hasArgument) {
                 for (int i = 0; i < core.allOptionsSize; ++i) {
-                    const auto &opt = *core.allOptionsResult[i].option;
+                    auto &optionData = core.allOptionsResult[i];
+                    const auto &opt = *optionData.option;
                     if (opt.priorLevel() == Option::AutoSetWhenNoSymbols) {
-                        auto &resultData = core.allOptionsResult[i].argResult;
+                        optionData.count = 1;
+
+                        // new
+                        auto &resultData = optionData.argResult;
                         resultData = new std::vector<Value> *[1];
-                        resultData[0] = new std::vector<Value>();
+                        resultData[0] = new std::vector<Value>[0]; // alloc empty
+
                         hasAutoOption = true;
                         break;
                     }
@@ -556,7 +558,6 @@ namespace SysCmdLine {
         }
 
         static inline void initOptionData(OptionData &data, const Option *option) {
-            data.count = 0;
             data.option = option;
             initArgumentHolderData(data, option->d_func()->arguments);
         }

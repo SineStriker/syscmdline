@@ -14,7 +14,12 @@ namespace SysCmdLine {
 
     static void defaultTextsPrinter(MessageType messageType, bool highlight,
                                     const HelpLayout::Context &ctx) {
+        if (ctx.text->lines.empty())
+            return;
         if (ctx.text->title.empty()) {
+            // Content
+            u8debug(messageType, highlight, "%s\n", ctx.text->lines.data());
+        } else {
             // Title
             u8debug(messageType, highlight, "%s:\n", ctx.text->title.data());
 
@@ -23,9 +28,6 @@ namespace SysCmdLine {
             for (const auto &line : std::as_const(lines))
                 u8debug(messageType, highlight, "%s%s\n", ctx.parser->d_func()->indent().data(),
                         line.data());
-        } else {
-            // Content
-            u8debug(messageType, highlight, "%s\n", ctx.text->lines.data());
         }
         printLast(ctx.hasNext);
     }
@@ -43,6 +45,9 @@ namespace SysCmdLine {
     }
 
     static void defaultListPrinter(const HelpLayout::Context &ctx) {
+        if (ctx.list->firstColumn.empty())
+            return;
+
         // Title
         u8printf("%s:\n", ctx.text->title.data());
 
@@ -57,26 +62,29 @@ namespace SysCmdLine {
 
         std::vector<std::string> res;
         for (size_t i = 0; i < list->firstColumn.size(); ++i) {
-            auto lines = Utils::split(list->secondColumn[i], "\n");
+            const auto &first = list->firstColumn[i];
+            const auto &second = list->secondColumn[i];
+
+            auto lines = Utils::split(second, "\n");
             if (lines.empty())
                 lines.emplace_back();
 
             {
                 std::string ss;
                 ss += parserData->indent();
-                ss += list->firstColumn[i];
-                ss += std::string(widest - list->firstColumn[i].size(), ' ');
+                ss += first;
+                ss += std::string(widest - first.size(), ' ');
                 ss += parserData->spacing();
                 ss += lines.front();
                 res.push_back(ss);
             }
 
-            for (const auto &line : std::as_const(lines)) {
+            for (size_t j = 1; j < lines.size(); ++j) {
                 std::string ss;
                 ss += parserData->indent();
                 ss += std::string(widest, ' ');
                 ss += parserData->spacing();
-                ss += line;
+                ss += std::as_const(lines)[j];
                 res.push_back(ss);
             }
         }

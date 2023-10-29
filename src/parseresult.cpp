@@ -34,11 +34,15 @@ namespace SysCmdLine {
     }
 
     std::vector<Value> OptionResult::valuesForArgument(int argIndex, int index) const {
+        if (index < 0)
+            return {};
         auto &v = *reinterpret_cast<const OptionData *>(data);
         return v.argResult[argIndex][index];
     }
 
     Value OptionResult::valueForArgument(int argIndex, int index) const {
+        if (index < 0)
+            return {};
         auto &v = *reinterpret_cast<const OptionData *>(data);
         if (v.count <= index)
             return v.option->argument(argIndex).defaultValue();
@@ -104,9 +108,7 @@ namespace SysCmdLine {
 
     void ParseResultPrivate::showMessage(const std::string &info, const std::string &warn,
                                          const std::string &err, bool isMsg) const {
-
         // Extract arguments, options, commands from categories
-
         struct Lists {
             HelpLayout::List *data;
             int size;
@@ -120,7 +122,8 @@ namespace SysCmdLine {
                                   const void *user,                       // get symbol from index
 
                                   std::string (*getName)(const Symbol *), // get name of symbol
-                                  int *maxWidth) -> Lists {
+                                  int *maxWidth, void *extra,
+                                  const std::string &defaultTitle) -> Lists {
             Lists res;
             res.size = catalogNames.size() + 1;
             res.data = new HelpLayout::List[res.size];
@@ -133,7 +136,7 @@ namespace SysCmdLine {
 
             // catalogues
             for (size_t i = 0; i < catalogNames.size(); ++i) {
-                const auto &catalogName = catalogNames[i];
+                auto &catalogName = catalogNames[i];
                 auto &list = res.data[i];
                 list.title = catalogName;
 
@@ -142,8 +145,8 @@ namespace SysCmdLine {
                     const auto &idx = symbolIndexes.find(name)->second;
                     const auto &sym = getter(idx, user);
 
-                    auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions);
-                    auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions);
+                    auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions, extra);
+                    auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions, extra);
                     *maxWidth = std::max(int(first.size()), *maxWidth);
                     list.firstColumn.emplace_back(first);
                     list.secondColumn.emplace_back(second);
@@ -154,6 +157,7 @@ namespace SysCmdLine {
             // rest
             {
                 auto &list = res.data[catalogNames.size()];
+                list.title = defaultTitle;
                 for (const auto &pair : restIndexes) {
                     const auto &sym = getter(pair.first, user);
 
@@ -190,7 +194,8 @@ namespace SysCmdLine {
                          [](const Symbol *s) {
                              return static_cast<const Argument *>(s)->name(); //
                          },
-                         &maxWidth);
+                         &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
+                         parserData->textProvider(Strings::Title, Strings::Arguments));
 
         Lists optLists = noHelp
                              ? Lists{nullptr, 0}
@@ -206,13 +211,14 @@ namespace SysCmdLine {
                                    [](const Symbol *s) {
                                        return static_cast<const Option *>(s)->token(); //
                                    },
-                                   &maxWidth);
+                                   &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
+                                   parserData->textProvider(Strings::Title, Strings::Options));
 
         Lists cmdLists = noHelp
                              ? Lists{nullptr, 0}
                              : getLists(
                                    displayOptions, catalogueData->cmd.data, catalogueData->commands,
-                                   core.argNameIndexes, int(d->commands.size()),
+                                   core.cmdNameIndexes, int(d->commands.size()),
                                    [](int i, const void *user) -> const Symbol * {
                                        return &reinterpret_cast<decltype(d)>(user)->commands[i]; //
                                    },
@@ -220,7 +226,8 @@ namespace SysCmdLine {
                                    [](const Symbol *s) {
                                        return static_cast<const Command *>(s)->name(); //
                                    },
-                                   &maxWidth);
+                                   &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
+                                   parserData->textProvider(Strings::Title, Strings::Commands));
 
         const auto &helpLayoutData = parserData->helpLayout.d_func();
         if (displayOptions & Parser::DisplayOption::AlignAllCatalogues) {
@@ -363,6 +370,8 @@ namespace SysCmdLine {
                         case HelpLayout::HT_Description: {
                             if (noHelp)
                                 break;
+                            text.title =
+                                parserData->textProvider(Strings::Title, Strings::Description);
                             text.lines = cmdDesc;
                             break;
                         }
@@ -371,9 +380,19 @@ namespace SysCmdLine {
                                 break;
                             std::vector<Option> allOptions;
                             allOptions.reserve(core.globalOptionsSize);
-                            for (int i = 0; i < core.globalOptionsSize; ++i) {
-                                allOptions.emplace_back(*core.allOptionsResult[i].option);
+                            for (int j = 0; j < core.globalOptionsSize; ++j) {
+                                allOptions.emplace_back(*core.allOptionsResult[j].option);
                             }
+
+                            {
+                                // get parent names
+                                auto p = command;
+                                for (int index : stack) {
+                                    text.lines = p->name() + " ";
+                                    p = &p->d_func()->commands[index];
+                                }
+                            }
+
                             bool hasCommands;
                             bool hasOptions;
                             void *a[3] = {
@@ -381,7 +400,9 @@ namespace SysCmdLine {
                                 &hasCommands,
                                 &hasOptions,
                             };
-                            text.lines = command->helpText(Symbol::HP_Usage, displayOptions, a);
+                            text.title = parserData->textProvider(Strings::Title, Strings::Usage);
+                            text.lines += command->helpText(Symbol::HP_Usage, displayOptions, a);
+
                             if (hasCommands) {
                                 text.lines += " [" +
                                               parserData->textProvider(Strings::Token,
@@ -403,14 +424,16 @@ namespace SysCmdLine {
                 case HelpLayoutPrivate::HelpList: {
                     if (noHelp)
                         break;
+
+                    const auto &listHasNext = [](int j, const Lists &lists) {
+                        return j < lists.size - 1 && !lists.data[j + 1].firstColumn.empty();
+                    };
+
                     ctx.firstColumnLength = maxWidth;
                     switch (static_cast<HelpLayout::HelpListItem>(item.index)) {
                         case HelpLayout::HL_Arguments: {
                             for (int j = 0; j < argLists.size; ++j) {
-                                ctx.hasNext =
-                                    hasNext ||
-                                    (j < argLists.size - 1 &&
-                                     !argLists.data[argLists.size - 1].firstColumn.empty());
+                                ctx.hasNext = hasNext || listHasNext(j, argLists);
                                 ctx.list = &argLists.data[j];
                                 item.out(ctx);
                             }
@@ -418,10 +441,7 @@ namespace SysCmdLine {
                         }
                         case HelpLayout::HL_Options: {
                             for (int j = 0; j < optLists.size; ++j) {
-                                ctx.hasNext =
-                                    hasNext ||
-                                    (j < optLists.size - 1 &&
-                                     !optLists.data[optLists.size - 1].firstColumn.empty());
+                                ctx.hasNext = hasNext || listHasNext(j, optLists);
                                 ctx.list = &optLists.data[j];
                                 item.out(ctx);
                             }
@@ -429,10 +449,7 @@ namespace SysCmdLine {
                         }
                         case HelpLayout::HL_Commands: {
                             for (int j = 0; j < cmdLists.size; ++j) {
-                                ctx.hasNext =
-                                    hasNext ||
-                                    (j < cmdLists.size - 1 &&
-                                     !cmdLists.data[cmdLists.size - 1].firstColumn.empty());
+                                ctx.hasNext = hasNext || listHasNext(j, cmdLists);
                                 ctx.list = &cmdLists.data[j];
                                 item.out(ctx);
                             }
@@ -492,9 +509,6 @@ namespace SysCmdLine {
     }
 
     ParseResult::ParseResult() : SharedBase(nullptr) {
-    }
-
-    ParseResult::~ParseResult() {
     }
 
     Command ParseResult::rootCommand() const {
@@ -629,11 +643,15 @@ namespace SysCmdLine {
 
     std::vector<Value> ParseResult::valuesForArgument(int index) const {
         Q_D2(ParseResult);
+        if (index < 0)
+            return {};
         return d->core.argResult[index];
     }
 
     Value ParseResult::valueForArgument(int index) const {
         Q_D2(ParseResult);
+        if (index < 0)
+            return {};
         const auto &args = d->core.argResult[index];
         if (args.empty())
             return d->command->argument(index).defaultValue();

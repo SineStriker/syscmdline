@@ -62,12 +62,25 @@ namespace SysCmdLine {
                 }
 
                 std::string appendix;
+                std::string desc = d->desc;
+                if (desc.empty()) {
+                    switch (d->specialType) {
+                        case Version:
+                            desc = textProvider(Strings::DefaultCommand, Strings::Version);
+                            break;
+                        case Help:
+                            desc = textProvider(Strings::DefaultCommand, Strings::Help);
+                            break;
+                        default:
+                            break;
+                    }
+                }
 
                 // Required
                 if (d->required && (displayOptions & Parser::ShowOptionIsRequired)) {
                     appendix += " [" + textProvider(Strings::Title, Strings::Required) + "]";
                 }
-                return d->desc + appendix;
+                return desc + appendix;
             }
         }
 

@@ -23,6 +23,13 @@ if(WIN32)
     include("../cmake/winrc.cmake")
 endif()
 
+# if(MSVC)
+#     if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+#         target_compile_options(${PROJECT_NAME} PRIVATE /Gw /Gy /Zc:inline)
+#         target_link_options(${PROJECT_NAME} PRIVATE /OPT:REF /OPT:ICF /OPT:LBR)
+#     endif()
+# endif()
+
 if(SYSCMDLINE_INSTALL)
     target_include_directories(${PROJECT_NAME} PUBLIC
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
