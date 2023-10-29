@@ -62,6 +62,8 @@ namespace SysCmdLine {
         Option(const std::string &token, const std::string &desc = {}, bool required = false);
         Option(const std::vector<std::string> &tokens, const std::string &desc = {},
                bool required = false);
+        inline Option(std::initializer_list<std::string> tokens, const std::string &desc = {},
+                      bool required = false);
 
         using Symbol::helpText;
         std::string helpText(HelpPosition pos, int displayOptions, void *extra) const override;
@@ -94,6 +96,11 @@ namespace SysCmdLine {
         SpecialType specialType() const;
         void setSpecialType(SpecialType specialType);
     };
+
+    inline Option::Option(std::initializer_list<std::string> tokens, const std::string &desc,
+                          bool required)
+        : Option(std::vector<std::string>(tokens), desc, required) {
+    }
 
     inline std::string Option::token() const {
         return tokens().front();

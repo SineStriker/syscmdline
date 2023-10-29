@@ -256,7 +256,7 @@ namespace SysCmdLine {
                                    parserData->textProvider(Strings::Title, Strings::Commands));
 
         const auto &helpLayoutData = parserData->helpLayout.d_func();
-        if (displayOptions & Parser::DisplayOption::AlignAllCatalogues) {
+        if (displayOptions & Parser::AlignAllCatalogues) {
             for (const auto &helpItem : helpLayoutData->itemDataList) {
                 if (helpItem.itemType != HelpLayoutPrivate::UserHelpList) {
                     continue;

@@ -4,13 +4,13 @@
 using namespace SysCmdLine;
 
 int main(int /* argc */, char * /* argv */[]) {
-    Option linkDirOption("-L", "Add link directory");
-    linkDirOption.setShortMatchRule(SysCmdLine::Option::ShortMatchAll);
+    Option linkDirOption({"-L", "--linkdir"}, "Add link directory");
+    linkDirOption.setShortMatchRule(Option::ShortMatchSingleChar);
     linkDirOption.addArgument(Argument("dir"));
     linkDirOption.setUnlimitedOncurrence();
 
-    Option includeDirOption("-I", "Add include directory");
-    includeDirOption.setShortMatchRule(SysCmdLine::Option::ShortMatchAll);
+    Option includeDirOption({"-I", "--includedir"}, "Add include directory");
+    includeDirOption.setShortMatchRule(Option::ShortMatchSingleChar);
     includeDirOption.addArgument(Argument("dir"));
     includeDirOption.setUnlimitedOncurrence();
 
@@ -34,5 +34,5 @@ int main(int /* argc */, char * /* argv */[]) {
     SYSCMDLINE_ASSERT_COMMAND(rootCommand);
 
     Parser parser(rootCommand);
-    return parser.invoke(SysCmdLine::commandLineArguments());
+    return parser.invoke(commandLineArguments());
 }

@@ -597,11 +597,11 @@ namespace SysCmdLine {
 
                 switch (opt->shortMatchRule()) {
                     case Option::ShortMatchSingleChar: {
-                        if (token.size() > 2)
+                        if (prefix.size() > 2)
                             break;
                     }
                     case Option::ShortMatchSingleLetter: {
-                        if (!std::isalpha(token.at(1)))
+                        if (!std::isalpha(prefix.at(1)))
                             break;
                     }
                     case Option::ShortMatchAll: {
@@ -641,11 +641,11 @@ namespace SysCmdLine {
             if (token.size() > 1) {
                 // Try unix short option
                 if (!(parseOptions & Parser::DontAllowUnixShortOptions) && token.front() == '-') {
-                    return searchShortOptions(indexes, token, '-', pos);
+                    return searchShortOptions(indexes, token, '=', pos);
                 }
 
                 // Try dos short option
-                if (parseOptions & Parser::AllowDosShortOptions && token.front() == '/') {
+                if ((parseOptions & Parser::AllowDosShortOptions) && token.front() == '/') {
                     return searchShortOptions(indexes, token, ':', pos);
                 }
             }
