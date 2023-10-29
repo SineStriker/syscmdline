@@ -102,7 +102,7 @@ int main(int /* argc */, char * /* argv */ []) {
 
 + If an argument has an expected value list, only symbols listed in it will be regarded as valid argument.
 
-+ We also tell the parser to show default value and expected values on help text which would be hided if the flags weren't set.
++ We also tell the parser to show default value and expected values on help list which would be hided if the flags weren't set.
 
 ```sh
 Description:

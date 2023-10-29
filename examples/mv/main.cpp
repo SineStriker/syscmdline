@@ -1,41 +1,46 @@
-#include <iostream>
-#include <filesystem>
-
 #include <syscmdline/parser.h>
 #include <syscmdline/system.h>
 
+using namespace SysCmdLine;
+
 int main(int /* argc */, char * /* argv */[]) {
-    using SysCmdLine::Argument;
-    using SysCmdLine::Command;
-    using SysCmdLine::Option;
-    using SysCmdLine::Parser;
-    using SysCmdLine::ParseResult;
+    Argument srcArg("src", "Source files");
+    srcArg.setDisplayName("<files>");
+    srcArg.setMultiValueEnabled(true);
 
-    Argument weekdayArg("weekday", "Weekday");
-    weekdayArg.setExpectedValues({
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-    });
+    Argument numArg("nums");
+    numArg.setMultiValueEnabled(true);
+    Option numOpt("-n", "Numbers");
+    numOpt.addArguments({numArg});
+    Option numOpt2("-n2", "Numbers 2");
+    numOpt2.addArguments({numArg});
 
-    Argument eventArg("event", "Event to do");
-    eventArg.setDefaultValue("football");
-    eventArg.setRequired(false);
+    Argument destArg("dest", "Destination directory");
 
-    Command rootCommand("work", "What to do on which day?");
-    rootCommand.setArguments({weekdayArg, eventArg});
+    Command rootCommand("mv", "What to do on which day?");
+    rootCommand.addArguments({srcArg, destArg});
+    rootCommand.addOptions({numOpt, numOpt2});
     rootCommand.addHelpOption();
     rootCommand.setHandler([](const ParseResult &result) {
-        std::cout << result.valueForArgument("weekday").toString() << std::endl;
-        std::cout << result.valueForArgument("event").toString() << std::endl;
+        u8printf("Sources:\n");
+        for (const auto &item : result.valuesForArgument("src")) {
+            u8printf("    %s\n", item.toString().data());
+        }
+        u8printf("Destination:\n");
+        u8printf("    %s\n", result.valueForArgument("dest").toString().data());
+        u8printf("Numbers:\n");
+        for (const auto &item : result.resultForOption("-n").valuesForArgument("nums")) {
+            u8printf("    %s\n", item.toString().data());
+        }
+        u8printf("Numbers 2:\n");
+        for (const auto &item : result.resultForOption("-n2").valuesForArgument("nums")) {
+            u8printf("    %s\n", item.toString().data());
+        }
         return 0;
     });
 
+    SYSCMDLINE_ASSERT_COMMAND(rootCommand);
+
     Parser parser(rootCommand);
-    parser.setDisplayOptions(Parser::ShowArgumentDefaultValue | Parser::ShowArgumentExpectedValues);
     return parser.invoke(SysCmdLine::commandLineArguments());
 }

@@ -1,111 +1,63 @@
 #include "argument.h"
 #include "argument_p.h"
 
-#include <stdexcept>
-
+#include "utils_p.h"
 #include "strings.h"
 #include "parser.h"
-#include "utils.h"
 
 namespace SysCmdLine {
 
-    ArgumentData::ArgumentData(const std::string &name, const std::string &desc,
-                               const std::vector<Value> &expectedValues, const Value &defaultValue,
-                               bool required, const std::string &displayName, bool multipleEnabled)
-        : SymbolData(Symbol::ST_Argument, name, desc), defaultValue(defaultValue),
-          required(required), displayName(displayName), multiple(multipleEnabled) {
-        if (!expectedValues.empty())
-            setExpectedValues(expectedValues);
+    ArgumentPrivate::ArgumentPrivate(std::string name, const std::string &desc, bool required,
+                                     Value defaultValue)
+        : SymbolPrivate(Symbol::ST_Argument, desc), name(std::move(name)), required(required),
+          defaultValue(std::move(defaultValue)), multiple(false) {
     }
 
-    ArgumentData::~ArgumentData() {
-    }
-
-    SymbolData *ArgumentData::clone() const {
-        return new ArgumentData(*this);
-    }
-
-    void ArgumentData::setExpectedValues(const std::vector<Value> &values) {
-        for (const auto &val : values) {
-            if (val.toString().empty()) {
-                throw std::runtime_error("candidate value cannot be null");
-            }
-        }
-        expectedValues = values;
+    SymbolPrivate *ArgumentPrivate::clone() const {
+        return new ArgumentPrivate(*this);
     }
 
     Argument::Argument() : Argument(std::string()) {
     }
 
-    Argument::Argument(const std::string &name, const std::string &desc)
-        : Argument(name, desc, Value()) {
-    }
-
-    Argument::Argument(const std::string &name, const std::string &desc, const Value &defaultValue,
-                       bool required, const std::string &displayName, bool multipleEnabled)
-        : Argument(name, desc, {}, defaultValue, required, displayName, multipleEnabled) {
-    }
-
-    Argument::Argument(const std::string &name, const std::string &desc,
-                       const std::vector<Value> &expectedValues, const Value &defaultValue,
-                       bool required, const std::string &displayName, bool multipleEnabled)
-        : Symbol(new ArgumentData(name, desc, expectedValues, defaultValue, required, displayName,
-                                  multipleEnabled)) {
-    }
-
-    Argument::~Argument() {
-    }
-
-    Argument::Argument(const Argument &other) : Symbol(nullptr) {
-        d_ptr = other.d_ptr;
-    }
-
-    Argument::Argument(Argument &&other) noexcept : Symbol(nullptr) {
-        d_ptr.swap(other.d_ptr);
-    }
-
-    Argument &Argument::operator=(const Argument &other) {
-        if (this == &other) {
-            return *this;
-        }
-        d_ptr = other.d_ptr;
-        return *this;
-    }
-
-    Argument &Argument::operator=(Argument &&other) noexcept {
-        if (this == &other) {
-            return *this;
-        }
-        d_ptr.swap(other.d_ptr);
-        return *this;
+    Argument::Argument(const std::string &name, const std::string &desc, bool required,
+                       const Value &defaultValue)
+        : Symbol(new ArgumentPrivate(name, desc, required, defaultValue)) {
     }
 
     std::string Argument::displayedText() const {
-        SYSCMDLINE_GET_DATA(const Argument);
+        Q_D2(Argument);
         std::string res = d->displayName.empty() ? ("<" + d->name + ">") : d->displayName;
-        if (d->multiple)
-            res += "...";
         return res;
     }
 
     std::string Argument::helpText(Symbol::HelpPosition pos, int displayOptions,
                                    void *extra) const {
-        SYSCMDLINE_GET_DATA(const Argument);
-        if (d->helpProvider)
-            return d->helpProvider(this, pos, displayOptions, extra);
+        Q_D2(Argument);
+        if (auto ss = Symbol::helpText(pos, displayOptions, extra); !ss.empty()) {
+            return ss;
+        }
 
         switch (pos) {
+            case Symbol::HP_Usage: {
+                return displayedText() + (d->multiple ? "..." : "");
+            }
             case Symbol::HP_SecondColumn: {
+                auto textProvider = reinterpret_cast<Parser::TextProvider>(extra);
+                if (!textProvider) {
+                    textProvider = Parser::defaultTextProvider();
+                }
+
                 std::string appendix;
                 // Required
                 if (d->required && (displayOptions & Parser::ShowArgumentIsRequired)) {
-                    appendix += " [" + Strings::text(Strings::Title, Strings::Required) + "]";
+                    appendix += " [" + textProvider(Strings::Title, Strings::Required) + "]";
                 }
 
                 // Default Value
                 if (d->defaultValue.type() != Value::Null &&
                     (displayOptions & Parser::ShowArgumentDefaultValue)) {
-                    appendix += " [" + Strings::text(Strings::Title, Strings::Default) + ": " +
+                    appendix += " [" + textProvider(Strings::Title, Strings::Default) + ": " +
                                 d->defaultValue.toString() + "]";
                 }
 
@@ -124,7 +76,7 @@ namespace SysCmdLine {
                                 break;
                         }
                     }
-                    appendix += " [" + Strings::text(Strings::Title, Strings::ExpectedValues) +
+                    appendix += " [" + textProvider(Strings::Title, Strings::ExpectedValues) +
                                 ": " + Utils::join(values, ", ") + "]";
                 }
                 return d->desc + appendix;
@@ -133,237 +85,138 @@ namespace SysCmdLine {
             default:
                 break;
         }
+
         return displayedText();
     }
 
+    std::string Argument::name() const {
+        Q_D2(Argument);
+        return d->name;
+    }
+
+    void Argument::setName(const std::string &name) {
+        Q_D(Argument);
+        d->name = name;
+    }
+
     const std::vector<Value> &Argument::expectedValues() const {
-        SYSCMDLINE_GET_DATA(const Argument);
+        Q_D2(Argument);
         return d->expectedValues;
     }
 
     void Argument::setExpectedValues(const std::vector<Value> &expectedValues) {
-        if (expectedValues == this->expectedValues())
-            return;
-
-        SYSCMDLINE_GET_DATA(Argument);
+        Q_D(Argument);
         d->expectedValues = expectedValues;
     }
 
     Value Argument::defaultValue() const {
-        SYSCMDLINE_GET_DATA(const Argument);
+        Q_D2(Argument);
         return d->defaultValue;
     }
 
     void Argument::setDefaultValue(const Value &defaultValue) {
-        if (defaultValue == this->defaultValue())
-            return;
-
-        SYSCMDLINE_GET_DATA(Argument);
+        Q_D(Argument);
         d->defaultValue = defaultValue;
     }
 
     std::string Argument::displayName() const {
-        SYSCMDLINE_GET_DATA(const Argument);
+        Q_D2(Argument);
         return d->displayName;
     }
 
     void Argument::setDisplayName(const std::string &displayName) {
-        if (displayName == this->displayName())
-            return;
-
-        SYSCMDLINE_GET_DATA(Argument);
+        Q_D(Argument);
         d->displayName = displayName;
     }
 
     bool Argument::isRequired() const {
-        SYSCMDLINE_GET_DATA(const Argument);
+        Q_D2(Argument);
         return d->required;
     }
 
     void Argument::setRequired(bool required) {
-        if (required == isRequired())
-            return;
-
-        SYSCMDLINE_GET_DATA(Argument);
+        Q_D(Argument);
         d->required = required;
     }
 
     bool Argument::multiValueEnabled() const {
-        SYSCMDLINE_GET_DATA(const Argument);
+        Q_D2(Argument);
         return d->multiple;
     }
 
     void Argument::setMultiValueEnabled(bool on) {
-        if (on == multiValueEnabled())
-            return;
-
-        SYSCMDLINE_GET_DATA(Argument);
+        Q_D(Argument);
         d->multiple = on;
     }
 
     Argument::Validator Argument::validator() const {
-        SYSCMDLINE_GET_DATA(const Argument);
+        Q_D2(Argument);
         return d->validator;
     }
 
     void Argument::setValidator(const Validator &validator) {
-        SYSCMDLINE_GET_DATA(Argument);
+        Q_D(Argument);
         d->validator = validator;
     }
 
-    ArgumentHolderData::ArgumentHolderData(Symbol::SymbolType type, const std::string &name,
-                                           const std::string &desc,
-                                           const std::vector<Argument> &args)
-        : SymbolData(type, name, desc), multiValueIndex(-1) {
-        if (!args.empty())
-            setArguments(args);
-    }
-
-    ArgumentHolderData::~ArgumentHolderData() {
-    }
-
-    void ArgumentHolderData::addArgument(const Argument &arg) {
-        const auto &d = arg.d_func();
-        const auto &name = d->name;
-        if (name.empty()) {
-            throw std::runtime_error("empty argument name");
-        }
-        if (argumentNameIndexes.count(name)) {
-            throw std::runtime_error("argument name \"" + name + "\" duplicated");
-        }
-        if (!arguments.empty() && !arguments.back().isRequired() && d->required) {
-            throw std::runtime_error(
-                "adding required argument after optional arguments is prohibited");
-        }
-
-        if (arg.multiValueEnabled()) {
-            if (type < Symbol::ST_Command) {
-                throw std::runtime_error(
-                    "adding multi-value argument to non-command symbol is prohibited");
-            }
-            if (multiValueIndex >= 0) {
-                throw std::runtime_error("there can be at most one multi-value argument");
-            }
-            if (d->defaultValue.type() != Value::Null) {
-                throw std::runtime_error("multi-value argument with default value is prohibited");
-            }
-            multiValueIndex = int(arguments.size());
-        } else if (multiValueIndex >= 0 && !d->required) {
-            throw std::runtime_error(
-                "adding optional argument after multi-value argument is prohibited");
-        }
-
-        // check if default value is valid
-        {
-            const auto &expectedValues = d->expectedValues;
-            const auto &defaultValue = d->defaultValue;
-            if (!expectedValues.empty() && defaultValue.type() != Value::Null &&
-                std::find(expectedValues.begin(), expectedValues.end(), defaultValue) ==
-                    expectedValues.end()) {
-                throw std::runtime_error("default value \"" + defaultValue.toString() +
-                                         "\" is not in expected values");
-            }
-        }
-
-        argumentNameIndexes.insert(std::make_pair(name, arguments.size()));
-        arguments.push_back(arg);
-    }
-
-    void ArgumentHolderData::setArguments(const std::vector<Argument> &args) {
-        arguments.clear();
-        argumentNameIndexes.clear();
-        multiValueIndex = -1;
-        if (args.empty())
-            return;
-
-        arguments.reserve(args.size());
-        argumentNameIndexes.reserve(args.size());
-        for (const auto &arg : args) {
-            addArgument(arg);
-        }
-    }
-
-    ArgumentHolder::~ArgumentHolder() {
-    }
-
-    Argument ArgumentHolder::argument(const std::string &name) const {
-        SYSCMDLINE_GET_DATA(const ArgumentHolder);
-        auto it = d->argumentNameIndexes.find(name);
-        if (it == d->argumentNameIndexes.end())
-            return {};
-        return d->arguments[it->second];
-    }
-
-    Argument ArgumentHolder::argument(int index) const {
-        SYSCMDLINE_GET_DATA(const ArgumentHolder);
-        if (index < 0 || index >= d->arguments.size())
-            return {};
-        return d->arguments[index];
-    }
-
-    const std::vector<Argument> &ArgumentHolder::arguments() const {
-        SYSCMDLINE_GET_DATA(const ArgumentHolder);
-        return d->arguments;
-    }
-
-    int ArgumentHolder::indexOfArgument(const std::string &name) const {
-        SYSCMDLINE_GET_DATA(const ArgumentHolder);
-        auto it = d->argumentNameIndexes.find(name);
-        if (it == d->argumentNameIndexes.end())
-            return -1;
-        return int(it->second);
-    }
-
-    bool ArgumentHolder::hasArgument(const std::string &name) const {
-        SYSCMDLINE_GET_DATA(const ArgumentHolder);
-        return d->argumentNameIndexes.count(name);
-    }
-
-    void ArgumentHolder::addArgument(const Argument &argument) {
-        SYSCMDLINE_GET_DATA(ArgumentHolder);
-        d->addArgument(argument);
-    }
-
-    void ArgumentHolder::setArguments(const std::vector<Argument> &arguments) {
-        SYSCMDLINE_GET_DATA(ArgumentHolder);
-        d->setArguments(arguments);
+    ArgumentHolderPrivate::ArgumentHolderPrivate(Symbol::SymbolType type, const std::string &desc)
+        : SymbolPrivate(type, desc) {
     }
 
     std::string ArgumentHolder::displayedArguments(int displayOptions) const {
-        SYSCMDLINE_GET_DATA(const ArgumentHolder);
-        const auto &arguments = d->arguments;
+        Q_D2(ArgumentHolder);
+
+        // Use C Style to traverse
+        auto arguments = d->arguments.data();
+        int size = int(d->arguments.size());
 
         std::string ss;
-        std::string::size_type optionalIdx = arguments.size();
-        for (std::string::size_type i = 0; i < arguments.size(); ++i) {
-            if (!arguments.at(i).isRequired()) {
+        int optionalIdx = size;
+        for (int i = 0; i < size; ++i) {
+            if (!arguments[i].isRequired()) {
                 optionalIdx = i;
                 break;
             }
         }
 
         if (optionalIdx > 0) {
-            for (std::string::size_type i = 0; i < optionalIdx - 1; ++i) {
+            for (int i = 0; i < optionalIdx - 1; ++i) {
                 ss += arguments[i].helpText(Symbol::HP_Usage, displayOptions, nullptr);
                 ss += " ";
             }
             ss += arguments[optionalIdx - 1].helpText(Symbol::HP_Usage, displayOptions, nullptr);
         }
 
-        if (optionalIdx < arguments.size()) {
+        if (optionalIdx < size) {
             ss += " [";
-            for (std::string::size_type i = optionalIdx; i < arguments.size() - 1; ++i) {
+            for (int i = optionalIdx; i < size - 1; ++i) {
                 ss += arguments[i].helpText(Symbol::HP_Usage, displayOptions, nullptr);
                 ss += " ";
             }
-            ss +=
-                arguments[arguments.size() - 1].helpText(Symbol::HP_Usage, displayOptions, nullptr);
+            ss += arguments[size - 1].helpText(Symbol::HP_Usage, displayOptions, nullptr);
             ss += "]";
         }
         return ss;
     }
 
-    ArgumentHolder::ArgumentHolder(ArgumentHolderData *d) : Symbol(d) {
+    int ArgumentHolder::argumentCount() const {
+        Q_D2(ArgumentHolder);
+        return int(d->arguments.size());
+    }
+
+    Argument ArgumentHolder::argument(int index) const {
+        Q_D2(ArgumentHolder);
+        return d->arguments[index];
+    }
+
+    void ArgumentHolder::addArguments(const std::vector<Argument> &arguments) {
+        Q_D(ArgumentHolder);
+        d->arguments.reserve(d->arguments.size() + arguments.size());
+        for (const auto &item : arguments)
+            d->arguments.push_back(item);
+    }
+
+    ArgumentHolder::ArgumentHolder(ArgumentHolderPrivate *d) : Symbol(d) {
     }
 
 }

@@ -1,4 +1,4 @@
-file(GLOB_RECURSE _src ../include/syscmdline/*.h *.h *.cpp)
+file(GLOB_RECURSE _src ../include/syscmdline/*.h *.h *.c *.hpp *.cpp)
 
 # Add library
 if(SYSCMDLINE_BUILD_STATIC)
@@ -15,13 +15,20 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 target_include_directories(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>"
 )
-target_include_directories(${PROJECT_NAME} PRIVATE . ../include/syscmdline)
+target_include_directories(${PROJECT_NAME} PRIVATE . ../include/syscmdline ../include/syscmdline/private)
 
 if(WIN32)
-    set(RC_DESCRIPTION "Command Line Parser For Mordern C++")
+    set(RC_DESCRIPTION "C++ Advanced Command Line Parser")
     set(RC_COPYRIGHT "Copyright 2023 SineStriker")
     include("../cmake/winrc.cmake")
 endif()
+
+# if(MSVC)
+#     if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+#         target_compile_options(${PROJECT_NAME} PRIVATE /Gw /Gy /Zc:inline)
+#         target_link_options(${PROJECT_NAME} PRIVATE /OPT:REF /OPT:ICF /OPT:LBR)
+#     endif()
+# endif()
 
 if(SYSCMDLINE_INSTALL)
     target_include_directories(${PROJECT_NAME} PUBLIC

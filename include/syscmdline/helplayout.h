@@ -31,71 +31,78 @@
 #include <vector>
 #include <functional>
 
-#include <syscmdline/global.h>
-#include <syscmdline/shareddata.h>
+#include <syscmdline/sharedbase.h>
 
 namespace SysCmdLine {
 
     class Parser;
-    class ParserData;
-    class ParseResult;
-    class ParseResultData;
 
-    class HelpLayoutData;
+    class HelpLayoutPrivate;
 
-    class SYSCMDLINE_EXPORT HelpLayout {
-        SYSCMDLINE_DECL_DATA(HelpLayout)
+    class SYSCMDLINE_EXPORT HelpLayout : public SharedBase {
+        SYSCMDLINE_DECL_PRIVATE(HelpLayout)
     public:
         HelpLayout();
         ~HelpLayout();
 
-        HelpLayout(const HelpLayout &other);
-        HelpLayout(HelpLayout &&other) noexcept;
-        HelpLayout &operator=(const HelpLayout &other);
-        HelpLayout &operator=(HelpLayout &&other) noexcept;
-
-        enum HelpItem {
-            HI_CustomText,
-            HI_Prologue,
-            HI_Information,
-            HI_Warning,
-            HI_Error,
-            HI_Description,
-            HI_Usage,
-            HI_Arguments,
-            HI_Options,
-            HI_Commands,
-            HI_Epilogue,
+        enum HelpTextItem {
+            HT_Prologue,
+            HT_Epilogue,
+            HT_Description,
+            HT_Usage,
         };
 
-        enum SizeType {
-            ST_Indent,
-            ST_Spacing,
-            ST_ConsoleWidth,
+        enum HelpListItem {
+            HL_Arguments,
+            HL_Options,
+            HL_Commands,
         };
 
-        using Printer =
-            std::function<void(const std::string & /* title */,
-                               const std::vector<std::string> & /* lines */, bool /* hasNext */)>;
+        enum MessageItem {
+            MI_Information,
+            MI_Warning,
+            MI_Critical,
+        };
+
+        struct Text {
+            std::string title;
+            std::string lines;
+        };
+
+        struct List {
+            std::string title;
+            std::vector<std::string> firstColumn;
+            std::vector<std::string> secondColumn;
+        };
+
+        struct Context {
+            const Parser *parser;
+            union {
+                // Available on `HelpTextItem`, `UserHelpTextItem`
+                const Text *text;
+
+                // Available on `HelpListItem`, `UserHelpListItem`
+                struct {
+                    const List *list;
+                    int firstColumnLength;
+                };
+            };
+            bool hasNext;
+        };
+
+        using Output = std::function<void(const Context & /* context */)>;
 
     public:
-        bool isNull() const;
+        void addHelpTextItem(HelpTextItem type, const Output &out = {});
+        void addHelpListItem(HelpListItem type, const Output &out = {});
+        void addMessageItem(MessageItem type, const Output &out = {});
 
-        int size(SizeType sizeType) const;
-        void setSize(SizeType sizeType, int value);
-
-        void addItem(HelpItem type, const Printer &printer = {});
+        void addUserHelpTextItem(const Text &text, const Output &out = {});
+        void addUserHelpListItem(const List &list, const Output &out = {});
+        void addUserHelpPlainItem(const Output &out);
 
     public:
         static HelpLayout defaultHelpLayout();
-
-    protected:
-        SharedDataPointer<HelpLayoutData> d_ptr;
-
-        friend class Parser;
-        friend class ParserData;
-        friend class ParseResult;
-        friend class ParseResultData;
     };
 
 }

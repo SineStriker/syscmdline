@@ -1,17 +1,9 @@
-#include <iostream>
-#include <filesystem>
-
 #include <syscmdline/parser.h>
 #include <syscmdline/system.h>
 
-int main(int /* argc */, char * /* argv */[]) {
-    using SysCmdLine::Argument;
-    using SysCmdLine::Command;
-    using SysCmdLine::CommandCatalogue;
-    using SysCmdLine::Option;
-    using SysCmdLine::Parser;
-    using SysCmdLine::ParseResult;
+using namespace SysCmdLine;
 
+int main(int /* argc */, char * /* argv */[]) {
     Command cloneCommand("clone", "Clone a repository into a new directory");
     Command initCommand("init", "Create an empty Git repository or reinitialize an existing one");
 
@@ -20,7 +12,7 @@ int main(int /* argc */, char * /* argv */[]) {
     Command rebaseCommand("rebase", "Reapply commits on top of another base tip");
 
     Command rootCommand("git", "Git is a distributed version control system.");
-    rootCommand.setCommands({
+    rootCommand.addCommands({
         cloneCommand,
         initCommand,
         commitCommand,
@@ -30,16 +22,17 @@ int main(int /* argc */, char * /* argv */[]) {
     rootCommand.addVersionOption("0.0.0.1");
     rootCommand.addHelpOption(true, true);
     rootCommand.setHandler([](const ParseResult &result) {
-        std::cout << result.valueForArgument("weekday").toString() << std::endl;
-        std::cout << result.valueForArgument("event").toString() << std::endl;
+        u8printf("%s\n", result.valueForArgument("weekday").toString().data());
+        u8printf("%s\n", result.valueForArgument("event").toString().data());
         return 0;
     });
 
     CommandCatalogue cc;
-    cc.addCommandCatalogue("start a working area", {"clone", "init"});
-    cc.addCommandCatalogue("grow, mark and tweak your common history",
-                           {"commit", "merge", "rebase"});
+    cc.addCommands("start a working area", {"clone", "init"});
+    cc.addCommands("grow, mark and tweak your common history", {"commit", "merge", "rebase"});
     rootCommand.setCatalogue(cc);
+
+    SYSCMDLINE_ASSERT_COMMAND(rootCommand);
 
     Parser parser(rootCommand);
     parser.setDisplayOptions(Parser::ShowArgumentDefaultValue | Parser::ShowArgumentExpectedValues |

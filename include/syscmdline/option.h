@@ -31,11 +31,17 @@
 
 namespace SysCmdLine {
 
-    class OptionData;
+    class OptionPrivate;
 
     class SYSCMDLINE_EXPORT Option : public ArgumentHolder {
-        SYSCMDLINE_DECL_DATA(Option)
+        SYSCMDLINE_DECL_PRIVATE(Option)
     public:
+        enum SpecialType {
+            NoSpecial,
+            Help,
+            Version,
+        };
+
         enum PriorLevel {
             NoPrior,
             IgnoreMissingSymbols,
@@ -52,25 +58,17 @@ namespace SysCmdLine {
             ShortMatchSingleLetter,
         };
 
-        Option();
-        Option(const std::string &name, const std::string &desc,
-               const std::vector<std::string> &tokens = {}, bool required = false,
-               const std::vector<Argument> &arguments = {});
-        Option(const std::string &name, const std::string &desc,
-               const std::vector<std::string> &tokens, bool required, ShortMatchRule shortMatchType,
-               PriorLevel priorLevel, bool global, const std::vector<Argument> &arguments = {});
-        ~Option();
-
-        Option(const Option &other);
-        Option(Option &&other) noexcept;
-        Option &operator=(const Option &other);
-        Option &operator=(Option &&other) noexcept;
+        Option(SpecialType specialType = NoSpecial);
+        Option(const std::string &token, const std::string &desc, bool required = false);
+        Option(const std::vector<std::string> &tokens, const std::string &desc,
+               bool required = false);
 
         using Symbol::helpText;
         std::string helpText(HelpPosition pos, int displayOptions, void *extra) const override;
 
     public:
         const std::vector<std::string> &tokens() const;
+        inline std::string token() const;
         void setTokens(const std::vector<std::string> &tokens);
         inline void setToken(const std::string &token);
 
@@ -91,15 +89,15 @@ namespace SysCmdLine {
 
         int maxOccurrence() const;
         void setMaxOccurrence(int max);
+        inline void setUnlimitedOncurrence();
 
-    protected:
-        friend class Command;
-        friend class CommandData;
-        friend class Parser;
-        friend class ParserData;
-        friend class ParseResult;
-        friend class ParseResultData;
+        SpecialType specialType() const;
+        void setSpecialType(SpecialType specialType);
     };
+
+    inline std::string Option::token() const {
+        return tokens().front();
+    }
 
     inline void Option::setToken(const std::string &token) {
         setTokens({token});
@@ -111,6 +109,10 @@ namespace SysCmdLine {
 
     inline void Option::setOptional(bool optional) {
         setRequired(!optional);
+    }
+
+    inline void Option::setUnlimitedOncurrence() {
+        setMaxOccurrence(0);
     }
 
 }

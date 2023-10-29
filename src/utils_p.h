@@ -27,6 +27,17 @@ namespace SysCmdLine::Utils {
         return s.substr(0, prefix.size()) == prefix;
     }
 
+    template <class T>
+    std::vector<T> concatVector(const std::vector<T> &v1, const std::vector<T> &v2) {
+        std::vector<T> res;
+        res.reserve(v1.size() + v2.size());
+        for (const auto &item : v1)
+            res.emplace_back(item);
+        for (const auto &item : v2)
+            res.emplace_back(item);
+        return res;
+    }
+
 }
 
 

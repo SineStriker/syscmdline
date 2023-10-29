@@ -1,32 +1,39 @@
 #ifndef HELPLAYOUT_P_H
 #define HELPLAYOUT_P_H
 
+#include <utility>
+
+#include "sharedbase_p.h"
 #include "helplayout.h"
 
 namespace SysCmdLine {
 
-    class HelpLayoutData : public SharedData {
+    class HelpLayoutPrivate : public SharedBasePrivate {
     public:
-        HelpLayoutData() {
-        }
-        ~HelpLayoutData() {
+        HelpLayoutPrivate *clone() const {
+            return new HelpLayoutPrivate(*this);
         }
 
-        struct LayoutItem {
-            HelpLayout::HelpItem item;
-            HelpLayout::Printer printer;
-        };
-        std::vector<LayoutItem> layoutItems;
-
-        int sizeConfig[3] = {
-            4,
-            4,
-            80,
+        enum ItemType {
+            HelpText,
+            HelpList,
+            Message,
+            UserHelpText,
+            UserHelpList,
+            UserHelpPlain,
         };
 
-        HelpLayoutData *clone() const {
-            return new HelpLayoutData(*this);
-        }
+        struct ItemData {
+            ItemType itemType;
+            int index;
+            HelpLayout::Output out;
+
+            // Maybe
+            HelpLayout::Text text;
+            HelpLayout::List list;
+        };
+
+        std::vector<ItemData> itemDataList;
     };
 
 }

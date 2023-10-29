@@ -27,19 +27,14 @@
 #ifndef STRINGS_H
 #define STRINGS_H
 
-#include <string>
-
-#include <syscmdline/global.h>
-
 namespace SysCmdLine::Strings {
-
-    // Text Configuration
 
     enum TextCategory {
         ParseError,
         Title,
         DefaultCommand,
         Information,
+        Token,
     };
 
     enum TitleText {
@@ -63,13 +58,10 @@ namespace SysCmdLine::Strings {
         MatchCommand,
     };
 
-    using TextProvider = std::string (*)(int /* category */, int /* index */);
-
-    SYSCMDLINE_EXPORT void setTextProvider(TextProvider textProvider);
-
-    SYSCMDLINE_EXPORT TextProvider textProvider();
-
-    SYSCMDLINE_EXPORT std::string text(TextCategory category, int index);
+    enum TokenText {
+        OptionalCommands,
+        OptionalOptions,
+    };
 
 }
 

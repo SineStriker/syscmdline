@@ -1,60 +1,52 @@
 #ifndef COMMAND_P_H
 #define COMMAND_P_H
 
-#include <unordered_set>
-
 #include "argument_p.h"
 #include "command.h"
 
+#include "map_p.h"
+
 namespace SysCmdLine {
 
-    class CommandCatalogueData : public SharedData {
-    public:
-        std::vector<std::unordered_set<std::string>> _arg;
-        std::vector<std::unordered_set<std::string>> _opt;
-        std::vector<std::unordered_set<std::string>> _cmd;
+    struct StringListMapWrapper {
+        StringListMapWrapper();
+        StringListMapWrapper(const StringListMapWrapper &other);
+        ~StringListMapWrapper();
 
-        std::unordered_map<std::string, size_t> _argIndexes;
-        std::unordered_map<std::string, size_t> _optIndexes;
-        std::unordered_map<std::string, size_t> _cmdIndexes;
-
-        CommandCatalogueData *clone() const;
+        StringMap data;
     };
 
-    class CommandData : public ArgumentHolderData {
+    class CommandCataloguePrivate : public SharedBasePrivate {
     public:
-        CommandData(const std::string &name, const std::string &desc,
-                    const std::vector<std::pair<Option, int>> &options,
-                    const std::vector<Command> &subCommands, const std::vector<Argument> &args,
-                    const std::string &version, const std::string &detailedDescription,
-                    const Command::Handler &handler, const CommandCatalogue &catalogue);
-        ~CommandData();
+        SharedBasePrivate *clone() const;
 
-        SymbolData *clone() const override;
+        StringListMapWrapper arg;
+        StringListMapWrapper opt;
+        StringListMapWrapper cmd;
+
+        StringList arguments;
+        StringList options;
+        StringList commands;
+    };
+
+    class CommandPrivate : public ArgumentHolderPrivate {
+    public:
+        CommandPrivate(std::string name, const std::string &desc);
+
+        SharedBasePrivate *clone() const override;
 
     public:
-        void setCommands(const std::vector<Command> &commands);
-        void setOptions(const std::vector<Option> &opts);
-        void setOptions(const std::vector<std::pair<Option, int>> &opts);
-
-        void addCommand(const Command &command);
-        void addOption(const Option &option, int exclusiveGroup = -1);
+        std::string name;
 
         std::vector<Option> options;
-        std::unordered_map<std::string, size_t> optionNameIndexes;
-        std::unordered_map<std::string, size_t> optionTokenIndexes;
-        std::unordered_map<int, std::vector<size_t>> exclusiveGroups;
-        std::unordered_map<std::string, int> exclusiveGroupIndexes;
-        int superPriorOptionIndex;
-
-        std::vector<Command> subCommands;
-        std::unordered_map<std::string, size_t> subCommandNameIndexes;
+        std::vector<std::string> optionGroupNames;
+        std::vector<Command> commands;
 
         std::string version;
         std::string detailedDescription;
-        Command::Handler handler;
-
         CommandCatalogue catalogue;
+
+        Command::Handler handler;
     };
 
 }

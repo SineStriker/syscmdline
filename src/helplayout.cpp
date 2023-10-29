@@ -1,76 +1,157 @@
 #include "helplayout.h"
 #include "helplayout_p.h"
 
+#include "system.h"
+#include "parser_p.h"
+#include "utils_p.h"
+
 namespace SysCmdLine {
 
-    HelpLayout::HelpLayout() : d_ptr(new HelpLayoutData()) {
+    static inline void printLast(bool hasNext) {
+        if (hasNext)
+            u8printf("\n");
+    }
+
+    static void defaultTextsPrinter(MessageType messageType, bool highlight,
+                                    const HelpLayout::Context &ctx) {
+        if (ctx.text->lines.empty())
+            return;
+        if (ctx.text->title.empty()) {
+            // Content
+            u8debug(messageType, highlight, "%s\n", ctx.text->lines.data());
+        } else {
+            // Title
+            u8debug(messageType, highlight, "%s:\n", ctx.text->title.data());
+
+            // Content
+            auto lines = Utils::split(ctx.text->lines, "\n");
+            for (const auto &line : std::as_const(lines))
+                u8debug(messageType, highlight, "%s%s\n", ctx.parser->d_func()->indent().data(),
+                        line.data());
+        }
+        printLast(ctx.hasNext);
+    }
+
+    static void defaultInfoPrinter(const HelpLayout::Context &ctx) {
+        defaultTextsPrinter(MT_Debug, false, ctx);
+    }
+
+    static void defaultWarnPrinter(const HelpLayout::Context &ctx) {
+        defaultTextsPrinter(MT_Warning, false, ctx);
+    }
+
+    static void defaultErrorPrinter(const HelpLayout::Context &ctx) {
+        defaultTextsPrinter(MT_Critical, true, ctx);
+    }
+
+    static void defaultListPrinter(const HelpLayout::Context &ctx) {
+        if (ctx.list->firstColumn.empty())
+            return;
+
+        // Title
+        u8printf("%s:\n", ctx.text->title.data());
+
+        const auto &list = ctx.list;
+        const auto &parserData = ctx.parser->d_func();
+
+        int widest = ctx.firstColumnLength;
+        if (widest == 0) {
+            for (const auto &item : list->firstColumn)
+                widest = std::max(widest, int(item.size()));
+        }
+
+        std::vector<std::string> res;
+        for (size_t i = 0; i < list->firstColumn.size(); ++i) {
+            const auto &first = list->firstColumn[i];
+            const auto &second = list->secondColumn[i];
+
+            auto lines = Utils::split(second, "\n");
+            if (lines.empty())
+                lines.emplace_back();
+
+            {
+                std::string ss;
+                ss += parserData->indent();
+                ss += first;
+                ss += std::string(widest - first.size(), ' ');
+                ss += parserData->spacing();
+                ss += lines.front();
+                res.push_back(ss);
+            }
+
+            for (size_t j = 1; j < lines.size(); ++j) {
+                std::string ss;
+                ss += parserData->indent();
+                ss += std::string(widest, ' ');
+                ss += parserData->spacing();
+                ss += std::as_const(lines)[j];
+                res.push_back(ss);
+            }
+        }
+
+        for (const auto &line : std::as_const(res)) {
+            u8printf("%s\n", line.data());
+        }
+
+        printLast(ctx.hasNext);
+    }
+
+    HelpLayout::HelpLayout() : SharedBase(new HelpLayoutPrivate()) {
     }
 
     HelpLayout::~HelpLayout() {
     }
 
-    HelpLayout::HelpLayout(const HelpLayout &other) {
-        d_ptr = other.d_ptr;
+    void HelpLayout::addHelpTextItem(HelpTextItem type, const Output &out) {
+        Q_D(HelpLayout);
+        d->itemDataList.push_back(
+            {HelpLayoutPrivate::HelpText, type, out ? out : defaultInfoPrinter, {}, {}});
     }
-
-    HelpLayout::HelpLayout(HelpLayout &&other) noexcept {
-        d_ptr.swap(other.d_ptr);
+    void HelpLayout::addHelpListItem(HelpListItem type, const Output &out) {
+        Q_D(HelpLayout);
+        d->itemDataList.push_back(
+            {HelpLayoutPrivate::HelpList, type, out ? out : defaultListPrinter, {}, {}});
     }
-
-    HelpLayout &HelpLayout::operator=(const HelpLayout &other) {
-        if (this == &other) {
-            return *this;
-        }
-        d_ptr = other.d_ptr;
-        return *this;
+    void HelpLayout::addMessageItem(MessageItem type, const Output &out) {
+        Q_D(HelpLayout);
+        d->itemDataList.push_back({HelpLayoutPrivate::Message, type, out ? out : [](MessageItem item) {
+                                       switch (item) {
+                                           case MI_Warning:
+                                               return defaultWarnPrinter;
+                                           case MI_Critical:
+                                               return defaultErrorPrinter;
+                                           default:
+                                               break ;
+                                       }
+                                       return defaultInfoPrinter;
+                                   }(type), {}, {}});
     }
-
-    HelpLayout &HelpLayout::operator=(HelpLayout &&other) noexcept {
-        if (this == &other) {
-            return *this;
-        }
-        d_ptr.swap(other.d_ptr);
-        return *this;
+    void HelpLayout::addUserHelpTextItem(const Text &text, const Output &out) {
+        Q_D(HelpLayout);
+        d->itemDataList.push_back({HelpLayoutPrivate::UserHelpText, 0, out, text, {}});
     }
-
-    bool HelpLayout::isNull() const {
-        SYSCMDLINE_GET_DATA(const HelpLayout);
-        return d->layoutItems.empty();
+    void HelpLayout::addUserHelpListItem(const List &list, const Output &out) {
+        Q_D(HelpLayout);
+        d->itemDataList.push_back({HelpLayoutPrivate::UserHelpList, 0, out, {}, list});
     }
-
-    int HelpLayout::size(HelpLayout::SizeType sizeType) const {
-        SYSCMDLINE_GET_DATA(const HelpLayout);
-        return d->sizeConfig[sizeType];
-    }
-
-    void HelpLayout::setSize(HelpLayout::SizeType sizeType, int value) {
-        SYSCMDLINE_GET_DATA(HelpLayout);
-        d->sizeConfig[sizeType] = value;
-    }
-
-    void HelpLayout::addItem(HelpLayout::HelpItem type, const HelpLayout::Printer &printer) {
-        SYSCMDLINE_GET_DATA(HelpLayout);
-        d->layoutItems.push_back({type, printer});
-    }
-
-    static HelpLayout buildDefaultHelpLayout() {
-        HelpLayout layout;
-        layout.addItem(HelpLayout::HI_Prologue);
-        layout.addItem(HelpLayout::HI_Information);
-        layout.addItem(HelpLayout::HI_Warning);
-        layout.addItem(HelpLayout::HI_Error);
-        layout.addItem(HelpLayout::HI_Description);
-        layout.addItem(HelpLayout::HI_Usage);
-        layout.addItem(HelpLayout::HI_Arguments);
-        layout.addItem(HelpLayout::HI_Options);
-        layout.addItem(HelpLayout::HI_Commands);
-        layout.addItem(HelpLayout::HI_Epilogue);
-        return layout;
+    void HelpLayout::addUserHelpPlainItem(const Output &out) {
+        Q_D(HelpLayout);
+        d->itemDataList.push_back({HelpLayoutPrivate::UserHelpPlain, 0, out, {}, {}});
     }
 
     HelpLayout HelpLayout::defaultHelpLayout() {
-        static HelpLayout hl = buildDefaultHelpLayout();
-        return hl;
+        HelpLayout res;
+        res.addHelpTextItem(HT_Prologue);
+        res.addMessageItem(MI_Information);
+        res.addMessageItem(MI_Warning);
+        res.addMessageItem(MI_Critical);
+        res.addHelpTextItem(HT_Description);
+        res.addHelpTextItem(HT_Usage);
+        res.addHelpListItem(HL_Arguments);
+        res.addHelpListItem(HL_Options);
+        res.addHelpListItem(HL_Commands);
+        res.addHelpTextItem(HT_Epilogue);
+        return res;
     }
 
 }

@@ -27,91 +27,56 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+#include <cassert>
+
 #include <syscmdline/option.h>
 
 namespace SysCmdLine {
 
-    class CommandCatalogueData;
+    class ParseResult;
 
-    class SYSCMDLINE_EXPORT CommandCatalogue {
-        SYSCMDLINE_DECL_DATA(CommandCatalogue)
+    class CommandCataloguePrivate;
+
+    class SYSCMDLINE_EXPORT CommandCatalogue : public SharedBase {
+        SYSCMDLINE_DECL_PRIVATE(CommandCatalogue)
     public:
         CommandCatalogue();
-        ~CommandCatalogue();
-
-        CommandCatalogue(const CommandCatalogue &other);
-        CommandCatalogue(CommandCatalogue &&other) noexcept;
-        CommandCatalogue &operator=(const CommandCatalogue &other);
-        CommandCatalogue &operator=(CommandCatalogue &&other) noexcept;
 
     public:
-        void addArgumentCatalogue(const std::string &name, const std::vector<std::string> &args);
-        void addOptionCatalogue(const std::string &name, const std::vector<std::string> &options);
-        void addCommandCatalogue(const std::string &name, const std::vector<std::string> &commands);
-
-    protected:
-        SharedDataPointer<CommandCatalogueData> d_ptr;
-
-        friend class Command;
-        friend class CommandData;
-        friend class Parser;
-        friend class ParserData;
-        friend class ParseResult;
-        friend class ParseResultData;
+        void addArguments(const std::string &name, const std::vector<std::string> &args);
+        void addOptions(const std::string &name, const std::vector<std::string> &options);
+        void addCommands(const std::string &name, const std::vector<std::string> &commands);
     };
 
-    class CommandData;
+    class CommandPrivate;
 
     class SYSCMDLINE_EXPORT Command : public ArgumentHolder {
-        SYSCMDLINE_DECL_DATA(Command)
+        SYSCMDLINE_DECL_PRIVATE(Command)
     public:
         using Handler = std::function<int /* code */ (const ParseResult & /* result */)>;
 
         Command();
-        Command(const std::string &name, const std::string &desc = {},
-                const std::vector<std::pair<Option, int>> &options = {},
-                const std::vector<Command> &subCommands = {},
-                const std::vector<Argument> &args = {}, const std::string &detailedDescription = {},
-                const Handler &handler = {});
-        ~Command();
-
-        Command(const Command &other);
-        Command(Command &&other) noexcept;
-        Command &operator=(const Command &other);
-        Command &operator=(Command &&other) noexcept;
+        Command(const std::string &name, const std::string &desc = {});
 
         using Symbol::helpText;
         std::string helpText(HelpPosition pos, int displayOptions, void *extra) const override;
 
     public:
-        Command command(const std::string &name) const;
+        std::string name() const;
+        void setName(const std::string &name);
+
+        int commandCount() const;
         Command command(int index) const;
-        const std::vector<Command> &commands() const;
-        int indexOfCommand(const std::string &name) const;
-        bool hasCommand(const std::string &name) const;
-        void addCommand(const Command &command);
-        void setCommands(const std::vector<Command> &commands);
+        inline void addCommand(const Command &command);
+        void addCommands(const std::vector<Command> &commands);
 
-        Option option(const std::string &name) const;
+        int optionCount() const;
         Option option(int index) const;
-        Option optionFromToken(const std::string &token) const;
-        const std::vector<Option> &options() const;
-        int indexOfOption(const std::string &name) const;
-        bool hasOption(const std::string &name) const;
-        bool hasOptionToken(const std::string &token) const;
-        void addOption(const Option &option, int exclusiveGroup = -1);
-        void setOptions(const std::vector<Option> &options);
-        void setOptions(const std::vector<std::pair<Option, int /* exclusiveGroup */>> &options);
-
-        std::vector<int> exclusiveGroups() const;
-        std::vector<Option> exclusiveGroupOptions(int group) const;
+        void addOption(const Option &option, const std::string &group = {});
+        inline void addOptions(const std::vector<Option> &options, const std::string &group = {});
 
         std::string detailedDescription() const;
         void setDetailedDescription(const std::string &detailedDescription);
-
-        void addVersionOption(const std::string &ver, const std::vector<std::string> &tokens = {});
-        void addHelpOption(bool showHelpIfNoArg = false, bool global = false,
-                           const std::vector<std::string> &tokens = {});
 
         Handler handler() const;
         void setHandler(const Handler &handler);
@@ -121,13 +86,26 @@ namespace SysCmdLine {
 
         std::string version() const;
 
-    protected:
-        friend class Parser;
-        friend class ParserData;
-        friend class ParseResult;
-        friend class ParseResultData;
+        void addVersionOption(const std::string &ver, const std::vector<std::string> &tokens = {});
+        void addHelpOption(bool showHelpIfNoArg = false, bool global = false,
+                           const std::vector<std::string> &tokens = {});
     };
 
+    inline void Command::addCommand(const Command &command) {
+        addCommands({command});
+    }
+
+    inline void Command::addOptions(const std::vector<Option> &options, const std::string &group) {
+        for (const auto &opt : options)
+            addOption(opt, group);
+    }
+
+    // Check if a command is valid
+    // Parsing an invalid command will cause UB
+    SYSCMDLINE_EXPORT bool assertCommand(const Command &command);
+
 }
+
+#define SYSCMDLINE_ASSERT_COMMAND(command) assert(SysCmdLine::assertCommand(command))
 
 #endif // COMMAND_H

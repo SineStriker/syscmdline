@@ -49,4 +49,10 @@
 // Utils
 #define SYSCMDLINE_UNUSED(X) (void) X;
 
+#define SYSCMDLINE_DECL_PRIVATE(X)                                                                 \
+public:                                                                                            \
+    const X##Private *d_func() const {                                                             \
+        return reinterpret_cast<const X##Private *>(d_ptr);                                        \
+    }
+
 #endif // GLOBAL_H

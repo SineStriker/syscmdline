@@ -1,9 +1,5 @@
-#include <iostream>
-#include <filesystem>
-
 #include <syscmdline/parser.h>
 #include <syscmdline/system.h>
-#include <syscmdline/strings.h>
 
 namespace zh_CN {
 
@@ -57,7 +53,7 @@ static int routine(const ParseResult &result) {
     auto fileValues = Value::toStringList(result.valuesForArgument("files"));
     u8printf("将要被删除的文件：\n");
     for (const auto &item : std::as_const(fileValues)) {
-        std::cout << "    " << item << std::endl;
+        u8printf("    %s\n", item.data());
     }
 
     bool prompt = result.optionIsSet("/P");
@@ -67,20 +63,16 @@ static int routine(const ParseResult &result) {
 
     u8printf("模式: \n");
     if (prompt) {
-        std::cout << "    ";
-        u8printf("提示\n");
+        u8printf("    提示\n");
     }
     if (force) {
-        std::cout << "    ";
-        u8printf("强制\n");
+        u8printf("    强制\n");
     }
     if (subdir) {
-        std::cout << "    ";
-        u8printf("子文件夹\n");
+        u8printf("    子文件夹\n");
     }
     if (quiet) {
-        std::cout << "    ";
-        u8printf("静默\n");
+        u8printf("    静默\n");
     }
 
     return 0;
@@ -89,8 +81,6 @@ static int routine(const ParseResult &result) {
 int main(int argc, char *argv[]) {
     SYSCMDLINE_UNUSED(argc);
     SYSCMDLINE_UNUSED(argv);
-
-    Strings::setTextProvider(zh_CN::provider);
 
     Option promptOption("/P", "删除每一个文件之前提示确认");
     Option forceOption("/F", "强制删除只读文件");
@@ -101,9 +91,9 @@ int main(int argc, char *argv[]) {
     fileArg.setDisplayName("files");
     fileArg.setMultiValueEnabled(true);
 
-    Command rootCommand("del");
+    Command rootCommand("del", {});
     rootCommand.addArgument(fileArg);
-    rootCommand.setOptions({
+    rootCommand.addOptions({
         promptOption,
         forceOption,
         subdirOption,
@@ -112,7 +102,10 @@ int main(int argc, char *argv[]) {
     rootCommand.addHelpOption(false, false, {"/?"});
     rootCommand.setHandler(routine);
 
+    SYSCMDLINE_ASSERT_COMMAND(rootCommand);
+
     Parser parser(rootCommand);
+    parser.setTextProvider(zh_CN::provider);
     parser.setDisplayOptions(Parser::ShowOptionalOptionsOnUsage | Parser::ShowArgumentIsRequired);
     return parser.invoke(commandLineArguments(), -1, Parser::IgnoreOptionCase);
 }

@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "utils_p.h"
 
 #include <algorithm>
 
@@ -47,7 +47,11 @@ namespace SysCmdLine::Utils {
         int len1 = s1.size();
         int len2 = s2.size();
 
-        std::vector<std::vector<int>> dp(len1 + 1, std::vector<int>(len2 + 1));
+        // Alloc
+        int **dp = new int *[len1 + 1];
+        for (int i = 0; i <= len1; i++) {
+            dp[i] = new int[len2 + 1];
+        }
 
         for (int i = 0; i <= len1; i++) {
             for (int j = 0; j <= len2; j++) {
@@ -63,7 +67,15 @@ namespace SysCmdLine::Utils {
             }
         }
 
-        return dp[len1][len2];
+        int res = dp[len1][len2];
+
+        // Free
+        for (int i = 0; i <= len1; i++) {
+            delete[] dp[i];
+        }
+        delete[] dp;
+
+        return res;
     }
 
     std::vector<std::string> calcClosestTexts(const std::vector<std::string> &texts,

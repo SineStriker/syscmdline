@@ -1,21 +1,19 @@
 #ifndef SYMBOL_P_H
 #define SYMBOL_P_H
 
+#include <atomic>
+
 #include "symbol.h"
+#include "sharedbase_p.h"
 
 namespace SysCmdLine {
 
-    class SymbolData : public SharedData {
+    class SymbolPrivate : public SharedBasePrivate {
     public:
-        SymbolData(Symbol::SymbolType type, const std::string &name = {},
-                   const std::string &desc = {});
-        ~SymbolData();
-
-        virtual SymbolData *clone() const = 0;
+        SymbolPrivate(Symbol::SymbolType type, std::string desc);
 
     public:
         Symbol::SymbolType type;
-        std::string name;
         std::string desc;
         Symbol::HelpProvider helpProvider;
     };
