@@ -43,7 +43,6 @@ namespace SysCmdLine {
         SYSCMDLINE_DECL_PRIVATE(HelpLayout)
     public:
         HelpLayout();
-        ~HelpLayout();
 
         enum HelpTextItem {
             HT_Prologue,

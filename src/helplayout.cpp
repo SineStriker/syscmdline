@@ -99,9 +99,6 @@ namespace SysCmdLine {
     HelpLayout::HelpLayout() : SharedBase(new HelpLayoutPrivate()) {
     }
 
-    HelpLayout::~HelpLayout() {
-    }
-
     void HelpLayout::addHelpTextItem(HelpTextItem type, const Output &out) {
         Q_D(HelpLayout);
         d->itemDataList.push_back(
@@ -128,11 +125,13 @@ namespace SysCmdLine {
     }
     void HelpLayout::addUserHelpTextItem(const Text &text, const Output &out) {
         Q_D(HelpLayout);
-        d->itemDataList.push_back({HelpLayoutPrivate::UserHelpText, 0, out, text, {}});
+        d->itemDataList.push_back(
+            {HelpLayoutPrivate::UserHelpText, 0, out ? out : defaultInfoPrinter, text, {}});
     }
     void HelpLayout::addUserHelpListItem(const List &list, const Output &out) {
         Q_D(HelpLayout);
-        d->itemDataList.push_back({HelpLayoutPrivate::UserHelpList, 0, out, {}, list});
+        d->itemDataList.push_back(
+            {HelpLayoutPrivate::UserHelpList, 0, out ? out : defaultListPrinter, {}, list});
     }
     void HelpLayout::addUserHelpPlainItem(const Output &out) {
         Q_D(HelpLayout);

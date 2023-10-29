@@ -44,7 +44,7 @@ Inspired by Qt `QCommandLineParser` and C# `System.CommandLine`.
 
 + Global option
 + Multi-value argument
-+ Short option and key-value pair option
++ Short option
 + Group flags
 + Prior option
 + Localizations
@@ -67,6 +67,12 @@ cmake --build build --target install
 find_package(syscmdline REQUIRED)
 target_link_libraries(my_project PRIVATE syscmdline::syscmdline)
 ```
+
+<!-- ## Notice
+
+### Minimize Size
+
+In order to achieve more functionalities, the code amount is relatively large, so the binary size may be relatively large compared with other libraries. Therefore, this project uses STL templates as little as possible. -->
 
 ## Thanks
 

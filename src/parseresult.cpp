@@ -554,11 +554,11 @@ namespace SysCmdLine {
             throw std::runtime_error("cannot dispatch handler when parser failed");
         }
 
-        const auto &cmd = *d->command;
-        const auto &handler = cmd.handler();
+        const auto &cmdData = d->command->d_func();
+        const auto &handler = cmdData->handler;
 
         if (d->versionSet) {
-            u8printf("%s\n", cmd.version().data());
+            u8printf("%s\n", cmdData->version.data());
             return 0;
         }
 
@@ -568,7 +568,8 @@ namespace SysCmdLine {
         }
 
         if (!handler) {
-            throw std::runtime_error("command \"" + cmd.name() + "\" doesn't have a valid handler");
+            throw std::runtime_error("command \"" + cmdData->name +
+                                     "\" doesn't have a valid handler");
         }
 
         return handler(*this);
