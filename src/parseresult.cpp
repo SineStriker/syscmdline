@@ -65,19 +65,14 @@ namespace SysCmdLine {
     std::string ParseResultPrivate::correctionText() const {
         std::vector<std::string> expectedValues;
         switch (error) {
-            case ParseResult::UnknownOption:
-            case ParseResult::InvalidOptionPosition: {
+            case ParseResult::UnknownOption: {
                 for (int i = 0; i < core.allOptionsSize; ++i) {
                     const auto &opt = *core.allOptionsResult[i].option;
                     for (const auto &token : opt.d_func()->tokens) {
                         expectedValues.push_back(token);
                     }
                 }
-
-                if (error == ParseResult::UnknownOption)
-                    break;
-
-                // Fallback as invalid argument case
+                break;
             }
 
             case ParseResult::InvalidArgumentValue: {
@@ -85,11 +80,7 @@ namespace SysCmdLine {
                 for (const auto &item : d->expectedValues) {
                     expectedValues.push_back(item.toString());
                 }
-
-                if (errorOption) // option's argument?
-                    break;
-
-                // Fallback as unknown command case
+                break;
             }
 
             case ParseResult::UnknownCommand: {
