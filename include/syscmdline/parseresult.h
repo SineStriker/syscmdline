@@ -49,12 +49,12 @@ namespace SysCmdLine {
         // Get values of multi-value argument at the option's N-th occurrence
         inline std::vector<Value> valuesForArgument(const Argument &arg, int index = 0) const;
         inline std::vector<Value> valuesForArgument(const std::string &name, int index = 0) const;
-        std::vector<Value> valuesForArgument(int argIndex, int index = 0) const;
+        std::vector<Value> valuesForArgument(int argIndex = 0, int index = 0) const;
 
         // Get value of single-value argument at the option's N-th occurrence or its default value
         inline Value valueForArgument(const Argument &arg, int index = 0) const;
         inline Value valueForArgument(const std::string &name, int index = 0) const;
-        Value valueForArgument(int argIndex, int index = 0) const;
+        Value valueForArgument(int argIndex = 0, int index = 0) const;
 
     private:
         inline OptionResult(const void *data);
