@@ -300,13 +300,44 @@ namespace SysCmdLine {
         void extractOptionsAndArguments() {
             optionRanges = new OptionRange[core.allOptionsSize]; // Alloc
 
-            // Parse options
+            struct TokenOptionResult {
+                int optIndex;
+                int pos;
+            };
+
+            struct TokenGroupFlagsResult {
+                std::vector<int> flagIndexes;
+            };
+
+            enum TokenResultType {
+                TRT_Nothing,
+                TRT_Option,
+                TRT_GroupFlags,
+            };
+
+            TokenOptionResult optionResult;
+            TokenGroupFlagsResult groupFlagsResult;
+            TokenResultType resultType = TRT_Nothing;
+
+            const auto &tryOption = [&optionResult, this](const std::string &token) {
+                return (optionResult.optIndex = searchOption(token, &optionResult.pos)) >= 0;
+            };
+
+            const auto &tryGroupFlags = [&groupFlagsResult, this](const std::string &token) {
+                return (parseOptions & Parser::AllowUnixGroupFlags) && isFlags(token) &&
+                       !(groupFlagsResult.flagIndexes = searchGroupFlags(token)).empty();
+            };
+
             for (auto i = nonCommandIndex; i < params.size(); ++i) {
                 const auto &token = params[i];
+                auto lastResultType = resultType;
+                resultType = TRT_Nothing;
 
                 // Consider option
-                int pos;
-                if (auto optIndex = searchOption(token, &pos); optIndex >= 0) {
+                if (lastResultType == TRT_Option || tryOption(token)) {
+                    auto optIndex = optionResult.optIndex;
+                    auto pos = optionResult.pos;
+
                     const auto &optData = core.allOptionsResult[optIndex];
                     const auto &opt = optData.option;
                     auto &rangeData = optionRanges[optIndex];
@@ -343,8 +374,17 @@ namespace SysCmdLine {
 
                         auto end = std::min(params.size(), i + maxArgCount + 1);
                         for (; j < end; ++j) {
+                            const auto &curToken = params[j];
+
                             // Break at next option
-                            if (searchOption(params[j]) >= 0) {
+                            if (tryOption(curToken)) {
+                                resultType = TRT_Option; // memorize last result
+                                break;
+                            }
+
+                            // Break at next group flags
+                            if (tryGroupFlags(curToken)) {
+                                resultType = TRT_GroupFlags; // memorize last result
                                 break;
                             }
                         }
@@ -355,36 +395,35 @@ namespace SysCmdLine {
                         rangeData.push(i, 0);
                     }
 
-                    if (opt->priorLevel() > (priorOpt ? priorOpt->priorLevel() : Option::NoPrior))
+                    if (opt->priorLevel() > (priorOpt ? priorOpt->priorLevel() : Option::NoPrior)) {
                         priorOpt = opt;
+                    }
 
                     hasOption = true;
                     continue;
                 }
 
-                // Consider short flags
-                if ((parseOptions & Parser::AllowUnixGroupFlags) && isFlags(token)) {
-                    auto flags = searchGroupFlags(token.substr(1));
-                    if (!flags.empty()) {
-                        bool failed = false;
-                        for (const auto &optIdx : std::as_const(flags)) {
-                            auto &rangeData = optionRanges[optIdx];
+                // Consider group flags
+                if (lastResultType == TRT_GroupFlags || tryGroupFlags(token)) {
+                    const auto &flags = groupFlagsResult.flagIndexes;
+                    bool failed = false;
+                    for (const auto &optIdx : std::as_const(flags)) {
+                        auto &rangeData = optionRanges[optIdx];
 
-                            // Check option common
-                            if (!checkOptionCommon(token, optIdx, rangeData.starts.size())) {
-                                failed = true;
-                                break;
-                            }
-
-                            rangeData.push(i, 0);
-                        }
-
-                        if (failed) {
+                        // Check option common
+                        if (!checkOptionCommon(token, optIdx, rangeData.starts.size())) {
+                            failed = true;
                             break;
                         }
-                        hasOption = true;
-                        continue;
+
+                        rangeData.push(i, 0);
                     }
+
+                    if (failed) {
+                        break;
+                    }
+                    hasOption = true;
+                    continue;
                 }
 
                 // Consider argument
@@ -672,8 +711,8 @@ namespace SysCmdLine {
         std::vector<int> searchGroupFlags(const std::string &flags) const {
             std::vector<int> res;
             char token[] = {'-', '-', '\0'};
-            for (const auto &flag : flags) {
-                token[1] = flag;
+            for (size_t i = 1; i < flags.size(); ++i) {
+                token[1] = flags[i];
 
                 // Must be all of flags
                 auto it = allOptionTokenIndexes.find(token);
