@@ -3,7 +3,7 @@
 
 #include <map>
 #include <string>
-#include <thread>
+#include <vector>
 
 namespace SysCmdLine {
 
@@ -11,20 +11,15 @@ namespace SysCmdLine {
 
     using IntList = std::vector<int>;
 
-    //    struct Element {
-    //        union {
-    //            size_t s;
-    //            int i;
-    //            IntList *il;
-    //            StringList *sl;
-    //        };
-    //        Element() : s(0){};
-    //        Element(size_t s) : s(s){};
-    //        Element(int i) : i(i){};
-    //        Element(IntList *il) : il(il){};
-    //        Element(StringList *sl) : sl(sl){};
-    //    };
+    union Ele {
+        int i;
+        size_t s;
+        IntList *il;
+        StringList *sl;
+        void *p;
+    };
 
+    // TODO: using union Ele as value type
     using StringMap = std::map<std::string, size_t>;
 
     template <class T, class K, class... Args>

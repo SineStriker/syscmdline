@@ -8,7 +8,6 @@
 #include "utils_p.h"
 #include "command_p.h"
 #include "option_p.h"
-#include "helplayout_p.h"
 #include "parseresult_p.h"
 
 namespace SysCmdLine {
@@ -283,8 +282,13 @@ namespace SysCmdLine {
             delete[] globalOptionList; // Free
 
             // 5. Alloc command argument space
-            core.argResult = new std::vector<Value>[targetCommandData->arguments.size()];
-            initArgumentHolderData(core, targetCommandData->arguments);
+            {
+                initArgumentHolderData(core, targetCommandData->arguments);
+                core.argResult = new std::vector<Value>[core.argSize];
+                for (int i = 0; i < core.argSize; ++i) {
+                    core.argResult[i].reserve(1); // most are single-value argument
+                }
+            }
 
             // 6. Build option indexes
             buildOptionTokenIndexes(allOptionTokenIndexes, [](const std::string &s) { return s; });
@@ -448,6 +452,9 @@ namespace SysCmdLine {
                 resultData.argResult = new std::vector<Value> *[occurrence];
                 for (int j = 0; j < occurrence; ++j) {
                     resultData.argResult[j] = new std::vector<Value>[resultData.argSize];
+                    for (int k = 0; k < resultData.argSize; ++k) {
+                        resultData.argResult[j][k].reserve(1); // most are single-value argument
+                    }
                 }
 
                 for (int j = 0; j < occurrence; ++j) {

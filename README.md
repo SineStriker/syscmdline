@@ -94,3 +94,7 @@ In order to achieve more functionalities, the code amount is relatively large, s
 
 + [wangwenx190](https://github.com/wangwenx190)
 + [JobSecond](https://github.com/JobSecond)
+
+## License
+
+This project is licensed under the MIT License.
