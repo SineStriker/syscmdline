@@ -8,23 +8,26 @@
 #include "system.h"
 
 #include "parser_p.h"
-#include "helplayout_p.h"
-
 #include "option_p.h"
+#include "helplayout_p.h"
 #include "command_p.h"
 
 namespace SysCmdLine {
 
+    const OptionData &OptionData::sharedNull() {
+        static OptionData _data;
+        return _data;
+    }
+
+    OptionResult::OptionResult() : data(&OptionData::sharedNull()) {
+    }
+
     Option OptionResult::option() const {
-        if (!data)
-            return {};
         auto &v = *reinterpret_cast<const OptionData *>(data);
-        return *v.option;
+        return v.option ? *v.option : Option();
     }
 
     int OptionResult::argumentIndex(const std::string &argName) const {
-        if (!data)
-            return -1;
         auto &v = *reinterpret_cast<const OptionData *>(data);
         auto it = v.argNameIndexes.find(argName);
         if (it == v.argNameIndexes.end())
@@ -33,15 +36,11 @@ namespace SysCmdLine {
     }
 
     int OptionResult::count() const {
-        if (!data)
-            return 0;
         auto &v = *reinterpret_cast<const OptionData *>(data);
         return v.count;
     }
 
     std::vector<Value> OptionResult::valuesForArgument(int argIndex, int index) const {
-        if (!data)
-            return {};
         auto &v = *reinterpret_cast<const OptionData *>(data);
         if (argIndex < 0 || argIndex >= v.argSize)
             return {};
@@ -51,8 +50,6 @@ namespace SysCmdLine {
     }
 
     Value OptionResult::valueForArgument(int argIndex, int index) const {
-        if (!data)
-            return {};
         auto &v = *reinterpret_cast<const OptionData *>(data);
         if (argIndex < 0 || argIndex >= v.argSize)
             return {};

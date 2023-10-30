@@ -37,11 +37,9 @@ namespace SysCmdLine {
 
     class SYSCMDLINE_EXPORT OptionResult {
     public:
-        inline OptionResult();
+         OptionResult();
 
     public:
-        inline bool isValid() const;
-
         Option option() const;
         int argumentIndex(const std::string &argName) const;
         int count() const;
@@ -62,13 +60,6 @@ namespace SysCmdLine {
 
         friend class ParseResult;
     };
-
-    OptionResult::OptionResult() : data(nullptr) {
-    }
-
-    inline bool OptionResult::isValid() const {
-        return data != nullptr;
-    }
 
     inline std::vector<Value> OptionResult::valuesForArgument(const Argument &arg,
                                                               int index) const {
@@ -221,9 +212,6 @@ namespace SysCmdLine {
 
     inline std::vector<Value> ParseResult::valuesForOption(int index) const {
         OptionResult optionResult = resultForOption(index);
-        if (!optionResult.isValid())
-            return {};
-
         std::vector<Value> values;
         values.reserve(optionResult.count());
         for (int i = 0; i < optionResult.count(); ++i) {

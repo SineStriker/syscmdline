@@ -23,7 +23,7 @@ namespace SysCmdLine {
         std::vector<Value> **argResult; // first: occurrence, second: arg index
         int count;                      // occurrence times
 
-        OptionData() : argResult(nullptr), count(0) {
+        OptionData() : option(nullptr), argResult(nullptr), count(0) {
         }
 
         ~OptionData() {
@@ -32,6 +32,8 @@ namespace SysCmdLine {
             }
             delete[] argResult;
         }
+
+        static const OptionData &sharedNull();
     };
 
     struct ParseResultData2 : public ArgumentHolderData {
