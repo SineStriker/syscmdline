@@ -73,10 +73,12 @@ namespace SysCmdLine {
 
         ParseResultData2 core;
 
-        bool versionSet;
-        bool helpSet;
+        bool versionSet = false;
+        bool helpSet = false;
 
         std::string correctionText() const;
+
+        // isMsg: mainly to display message rather than help
         void showMessage(const std::string &info, const std::string &catalogNames,
                          const std::string &symbolIndexes, bool isMsg = false) const;
     };

@@ -650,7 +650,7 @@ namespace SysCmdLine {
         const auto &parserData = d->parser.d_func();
         const auto &displayOptions = parserData->displayOptions;
         d->showMessage(
-            (!(displayOptions & Parser::SkipCorrection)) ? d->correctionText() : std::string(), {},
+            (displayOptions & Parser::SkipCorrection) ? std::string() : d->correctionText(), {},
             parserData->textProvider(Strings::Title, Strings::Error) + ": " + errorText(), true);
     }
 

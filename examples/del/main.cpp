@@ -108,7 +108,8 @@ int main(int argc, char *argv[]) {
 
     Parser parser(rootCommand);
     parser.setTextProvider(zh_CN::provider);
-    parser.setDisplayOptions(Parser::ShowOptionalOptionsOnUsage | Parser::ShowArgumentIsRequired);
+    parser.setDisplayOptions(Parser::ShowOptionalOptionsOnUsage | Parser::ShowArgumentIsRequired |
+                             Parser::AlignAllCatalogues);
     return parser.invoke(commandLineArguments(), -1,
                          Parser::IgnoreOptionCase | Parser::AllowUnixGroupFlags);
 }
