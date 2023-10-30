@@ -19,51 +19,45 @@ namespace SysCmdLine {
         void *p;
     };
 
-    // TODO: using union Ele as value type
-    using StringMap = std::map<std::string, size_t>;
+    // Avoiding template specialization greatly helps to reduce the binary size,
+    // so we only use this map in the library implementation.
+    using GenericMap = std::map<std::string, Ele>;
 
-    template <class T, class K, class... Args>
-    inline void map_insert(std::map<K, size_t> &map, const std::string &key, Args &&...args) {
-        map.insert(std::make_pair(key, size_t(new T(std::forward<Args>(args)...))));
-    }
+    struct StringListMapWrapper {
+        StringListMapWrapper() = default;
 
-    template <class K, class T>
-    inline const T &map_get(const std::map<K, T> &map, const K &key) {
-        return map.find(key)->second;
-    }
-
-    template <class T, class K>
-    inline const T *map_search(const std::map<K, size_t> &map, const K &key) {
-        auto it = map.find(key);
-        if (it == map.end())
-            return nullptr;
-        return reinterpret_cast<const T *>(it->second);
-    }
-
-    template <class T, class K>
-    inline T *map_search(std::map<K, size_t> &map, const K &key) {
-        auto it = map.find(key);
-        if (it == map.end())
-            return nullptr;
-        return reinterpret_cast<T *>(it->second);
-    }
-
-    template <class T, class K>
-    inline void map_deleteAll(const std::map<K, size_t> &map) {
-        for (const auto &val : map) {
-            delete reinterpret_cast<T *>(val.second);
+        StringListMapWrapper(const StringListMapWrapper &other) {
+            for (const auto &pair : other.data) {
+                data.insert(std::make_pair(pair.first, Ele{.sl = new StringList(*pair.second.sl)}));
+            }
         }
-    }
 
-    template <class T, class K>
-    inline StringMap map_copy(const std::map<K, size_t> &map) {
-        StringMap res;
-        for (auto it = map.begin(); it != map.end(); ++it) {
-            res.insert(
-                std::make_pair(it->first, size_t(new T(*reinterpret_cast<const T *>(it->second)))));
+        ~StringListMapWrapper() {
+            for (const auto &pair : std::as_const(data)) {
+                delete pair.second.sl;
+            }
         }
-        return res;
-    }
+
+        GenericMap data;
+    };
+
+    struct IntListMapWrapper {
+        IntListMapWrapper() = default;
+
+        IntListMapWrapper(const IntListMapWrapper &other) {
+            for (const auto &pair : other.data) {
+                data.insert(std::make_pair(pair.first, Ele{.il = new IntList(*pair.second.il)}));
+            }
+        }
+
+        ~IntListMapWrapper() {
+            for (const auto &pair : std::as_const(data)) {
+                delete pair.second.il;
+            }
+        }
+
+        GenericMap data;
+    };
 
 }
 

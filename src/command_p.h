@@ -8,14 +8,6 @@
 
 namespace SysCmdLine {
 
-    struct StringListMapWrapper {
-        StringListMapWrapper();
-        StringListMapWrapper(const StringListMapWrapper &other);
-        ~StringListMapWrapper();
-
-        StringMap data;
-    };
-
     class CommandCataloguePrivate : public SharedBasePrivate {
     public:
         SharedBasePrivate *clone() const;

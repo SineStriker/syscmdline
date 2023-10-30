@@ -44,8 +44,8 @@ namespace SysCmdLine::Utils {
     }
 
     int levenshteinDistance(const std::string &s1, const std::string &s2) {
-        int len1 = s1.size();
-        int len2 = s2.size();
+        size_t len1 = s1.size();
+        size_t len2 = s2.size();
 
         // Alloc
         int **dp = new int *[len1 + 1];

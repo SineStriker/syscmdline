@@ -32,7 +32,7 @@ namespace SysCmdLine {
         auto it = v.argNameIndexes.find(argName);
         if (it == v.argNameIndexes.end())
             return -1;
-        return int(it->second);
+        return it->second.i;
     }
 
     int OptionResult::count() const {
@@ -114,10 +114,10 @@ namespace SysCmdLine {
             int size;
         };
 
-        const auto &getLists = [](int displayOptions, const StringMap &catalog,
+        const auto &getLists = [](int displayOptions, const GenericMap &catalog,
                                   const StringList &catalogNames,         // catalog
 
-                                  const StringMap &symbolIndexes,         // name -> index
+                                  const GenericMap &symbolIndexes,          // name -> index
                                   int symbolCount, const Symbol *(*getter)(int, const void *),
                                   const void *user,                       // get symbol from index
 
@@ -136,14 +136,14 @@ namespace SysCmdLine {
                 auto &list = res.data[index];
                 list.title = catalogName;
 
-                auto &symbolNames = *map_search<StringList>(catalog, catalogName);
+                auto &symbolNames = *catalog.find(catalogName)->second.sl;
                 bool empty = true;
                 for (const auto &name : symbolNames) {
                     auto it = symbolIndexes.find(name);
                     if (it == symbolIndexes.end())
                         continue;
 
-                    auto idx = it->second;
+                    auto idx = it->second.i;
                     const auto &sym = getter(idx, user);
                     auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions, extra);
                     auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions, extra);
@@ -260,7 +260,7 @@ namespace SysCmdLine {
         const auto &cmdDesc = d->detailedDescription.empty() ? d->desc : d->detailedDescription;
 
         // Get last
-        int last = helpLayoutData->itemDataList.size() - 1;
+        int last = int(helpLayoutData->itemDataList.size()) - 1;
         for (int i = last; i >= 0; --i) {
             const auto &item = helpLayoutData->itemDataList[i];
 
@@ -619,7 +619,7 @@ namespace SysCmdLine {
         auto it = d->core.argNameIndexes.find(argName);
         if (it == d->core.argNameIndexes.end())
             return -1;
-        return int(it->second);
+        return it->second.i;
     }
 
     int ParseResult::indexOfOption(const std::string &token) const {
@@ -627,7 +627,7 @@ namespace SysCmdLine {
         auto it = d->core.allOptionTokenIndexes.find(token);
         if (it == d->core.allOptionTokenIndexes.end())
             return -1;
-        return int(it->second);
+        return it->second.i;
     }
 
     void ParseResult::showError() const {

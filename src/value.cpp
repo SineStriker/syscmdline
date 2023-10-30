@@ -286,7 +286,7 @@ namespace SysCmdLine {
                     int base = 10;
                     int f = 1;
                     determineBase(s1, base, f);
-                    res = (int64_t) std::stol(s1, &idx, base) * f;
+                    res = (int64_t) std::stoll(s1, &idx, base) * f;
                     if (idx < s1.size()) {
                         res = {};
                     }

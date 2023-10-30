@@ -11,28 +11,19 @@
 
 namespace SysCmdLine {
 
-    StringListMapWrapper::StringListMapWrapper() = default;
-
-    StringListMapWrapper::StringListMapWrapper(const StringListMapWrapper &other) {
-        data = map_copy<StringList>(other.data);
-    }
-
-    StringListMapWrapper::~StringListMapWrapper() {
-        map_deleteAll<StringList>(data);
-    }
-
     SharedBasePrivate *CommandCataloguePrivate::clone() const {
         return new CommandCataloguePrivate(*this);
     }
 
-    static void addIndexes(StringMap &indexes, StringList &keys, const std::string &key,
+    static void addIndexes(GenericMap &indexes, StringList &keys, const std::string &key,
                            const StringList &val) {
-        auto vec = map_search<StringList>(indexes, key);
-        if (!vec) {
-            map_insert<StringList>(indexes, key, val);
+        auto it = indexes.find(key);
+        if (it == indexes.end()) {
+            indexes.insert(std::make_pair(key, Ele{.sl = new StringList(val)}));
             keys.push_back(key);
             return;
         }
+        auto vec = it->second.sl;
         *vec = Utils::concatVector(*vec, val);
     }
 
@@ -95,18 +86,19 @@ namespace SysCmdLine {
 
                 // Build exclusive option group indexes
                 // group name -> option subscripts (vector<int> *)
-                StringMap exclusiveGroupIndexes = [](const CommandPrivate *d) {
-                    StringMap res;
+                GenericMap exclusiveGroupIndexes = [](const CommandPrivate *d) {
+                    GenericMap res;
                     for (int i = 0; i < d->optionGroupNames.size(); ++i) {
                         const auto &group = d->optionGroupNames[i];
                         if (group.empty())
                             continue;
 
-                        if (auto optionIndexList = map_search<IntList>(res, group)) {
-                            optionIndexList->push_back(i);
+                        auto it = res.find(group);
+                        if (it != res.end()) {
+                            it->second.il->push_back(i);
                             continue;
                         }
-                        res[group] = size_t(new IntList({i}));
+                        res[group] = Ele{.il = new IntList({i})};
                     }
                     return res;
                 }(d);
@@ -134,7 +126,7 @@ namespace SysCmdLine {
 
                     // Search group
                     if (groupName.empty() ||
-                        (optionIndexes = map_search<IntList>(exclusiveGroupIndexes, groupName))
+                        (optionIndexes = exclusiveGroupIndexes.find(groupName)->second.il)
                                 ->size() <= 1) {
                         ss += opt.helpText(Symbol::HP_Usage, displayOptions);
                         addVisited(optIdx);
@@ -200,7 +192,9 @@ namespace SysCmdLine {
                 }
 
                 // release indexes
-                map_deleteAll<IntList>(exclusiveGroupIndexes);
+                for (const auto &pair : std::as_const(exclusiveGroupIndexes)) {
+                    delete pair.second.il;
+                }
                 return ss;
             }
             case HP_ErrorText:
@@ -313,7 +307,7 @@ namespace SysCmdLine {
     bool assertCommand(const Command &command) {
         const auto &checkArguments = [](const std::vector<Argument> &input,
                                         const std::string &parent) {
-            StringMap argumentNameIndexes;
+            GenericMap visitedArgumentNames;
             int multiValueIndex = -1;
             std::vector<Argument> arguments(input.size());
             for (const auto &arg : input) {
@@ -328,7 +322,7 @@ namespace SysCmdLine {
                 }
 
                 // Duplicated argument name?
-                if (argumentNameIndexes.count(name)) {
+                if (visitedArgumentNames.count(name)) {
                     u8printf("%s: argument name \"%s\" duplicated\n", parent.data(), name.data());
                     return false;
                 }
@@ -366,7 +360,7 @@ namespace SysCmdLine {
                         return false;
                     }
                 }
-                argumentNameIndexes.insert(std::make_pair(name, arguments.size()));
+                visitedArgumentNames.insert(std::make_pair(name, Ele{.s = 0}));
                 arguments.push_back(arg);
             }
 
@@ -376,7 +370,7 @@ namespace SysCmdLine {
         const auto &checkOptions = [](const std::vector<Option> &input,
                                       const std::vector<std::string> &groups,
                                       const std::string &parent) {
-            StringMap optionTokenIndexes;
+            GenericMap visitedOptionTokens;
             std::vector<Option> options(input.size());
             int superPriorOptionIndex = -1;
             for (size_t i = 0; i < input.size(); ++i) {
@@ -399,12 +393,11 @@ namespace SysCmdLine {
                     }
 
                     // Duplicated token?
-                    if (optionTokenIndexes.count(token)) {
+                    if (visitedOptionTokens.count(token)) {
                         u8printf("%s: option token \"%s\" duplicated\n", parent.data(),
                                  token.data());
                         return false;
                     }
-                    optionTokenIndexes.insert(std::make_pair(token, i));
                 }
 
                 // Global and exclusive option?
@@ -446,8 +439,9 @@ namespace SysCmdLine {
                         break;
                 }
 
+                // Add tokens
                 for (const auto &token : d->tokens) {
-                    optionTokenIndexes.insert(std::make_pair(token, options.size()));
+                    visitedOptionTokens.insert(std::make_pair(token, Ele{.s = 0}));
                 }
 
                 // Inconsistent exclusive group?
@@ -481,7 +475,7 @@ namespace SysCmdLine {
 
         // check command names
         {
-            StringMap commandNameIndexes;
+            GenericMap commandNameIndexes;
             for (size_t i = 0; i < d->commands.size(); ++i) {
                 const auto &cmd = d->commands[i];
                 const auto &name = cmd.name();
@@ -498,7 +492,7 @@ namespace SysCmdLine {
                     return false;
                 }
 
-                commandNameIndexes.insert(std::make_pair(name, i));
+                commandNameIndexes.insert(std::make_pair(name, Ele{.s = i}));
             }
         }
 

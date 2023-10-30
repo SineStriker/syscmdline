@@ -11,8 +11,8 @@ namespace SysCmdLine {
     struct ArgumentHolderData {
         int optionalArgIndex;
         int multiValueArgIndex;
-        StringMap argNameIndexes; // name -> index of argument
-        int argSize;              // equal to `argumentCount()`
+        GenericMap argNameIndexes; // name -> index of argument
+        int argSize;               // equal to `argumentCount()`
 
         ArgumentHolderData() : optionalArgIndex(-1), multiValueArgIndex(-1), argSize(0) {
         }
@@ -37,14 +37,14 @@ namespace SysCmdLine {
     };
 
     struct ParseResultData2 : public ArgumentHolderData {
-        std::vector<Value> *argResult;   // arg result
+        std::vector<Value> *argResult;    // arg result
 
-        OptionData *allOptionsResult;    // option result
-        int allOptionsSize;              // command option count + global option count
-        int globalOptionsSize;           // global option count
-        StringMap allOptionTokenIndexes; // token -> index of `allOptionsResult`
+        OptionData *allOptionsResult;     // option result
+        int allOptionsSize;               // command option count + global option count
+        int globalOptionsSize;            // global option count
+        GenericMap allOptionTokenIndexes; // token -> index of `allOptionsResult`
 
-        StringMap cmdNameIndexes;        // name -> index of command
+        GenericMap cmdNameIndexes;        // name -> index of command
 
         ~ParseResultData2() {
             delete[] allOptionsResult;
