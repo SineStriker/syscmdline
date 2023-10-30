@@ -13,15 +13,17 @@ namespace SysCmdLine {
         int multiValueArgIndex;
         StringMap argNameIndexes; // name -> index of argument
         int argSize;              // equal to `argumentCount()`
+
+        ArgumentHolderData() : optionalArgIndex(-1), multiValueArgIndex(-1), argSize(0) {
+        }
     };
 
     struct OptionData : public ArgumentHolderData {
-        const Option *option;           // pointer to the current option
-        std::vector<Value> **argResult; // arg result
-        int count;                      // arg result count
+        const Option *option;           // MUST BE SET
+        std::vector<Value> **argResult; // first: occurrence, second: arg index
+        int count;                      // occurrence times
 
         OptionData() : argResult(nullptr), count(0) {
-            // must set `option`
         }
 
         ~OptionData() {
@@ -50,6 +52,14 @@ namespace SysCmdLine {
 
     class ParseResultPrivate : public SharedBasePrivate {
     public:
+        ParseResultPrivate()
+            : error(ParseResult::NoError), errorOption(nullptr), errorArgument(nullptr),
+              versionSet(false), helpSet(false) {
+        }
+
+        ParseResultPrivate(const ParseResultPrivate &) = delete;
+        ParseResultPrivate &operator=(const ParseResultPrivate &) = delete;
+
         // This is a read-only class, we can store the pointers pointing to
         // its own data, and we don't need to implement the clone method
         SharedBasePrivate *clone() const {
@@ -61,20 +71,20 @@ namespace SysCmdLine {
         std::vector<std::string> arguments;
 
         // error related
-        ParseResult::Error error = ParseResult::NoError;
+        ParseResult::Error error;
         std::vector<std::string> errorPlaceholders;
-        const Option *errorOption = nullptr;
-        const Argument *errorArgument = nullptr;
+        const Option *errorOption;
+        const Argument *errorArgument;
         std::string cancellationToken;
 
         // success results
         std::vector<int> stack;
-        const Command *command;
+        const Command *command; // MUST BE SET
 
         ParseResultData2 core;
 
-        bool versionSet = false;
-        bool helpSet = false;
+        bool versionSet;
+        bool helpSet;
 
         std::string correctionText() const;
 

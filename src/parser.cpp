@@ -552,8 +552,6 @@ namespace SysCmdLine {
         static void initArgumentHolderData(ArgumentHolderData &data,
                                            const std::vector<Argument> &args) {
             data.argSize = int(args.size());
-            data.optionalArgIndex = -1;
-            data.multiValueArgIndex = -1;
 
             // Build arg name indexes
             for (int i = 0; i < args.size(); ++i) {

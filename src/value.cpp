@@ -61,26 +61,8 @@ namespace SysCmdLine {
 
     Value::Value(Value &&other) noexcept {
         _type = other._type;
-        switch (_type) {
-            case Bool:
-                data.b = other.data.b;
-                break;
-            case Int:
-                data.i = other.data.i;
-                break;
-            case Int64:
-                data.l = other.data.l;
-                break;
-            case Double:
-                data.d = other.data.d;
-                break;
-            case String:
-                data.s = other.data.s;
-                other.data.s = nullptr;
-                break;
-            default:
-                break;
-        }
+        std::swap(data, other.data);
+        other._type = Null;
     }
 
     Value &Value::operator=(const Value &other) {
