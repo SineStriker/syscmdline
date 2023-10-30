@@ -243,6 +243,7 @@ namespace SysCmdLine {
                     for (const auto &token : dd->tokens) {
                         if (visitedTokens.count(token)) {
                             visited = true;
+                            break;
                         }
                     }
 
@@ -530,7 +531,7 @@ namespace SysCmdLine {
                 const Option *missingOpt = nullptr;
                 for (int i = 0; i < core.allOptionsSize; ++i) {
                     const auto &opt = *core.allOptionsResult[i].option;
-                    if (opt.isRequired() && !searchExclusiveOption(i) &&
+                    if (opt.isRequired() && searchExclusiveOption(i) < 0 &&
                         core.allOptionsResult[i].count == 0) {
                         missingOpt = &opt;
                         break;
