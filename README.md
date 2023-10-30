@@ -22,42 +22,55 @@ Therefore, the project is designed to be configurable, but it's not intended to 
 + Interface friendly
 + Highly configurable
 
-## Concepts
+<!-- ## Concepts
 
-### Command
+If you are confused about some of the concepts of command line programs, you can learn the following, which will help you use this project.
 
-+ **Command** is the beginning symbol used to determine the behavior of a set of command-line arguments.
+See [Concepts](docs/concepts.md) to learn more. -->
 
-+ The commands of a CLI program are usually in the form of a tree structure, and the program itself is the root command. Take `git` as an example, `git` is the root command and `merge`/`commit`/... are the sub-commands.
 
-+ However, most commands doesn't have sub-commands because the root command is sufficient in most scenarios.
+## Help Text
 
-+ Command line parameters must start with the root command and list the subcommands in sequence along the path to a certain leaf command. When the target sub-command is listed, all subsequent symbols are regarded as the arguments or options of this sub-command.
+The help text is highly configurable, here we show some simple ones.
 
-### Argument
+### Unix Style
+```
+Description:
+    Move source(s) to destination directory.
 
-+ **Argument** is the positional argument, which belongs to a command or an option.
+Usage:
+    mv <src>... <dest> [options]
 
-+ The positional arguments are parsed according to the order in which they are specified. Take `mv` as an example, `mv <src> <dest>` shows that it has two positional arguments and the first will be recognized as source and the second as destination.
+Arguments:
+    src     Source(s)
+    dest    Destination directory
 
-### Option
+Options:
+    -v, --version    Show version information
+    -h, --help       Show help information
+```
+### Dos Style
+```
+Description:
+    Deletes one or more files.
 
-+ **Option**, usually a word or letter beginning with the `-` or `/` sign. (`-` is the Unix style and `/` is the Dos style)
+Usage:
+    del files... [/P] [/F] [/S] [/Q] [/?]
 
-+ Options can have none or a fixed number of positional arguments which are recommended to be non-optional.
+Arguments:
+    files    Specifies a list of one or more files or directories.
 
-## Examples
+Options:
+    /P       Prompts for confirmation before deleting the specified file.
+    /F       Forces deletion of read-only files.
+    /S       Deletes specified files from the current directory and all subdirectories.
+    /Q       Specifies quiet mode. You are not prompted for delete confirmation.
+    /?       Show help information.
+```
 
-+ Global option
-+ Multi-value argument
-+ Short option
-+ Group flags
-+ Prior option
-+ Localization
+## Quick Start
 
 See [Examples](docs/examples.md) to learn more.
-
-## How To Use
 
 ### Build & Install
 
