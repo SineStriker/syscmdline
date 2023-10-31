@@ -96,7 +96,7 @@ namespace SysCmdLine {
         inline void setUnlimitedOccurrence();
 
         Role role() const;
-        void setRole(Option::Role role);
+        void setRole(Role role);
     };
 
     inline Option::Option(std::initializer_list<std::string> tokens, const std::string &desc,

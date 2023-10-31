@@ -1,5 +1,3 @@
-file(GLOB_RECURSE _src ../include/syscmdline/*.h *.h *.c *.hpp *.cpp)
-
 # Add library
 if(SYSCMDLINE_BUILD_STATIC)
     add_library(${PROJECT_NAME} STATIC)
@@ -8,7 +6,30 @@ else()
     add_library(${PROJECT_NAME} SHARED)
 endif()
 
+# Amalgamation
+# if(SYSCMDLINE_ENABLE_AMALGAMATION)
+# set(_amalgamation_file ${CMAKE_CURRENT_BINARY_DIR}/amalgamation_${PROJECT_NAME}.cpp)
+# set(_amalgamation_lines)
+
+# file(GLOB_RECURSE _src *.cpp)
+
+# foreach(_item ${_src})
+# list(APPEND _amalgamation_lines "#include \"${_item}\"")
+# endforeach()
+
+# string(JOIN "\n" _amalgamation_content ${_amalgamation_lines})
+# file(WRITE ${_amalgamation_file} ${_amalgamation_content})
+
+# file(GLOB_RECURSE _inc ../include/syscmdline/*.h *.h)
+# target_sources(${PROJECT_NAME} PRIVATE ${_inc} ${_amalgamation_file})
+# else()
+# file(GLOB_RECURSE _src ../include/syscmdline/*.h *.h *.cpp)
+# target_sources(${PROJECT_NAME} PRIVATE ${_src})
+# endif()
+
+file(GLOB_RECURSE _src ../include/syscmdline/*.h *.h *.cpp)
 target_sources(${PROJECT_NAME} PRIVATE ${_src})
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE SYSCMDLINE_LIBRARY)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
