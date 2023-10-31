@@ -919,7 +919,7 @@ namespace SysCmdLine {
             static bool isFlags(const std::string &s) {
                 if (s.size() <= 1 || s.front() != '-')
                     return false;
-                return std::all_of(s.begin() + 1, s.end(), std::isalnum);
+                return std::all_of(s.begin() + 1, s.end(), ::isalnum);
             };
 
             // args:    arguments
@@ -985,7 +985,7 @@ namespace SysCmdLine {
                         return -1;
                     }
 
-                    if (args.empty() && std::all_of(token.begin(), token.end(), std::isalpha)) {
+                    if (args.empty() && std::all_of(token.begin(), token.end(), ::isalpha)) {
                         buildError(ParseResult::UnknownCommand, {token}, token, nullptr);
                         return -1;
                     }
