@@ -7,10 +7,10 @@
 
 namespace SysCmdLine {
 
-    OptionPrivate::OptionPrivate(Option::SpecialType specialType,
+    OptionPrivate::OptionPrivate(Option::Role role,
                                  const std::vector<std::string> &tokens, const std::string &desc,
                                  bool required)
-        : ArgumentHolderPrivate(Symbol::ST_Option, desc), specialType(specialType), tokens(tokens),
+        : ArgumentHolderPrivate(Symbol::ST_Option, desc), role(role), tokens(tokens),
           required(required), shortMatchRule(Option::NoShortMatch), priorLevel(Option::NoPrior),
           global(false), maxOccurrence(1) {
     }
@@ -28,16 +28,24 @@ namespace SysCmdLine {
     //            setTokens(tokens);
     //        }
 
-    Option::Option(SpecialType specialType)
-        : ArgumentHolder(new OptionPrivate(specialType, {}, {}, false)) {
+    Option::Option() : Option(NoRole, {}) {
     }
 
-    Option::Option(const std::string &token, const std::string &desc, bool required)
-        : Option(std::vector<std::string>{token}, desc, required) {
+    Option::Option(Role role, const std::vector<std::string> &tokens,
+                   const std::string &desc)
+        : ArgumentHolder(new OptionPrivate(role, tokens, desc, false)) {
     }
 
-    Option::Option(const std::vector<std::string> &tokens, const std::string &desc, bool required)
-        : ArgumentHolder(new OptionPrivate(NoSpecial, tokens, desc, required)) {
+    Option::Option(const std::string &token, const std::string &desc, const Argument &arg,
+                   bool required)
+        : Option(std::vector<std::string>{token}, desc, arg, required) {
+    }
+
+    Option::Option(const std::vector<std::string> &tokens, const std::string &desc,
+                   const Argument &arg, bool required)
+        : ArgumentHolder(new OptionPrivate(NoRole, tokens, desc, required)) {
+        if (!arg.d_func()->name.empty())
+            addArgument(arg);
     }
 
     std::string Option::helpText(Symbol::HelpPosition pos, int displayOptions, void *extra) const {
@@ -73,7 +81,7 @@ namespace SysCmdLine {
                 std::string appendix;
                 std::string desc = d->desc;
                 if (desc.empty()) {
-                    switch (d->specialType) {
+                    switch (d->role) {
                         case Version:
                             desc = textProvider(Strings::DefaultCommand, Strings::Version);
                             break;
@@ -155,14 +163,14 @@ namespace SysCmdLine {
         d->maxOccurrence = max;
     }
 
-    Option::SpecialType Option::specialType() const {
+    Option::Role Option::role() const {
         Q_D2(Option);
-        return d->specialType;
+        return d->role;
     }
 
-    void Option::setSpecialType(Option::SpecialType specialType) {
+    void Option::setRole(Role role) {
         Q_D(Option);
-        d->specialType = specialType;
+        d->role = role;
     }
 
 }

@@ -272,7 +272,8 @@ namespace SysCmdLine {
             d->arguments.push_back(arg);
         }
 #else
-        d->arguments.insert(d->arguments.end(), arguments.begin(), arguments.end());
+        // d->arguments.insert(d->arguments.end(), arguments.begin(), arguments.end());
+        d->arguments = Utils::concatVector(d->arguments, arguments);
 #endif
     }
 

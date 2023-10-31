@@ -7,7 +7,6 @@
 #include "parser.h"
 #include "utils_p.h"
 #include "option_p.h"
-#include "system.h"
 
 namespace SysCmdLine {
 
@@ -24,17 +23,18 @@ namespace SysCmdLine {
             return;
         }
         auto list = *it->second.sl;
-        list.insert(list.end(), val.begin(), val.end());
+        // list.insert(list.end(), val.begin(), val.end());
+        list = Utils::concatVector(list, val);
 
 #ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
         for (size_t i = 0; i < list.size(); ++i) {
             for (size_t j = 0; j < i; ++j) {
                 if (list[i] == list[j]) {
                     throw std::runtime_error(Utils::formatText(
-                        "duplicated items \"%1\" and \"%2\" in catalogue", {
-                                                                               list[i],
-                                                                               list[j],
-                                                                           }));
+                        R"(duplicated items "%1" and "%2" in catalogue)", {
+                                                                              list[i],
+                                                                              list[j],
+                                                                          }));
                 }
             }
         }
@@ -110,7 +110,11 @@ namespace SysCmdLine {
                     for (const auto &item : opt.d_func()->tokens)
                         if (item == token)
                             return true;
-                    return false;
+                    const auto &tokens = opt.d_func()->tokens;
+                    return std::any_of(tokens.begin(), tokens.end(),
+                                       [&token](const std::string &cur) {
+                                           return cur == token; //
+                                       });
                 })) {
                 throw std::runtime_error(
                     Utils::formatText("option token \"%1\" duplicated", {token}));
@@ -158,7 +162,7 @@ namespace SysCmdLine {
                 if (optionGroupNames[i] == exclusiveGroup &&
                     options[i].isRequired() != opt.isRequired()) {
                     throw std::runtime_error(
-                        Utils::formatText("option \"%1\" is %2, but exclusive group \"3\" isn't",
+                        Utils::formatText(R"(option "%1" is %2, but exclusive group "3" isn't)",
                                           {
                                               opt.token(),
                                               opt.isRequired() ? "required" : "optional",
@@ -193,11 +197,14 @@ namespace SysCmdLine {
                     a ? reinterpret_cast<std::vector<Option> *>(a[0]) : nullptr;
                 auto options = d->options;
                 if (globalOptions) {
-                    options.insert(options.begin(), globalOptions->begin(), globalOptions->end());
+                    // options.insert(options.begin(), globalOptions->begin(),
+                    // globalOptions->end());
+                    options = Utils::concatVector(*globalOptions, options);
                 }
                 StringList groupNames(globalOptions ? globalOptions->size() : 0);
-                groupNames.insert(groupNames.end(), d->optionGroupNames.begin(),
-                                  d->optionGroupNames.end());
+                // groupNames.insert(groupNames.end(), d->optionGroupNames.begin(),
+                //                   d->optionGroupNames.end());
+                groupNames = Utils::concatVector(groupNames, d->optionGroupNames);
 
                 std::string ss;
 
@@ -358,7 +365,8 @@ namespace SysCmdLine {
             d->commands.push_back(cmd);
         }
 #else
-        d->commands.insert(d->commands.end(), commands.begin(), commands.end());
+        // d->commands.insert(d->commands.end(), commands.begin(), commands.end());
+        d->commands = Utils::concatVector(d->commands, commands);
 #endif
     }
 
@@ -381,8 +389,10 @@ namespace SysCmdLine {
             d->optionGroupNames.push_back(group);
         }
 #else
-        d->options.insert(d->options.end(), options.begin(), options.end());
-        d->optionGroupNames.insert(d->optionGroupNames.end(), options.size(), group);
+        // d->options.insert(d->options.end(), options.begin(), options.end());
+        // d->optionGroupNames.insert(d->optionGroupNames.end(), options.size(), group);
+        d->options = Utils::concatVector(d->options, options);
+        d->optionGroupNames = Utils::concatVector(d->optionGroupNames, {options.size(), group});
 #endif
     }
 
@@ -421,20 +431,21 @@ namespace SysCmdLine {
         return d->version;
     }
 
-    void Command::addVersionOption(const std::string &ver, const StringList &tokens) {
+    void Command::addVersionOption(const std::string &ver, const StringList &tokens,
+                                   const std::string &desc) {
         Q_D(Command);
         d->version = ver;
 
-        Option versionOption(Option::Version);
-        versionOption.setTokens(tokens.empty() ? StringList{"-v", "--version"} : tokens);
+        Option versionOption(Option::Version,
+                             tokens.empty() ? StringList{"-v", "--version"} : tokens, desc);
         versionOption.setPriorLevel(Option::IgnoreMissingSymbols);
         addOption(versionOption);
     }
 
-    void Command::addHelpOption(bool showHelpIfNoArg, bool global, const StringList &tokens) {
+    void Command::addHelpOption(bool showHelpIfNoArg, bool global, const StringList &tokens,
+                                const std::string &desc) {
         Q_D(Command);
-        Option helpOption(Option::Help);
-        helpOption.setTokens(tokens.empty() ? StringList{"-h", "--help"} : tokens);
+        Option helpOption(Option::Help, tokens.empty() ? StringList{"-h", "--help"} : tokens, desc);
         helpOption.setPriorLevel(showHelpIfNoArg ? Option::AutoSetWhenNoSymbols
                                                  : Option::IgnoreMissingSymbols);
         helpOption.setGlobal(global);

@@ -86,9 +86,11 @@ namespace SysCmdLine {
 
         std::string version() const;
 
-        void addVersionOption(const std::string &ver, const std::vector<std::string> &tokens = {});
+        void addVersionOption(const std::string &ver, const std::vector<std::string> &tokens = {},
+                              const std::string &desc = {});
         void addHelpOption(bool showHelpIfNoArg = false, bool global = false,
-                           const std::vector<std::string> &tokens = {});
+                           const std::vector<std::string> &tokens = {},
+                           const std::string &desc = {});
     };
 
     inline void Command::addCommand(const Command &command) {

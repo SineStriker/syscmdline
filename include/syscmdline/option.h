@@ -36,8 +36,8 @@ namespace SysCmdLine {
     class SYSCMDLINE_EXPORT Option : public ArgumentHolder {
         SYSCMDLINE_DECL_PRIVATE(Option)
     public:
-        enum SpecialType {
-            NoSpecial,
+        enum Role {
+            NoRole,
             Help,
             Version,
         };
@@ -58,12 +58,14 @@ namespace SysCmdLine {
             ShortMatchSingleLetter,
         };
 
-        Option(SpecialType specialType = NoSpecial);
-        Option(const std::string &token, const std::string &desc = {}, bool required = false);
-        Option(const std::vector<std::string> &tokens, const std::string &desc = {},
+        Option();
+        Option(Role role, const std::vector<std::string> &tokens, const std::string &desc = {});
+        Option(const std::string &token, const std::string &desc = {}, const Argument &arg = {},
                bool required = false);
+        Option(const std::vector<std::string> &tokens, const std::string &desc = {},
+               const Argument &arg = {}, bool required = false);
         inline Option(std::initializer_list<std::string> tokens, const std::string &desc = {},
-                      bool required = false);
+                      const Argument &arg = {}, bool required = false);
 
         using Symbol::helpText;
         std::string helpText(HelpPosition pos, int displayOptions, void *extra) const override;
@@ -93,13 +95,13 @@ namespace SysCmdLine {
         void setMaxOccurrence(int max);
         inline void setUnlimitedOccurrence();
 
-        SpecialType specialType() const;
-        void setSpecialType(SpecialType specialType);
+        Role role() const;
+        void setRole(Option::Role role);
     };
 
     inline Option::Option(std::initializer_list<std::string> tokens, const std::string &desc,
-                          bool required)
-        : Option(std::vector<std::string>(tokens), desc, required) {
+                          const Argument &arg, bool required)
+        : Option(std::vector<std::string>(tokens), desc, arg, required) {
     }
 
     inline std::string Option::token() const {

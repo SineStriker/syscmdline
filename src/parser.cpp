@@ -152,16 +152,19 @@ namespace SysCmdLine {
                     return false;
                 }
 
+                // Set special flags
                 for (int i = 0; i < core.allOptionsSize; ++i) {
                     const auto &resultData = core.allOptionsResult[i];
                     if (resultData.count > 0) {
-                        if (resultData.option->specialType() == Option::Help) {
-                            result->helpSet = true;
-                            continue;
-                        }
-                        if (resultData.option->specialType() == Option::Version) {
-                            result->versionSet = true;
-                            continue;
+                        switch (resultData.option->role()) {
+                            case Option::Help:
+                                result->helpSet = true;
+                                continue;
+                            case Option::Version:
+                                result->versionSet = true;
+                                continue;
+                            default:
+                                break;
                         }
                     }
                 }
@@ -714,7 +717,7 @@ namespace SysCmdLine {
                 if (auto ch = token.front(); ch != '-' && ch != '/') {
                     return -1;
                 }
-                
+
                 // first search case-sensitive map
                 if (auto idx = searchOptionImpl(allOptionTokenIndexes, token, pos); idx >= 0)
                     return idx;

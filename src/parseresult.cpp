@@ -53,7 +53,8 @@ namespace SysCmdLine {
         std::vector<Value> allValues;
         for (int i = 0; i < v.count; ++i) {
             const auto &values = v.argResult[i][index];
-            allValues.insert(allValues.end(), values.begin(), values.end());
+            // allValues.insert(allValues.end(), values.begin(), values.end());
+            allValues = Utils::concatVector(allValues, values);
         }
         return allValues;
     }

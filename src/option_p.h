@@ -8,13 +8,13 @@ namespace SysCmdLine {
 
     class OptionPrivate : public ArgumentHolderPrivate {
     public:
-        OptionPrivate(Option::SpecialType specialType, const std::vector<std::string> &tokens,
+        OptionPrivate(Option::Role role, const std::vector<std::string> &tokens,
                       const std::string &desc, bool required);
 
         SymbolPrivate *clone() const override;
 
     public:
-        Option::SpecialType specialType;
+        Option::Role role;
         std::vector<std::string> tokens;
         bool required;
         Option::ShortMatchRule shortMatchRule;
