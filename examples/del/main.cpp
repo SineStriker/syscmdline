@@ -104,8 +104,6 @@ int main(int argc, char *argv[]) {
     rootCommand.addHelpOption(false, false, {"/?"});
     rootCommand.setHandler(routine);
 
-    SYSCMDLINE_ASSERT_COMMAND(rootCommand);
-
     Parser parser(rootCommand);
     parser.setTextProvider(zh_CN::provider);
     parser.setDisplayOptions(Parser::ShowOptionalOptionsOnUsage | Parser::ShowArgumentIsRequired |

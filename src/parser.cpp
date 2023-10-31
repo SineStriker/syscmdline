@@ -711,6 +711,10 @@ namespace SysCmdLine {
             // pos:     followed argument beginning index
             // ->       option index
             int searchOption(const std::string &token, int *pos = nullptr) const {
+                if (auto ch = token.front(); ch != '-' && ch != '/') {
+                    return -1;
+                }
+                
                 // first search case-sensitive map
                 if (auto idx = searchOptionImpl(allOptionTokenIndexes, token, pos); idx >= 0)
                     return idx;

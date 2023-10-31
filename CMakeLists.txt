@@ -8,6 +8,7 @@ project(syscmdline VERSION 0.0.1.2 LANGUAGES C CXX)
 option(SYSCMDLINE_BUILD_STATIC "Build static library" ON)
 option(SYSCMDLINE_BUILD_EXAMPLES "Build examples" OFF)
 option(SYSCMDLINE_BUILD_TESTS "Build test cases" OFF)
+option(SYSCMDLINE_FORCE_VALIDITY_CHECK "Force to enable validity check" OFF)
 option(SYSCMDLINE_INSTALL "Install library" ON)
 
 # ----------------------------------

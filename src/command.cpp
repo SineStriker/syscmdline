@@ -23,8 +23,22 @@ namespace SysCmdLine {
             keys.push_back(key);
             return;
         }
-        auto vec = it->second.sl;
-        *vec = Utils::concatVector(*vec, val);
+        auto list = *it->second.sl;
+        list.insert(list.end(), val.begin(), val.end());
+
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+        for (size_t i = 0; i < list.size(); ++i) {
+            for (size_t j = 0; j < i; ++j) {
+                if (list[i] == list[j]) {
+                    throw std::runtime_error(Utils::formatText(
+                        "duplicated items \"%1\" and \"%2\" in catalogue", {
+                                                                               list[i],
+                                                                               list[j],
+                                                                           }));
+                }
+            }
+        }
+#endif
     }
 
     CommandCatalogue::CommandCatalogue() : SharedBase(new CommandCataloguePrivate()) {
@@ -53,6 +67,109 @@ namespace SysCmdLine {
         return new CommandPrivate(*this);
     }
 
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+    void CommandPrivate::checkAddedCommand(const Command &cmd) const {
+        const auto &name = cmd.name();
+
+        // Empty command name?
+        if (name.empty()) {
+            throw std::runtime_error("command doesn't have a name");
+        }
+
+        // Duplicated command name?
+        if (std::any_of(commands.begin(), commands.end(), [&name](const Command &command) {
+                return command.name() == name; //
+            })) {
+            throw std::runtime_error(Utils::formatText("command name \"%1\" duplicated", {name}));
+        }
+    }
+
+    void CommandPrivate::checkAddedOption(const Option &opt,
+                                          const std::string &exclusiveGroup) const {
+        const auto &d = opt.d_func();
+
+        // Empty token?
+        if (d->tokens.empty()) {
+            throw std::runtime_error("option doesn't have any token");
+        }
+
+        for (const auto &token : d->tokens) {
+            // empty token?
+            if (token.empty()) {
+                throw std::runtime_error("empty option token");
+            }
+
+            // Invalid token?
+            if (!(token.front() == '-' || token.front() == '/')) {
+                throw std::runtime_error(
+                    Utils::formatText("option token \"%1\" is invalid", {token}));
+            }
+
+            // Duplicated token?
+            if (std::any_of(options.begin(), options.end(), [&token](const Option &opt) {
+                    for (const auto &item : opt.d_func()->tokens)
+                        if (item == token)
+                            return true;
+                    return false;
+                })) {
+                throw std::runtime_error(
+                    Utils::formatText("option token \"%1\" duplicated", {token}));
+            }
+        }
+
+        // Global and exclusive option?
+        if (!exclusiveGroup.empty() && opt.isGlobal()) {
+            throw std::runtime_error(Utils::formatText(
+                "global option \"%s\" cannot be in any exclusive group", {opt.token()}));
+        }
+
+        switch (opt.priorLevel()) {
+            case Option::AutoSetWhenNoSymbols: {
+                // Auto-option but required?
+                if (d->required) {
+                    throw std::runtime_error(
+                        Utils::formatText("auto-option \"%s\" cannot be required", {opt.token()}));
+                }
+
+                // Auto-option with argument?
+                if (!d->arguments.empty()) {
+                    throw std::runtime_error(Utils::formatText(
+                        "auto-option \"%s\" cannot have any argument", {opt.token()}));
+                }
+                break;
+            }
+            case Option::ExclusiveToOptions:
+            case Option::ExclusiveToAll: {
+                // Multiple exclusively prior option?
+                if (opt.isRequired() &&
+                    std::any_of(options.begin(), options.end(), [](const Option &opt) {
+                        return opt.priorLevel() >= Option::ExclusiveToOptions && opt.isRequired();
+                    })) {
+                    throw std::runtime_error("at most one exclusively prior and required option");
+                }
+                break;
+            }
+            default:
+                break;
+        }
+        // Inconsistent exclusive group?
+        if (!exclusiveGroup.empty()) {
+            for (size_t i = 0; i < options.size(); ++i) {
+                if (optionGroupNames[i] == exclusiveGroup &&
+                    options[i].isRequired() != opt.isRequired()) {
+                    throw std::runtime_error(
+                        Utils::formatText("option \"%1\" is %2, but exclusive group \"3\" isn't",
+                                          {
+                                              opt.token(),
+                                              opt.isRequired() ? "required" : "optional",
+                                              exclusiveGroup,
+                                          }));
+                }
+            }
+        }
+    }
+#endif
+
     Command::Command() : Command({}, {}) {
     }
 
@@ -74,10 +191,13 @@ namespace SysCmdLine {
                 // all options
                 const auto *globalOptions =
                     a ? reinterpret_cast<std::vector<Option> *>(a[0]) : nullptr;
-                auto options =
-                    globalOptions ? Utils::concatVector(*globalOptions, d->options) : d->options;
+                auto options = d->options;
+                if (globalOptions) {
+                    options.insert(options.begin(), globalOptions->begin(), globalOptions->end());
+                }
                 StringList groupNames(globalOptions ? globalOptions->size() : 0);
-                groupNames = Utils::concatVector(groupNames, d->optionGroupNames);
+                groupNames.insert(groupNames.end(), d->optionGroupNames.begin(),
+                                  d->optionGroupNames.end());
 
                 std::string ss;
 
@@ -135,7 +255,7 @@ namespace SysCmdLine {
 
                     if (required)
                         ss += "(";
-                    
+
                     assert((optionIndexes = exclusiveGroupIndexes.find(groupName)->second.il));
 
                     // Add exclusive
@@ -232,7 +352,14 @@ namespace SysCmdLine {
 
     void Command::addCommands(const std::vector<Command> &commands) {
         Q_D(Command);
-        d->commands = Utils::concatVector(d->commands, commands);
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+        for (const auto &cmd : commands) {
+            d->checkAddedCommand(cmd);
+            d->commands.push_back(cmd);
+        }
+#else
+        d->commands.insert(d->commands.end(), commands.begin(), commands.end());
+#endif
     }
 
     int Command::optionCount() const {
@@ -245,10 +372,18 @@ namespace SysCmdLine {
         return d->options[index];
     }
 
-    void Command::addOption(const Option &option, const std::string &group) {
+    void Command::addOptions(const std::vector<Option> &options, const std::string &group) {
         Q_D(Command);
-        d->options.push_back(option);
-        d->optionGroupNames.push_back(group);
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+        for (const auto &opt : options) {
+            d->checkAddedOption(opt, group);
+            d->options.push_back(opt);
+            d->optionGroupNames.push_back(group);
+        }
+#else
+        d->options.insert(d->options.end(), options.begin(), options.end());
+        d->optionGroupNames.insert(d->optionGroupNames.end(), options.size(), group);
+#endif
     }
 
     std::string Command::detailedDescription() const {
@@ -304,214 +439,6 @@ namespace SysCmdLine {
                                                  : Option::IgnoreMissingSymbols);
         helpOption.setGlobal(global);
         addOption(helpOption);
-    }
-
-    bool assertCommand(const Command &command) {
-        const auto &checkArguments = [](const std::vector<Argument> &input,
-                                        const std::string &parent) {
-            GenericMap visitedArgumentNames;
-            int multiValueIndex = -1;
-            std::vector<Argument> arguments(input.size());
-            for (const auto &arg : input) {
-                const auto &d = arg.d_func();
-                const auto &name = d->name;
-
-                // Empty argument name?
-                if (name.empty()) {
-                    u8printf("%s: argument %d doesn't have a name\n", parent.data(),
-                             int(arguments.size()));
-                    return false;
-                }
-
-                // Duplicated argument name?
-                if (visitedArgumentNames.count(name)) {
-                    u8printf("%s: argument name \"%s\" duplicated\n", parent.data(), name.data());
-                    return false;
-                }
-
-                // Required argument behind optional one?
-                if (!arguments.empty() && arguments.back().isOptional() && d->required) {
-                    u8printf("%s: required argument after optional arguments is prohibited\n",
-                             parent.data());
-                    return false;
-                }
-
-                if (arg.multiValueEnabled()) {
-                    // Multiple multi-value argument?
-                    if (multiValueIndex >= 0) {
-                        u8printf("%s: more than one multi-value argument\n", parent.data());
-                        return false;
-                    }
-                    multiValueIndex = int(arguments.size());
-                } else if (multiValueIndex >= 0 && !d->required) {
-                    // Optional argument after multi-value argument?
-                    u8printf("%s: optional argument after multi-value argument is prohibited\n",
-                             parent.data());
-                    return false;
-                }
-
-                // Invalid default value?
-                {
-                    const auto &expectedValues = d->expectedValues;
-                    const auto &defaultValue = d->defaultValue;
-                    if (!expectedValues.empty() && defaultValue.type() != Value::Null &&
-                        std::find(expectedValues.begin(), expectedValues.end(), defaultValue) ==
-                            expectedValues.end()) {
-                        u8printf("%s: default value \"%s\" is not in expected values\n",
-                                 parent.data(), defaultValue.toString().data());
-                        return false;
-                    }
-                }
-                visitedArgumentNames.insert(std::make_pair(name, Ele{.s = 0}));
-                arguments.push_back(arg);
-            }
-
-            return true;
-        };
-
-        const auto &checkOptions = [](const std::vector<Option> &input,
-                                      const std::vector<std::string> &groups,
-                                      const std::string &parent) {
-            GenericMap visitedOptionTokens;
-            std::vector<Option> options(input.size());
-            int superPriorOptionIndex = -1;
-            for (size_t i = 0; i < input.size(); ++i) {
-                const auto &option = input[i];
-                const auto &exclusiveGroup = groups[i];
-
-                const auto &d = option.d_func();
-
-                // Empty token?
-                if (d->tokens.empty()) {
-                    u8printf("%s: null option tokens\n", parent.data());
-                    return false;
-                }
-
-                for (const auto &token : d->tokens) {
-                    // Invalid token?
-                    if (token.empty() || !(token.front() == '-' || token.front() == '/')) {
-                        u8printf("%s: option token \"%s\" invalid\n", parent.data(), token.data());
-                        return false;
-                    }
-
-                    // Duplicated token?
-                    if (visitedOptionTokens.count(token)) {
-                        u8printf("%s: option token \"%s\" duplicated\n", parent.data(),
-                                 token.data());
-                        return false;
-                    }
-                }
-
-                // Global and exclusive option?
-                if (!exclusiveGroup.empty() && option.isGlobal()) {
-                    u8printf("%s: global option \"%s\" cannot be in any exclusive group\n",
-                             parent.data(), option.token().data());
-                    return false;
-                }
-
-                switch (option.priorLevel()) {
-                    case Option::AutoSetWhenNoSymbols: {
-                        // Auto-option but required?
-                        if (d->required) {
-                            u8printf("%s: auto-option \"%s\" cannot be required\n", parent.data(),
-                                     option.token().data());
-                            return false;
-                        }
-
-                        // Auto-option with argument?
-                        if (!d->arguments.empty()) {
-                            u8printf("%s: auto-option \"%s\" cannot have any arguments\n",
-                                     parent.data(), option.token().data());
-                            return false;
-                        }
-                        break;
-                    }
-                    case Option::ExclusiveToOptions:
-                    case Option::ExclusiveToAll: {
-                        // Multiple exclusively prior option?
-                        if (superPriorOptionIndex >= 0) {
-                            u8printf("%s: more than one exclusively prior option.\n",
-                                     parent.data());
-                            return false;
-                        }
-                        superPriorOptionIndex = int(options.size());
-                        break;
-                    }
-                    default:
-                        break;
-                }
-
-                // Add tokens
-                for (const auto &token : d->tokens) {
-                    visitedOptionTokens.insert(std::make_pair(token, Ele{.s = 0}));
-                }
-
-                // Inconsistent exclusive group?
-                if (!exclusiveGroup.empty()) {
-                    for (size_t j = 0; j < input.size(); ++j) {
-                        if (j == i)
-                            continue;
-                        if (groups[j] == exclusiveGroup &&
-                            input[j].isRequired() != option.isRequired()) {
-                            u8printf("%s: option \"%s\" is %s, but exclusive group \"%s\" isn't\n",
-                                     parent.data(), option.token().data(),
-                                     option.isRequired() ? "required" : "optional",
-                                     exclusiveGroup.data());
-                            return false;
-                        }
-                    }
-                }
-
-                options.push_back(option);
-            }
-            return true;
-        };
-
-        auto d = command.d_func();
-
-        // Check name for root
-        if (d->name.empty()) {
-            u8printf("command doesn't have a name\n");
-            return false;
-        }
-
-        // check command names
-        {
-            GenericMap commandNameIndexes;
-            for (size_t i = 0; i < d->commands.size(); ++i) {
-                const auto &cmd = d->commands[i];
-                const auto &name = cmd.name();
-
-                // Empty command name?
-                if (name.empty()) {
-                    u8printf("%s: command %d doesn't have a name\n", name.data(), int(i));
-                    return false;
-                }
-
-                // Duplicated command name?
-                if (commandNameIndexes.count(name)) {
-                    u8printf("%s: command name \"%s\" duplicated\n", d->name.data(), name.data());
-                    return false;
-                }
-
-                commandNameIndexes.insert(std::make_pair(name, Ele{.s = i}));
-            }
-        }
-
-        if (!checkArguments(d->arguments, d->name))
-            return false;
-
-        if (!checkOptions(d->options, d->optionGroupNames, d->name))
-            return false;
-
-        for (const auto &option : d->options) {
-            if (!checkArguments(option.d_func()->arguments, option.token())) {
-                return false;
-            }
-        }
-
-        // Check children
-        return std::all_of(d->commands.begin(), d->commands.end(), assertCommand);
     }
 
 }

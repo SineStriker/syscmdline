@@ -97,6 +97,10 @@ target_link_libraries(my_project PRIVATE syscmdline::syscmdline)
     + In order to achieve more functionalities, this project contains a large amount of codes so that the binary size may be relatively large compared with other libraries. Therefore, this implementation uses STL templates as little as possible.
     + It's suggested to enable size optimizing option for your compiler when building executables.
 
++ Validity Check
+    + The root command must be valid, otherwise the parsing result is undefined and may even cause crash.
+    + Validity checking is enabled if `SYSCMDLINE_ENABLE_VALIDITY_CHECK` is defined, which reduces parsing performance. Therefore, this macro is enabled only in debug mode.
+
 ## Thanks
 
 ### Other Projects

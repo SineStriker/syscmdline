@@ -1,6 +1,8 @@
 #include "argument.h"
 #include "argument_p.h"
 
+#include <algorithm>
+
 #include "utils_p.h"
 #include "strings.h"
 #include "parser.h"
@@ -163,6 +165,58 @@ namespace SysCmdLine {
         : SymbolPrivate(type, desc) {
     }
 
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+    void ArgumentHolderPrivate::checkAddedArgument(const Argument &arg) const {
+        const auto &d = arg.d_func();
+        const auto &name = d->name;
+
+        // Empty argument name?
+        if (name.empty()) {
+            throw std::runtime_error("argument doesn't have a name");
+        }
+
+        // Duplicated argument name?
+        if (std::any_of(arguments.begin(), arguments.end(), [&name](const Argument &arg) {
+                return arg.name() == name; //
+            })) {
+            throw std::runtime_error(Utils::formatText("argument name \"%1\" duplicated", {name}));
+        }
+
+        // Required argument behind optional one?
+        if (!arguments.empty() && arguments.back().isOptional() && d->required) {
+            throw std::runtime_error("required argument after optional arguments is prohibited");
+        }
+
+        bool hasMultiValueArgument =
+            std::any_of(arguments.begin(), arguments.end(), [&name](const Argument &arg) {
+                return arg.multiValueEnabled(); //
+            });
+
+        if (arg.multiValueEnabled()) {
+            // Multiple multi-value argument?
+            if (hasMultiValueArgument) {
+                throw std::runtime_error("at most one multi-value argument");
+            }
+            hasMultiValueArgument = true;
+        } else if (hasMultiValueArgument && !d->required) {
+            // Optional argument after multi-value argument?
+            throw std::runtime_error("optional argument after multi-value argument is prohibited");
+        }
+
+        // Invalid default value?
+        {
+            const auto &expectedValues = d->expectedValues;
+            const auto &defaultValue = d->defaultValue;
+            if (!expectedValues.empty() && defaultValue.type() != Value::Null &&
+                std::find(expectedValues.begin(), expectedValues.end(), defaultValue) ==
+                    expectedValues.end()) {
+                throw std::runtime_error(Utils::formatText(
+                    "default value \"%1\" is not in expected values", {defaultValue.toString()}));
+            }
+        }
+    }
+#endif
+
     std::string ArgumentHolder::displayedArguments(int displayOptions) const {
         Q_D2(ArgumentHolder);
 
@@ -211,9 +265,15 @@ namespace SysCmdLine {
 
     void ArgumentHolder::addArguments(const std::vector<Argument> &arguments) {
         Q_D(ArgumentHolder);
-        d->arguments.reserve(d->arguments.size() + arguments.size());
-        for (const auto &item : arguments)
-            d->arguments.push_back(item);
+
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+        for (const auto &arg : arguments) {
+            d->checkAddedArgument(arg);
+            d->arguments.push_back(arg);
+        }
+#else
+        d->arguments.insert(d->arguments.end(), arguments.begin(), arguments.end());
+#endif
     }
 
     ArgumentHolder::ArgumentHolder(ArgumentHolderPrivate *d) : Symbol(d) {

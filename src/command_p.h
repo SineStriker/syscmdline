@@ -39,6 +39,11 @@ namespace SysCmdLine {
         CommandCatalogue catalogue;
 
         Command::Handler handler;
+
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+        void checkAddedCommand(const Command &cmd) const;
+        void checkAddedOption(const Option &opt, const std::string &exclusiveGroup) const;
+#endif
     };
 
 }

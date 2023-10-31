@@ -31,8 +31,6 @@ int main(int /* argc */, char * /* argv */[]) {
         return 0;
     });
 
-    SYSCMDLINE_ASSERT_COMMAND(rootCommand);
-
     Parser parser(rootCommand);
     return parser.invoke(commandLineArguments());
 }

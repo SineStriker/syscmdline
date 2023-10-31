@@ -18,6 +18,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_include_directories(${PROJECT_NAME} PRIVATE . ../include/syscmdline ../include/syscmdline/private)
 
+if(SYSCMDLINE_FORCE_VALIDITY_CHECK OR(NOT CMAKE_BUILD_TYPE OR ${CMAKE_BUILD_TYPE} MATCHES "Deb"))
+    target_compile_definitions(${PROJECT_NAME} PRIVATE SYSCMDLINE_ENABLE_VALIDITY_CHECK)
+endif()
+
 if(WIN32)
     set(RC_DESCRIPTION "C++ Advanced Command Line Parser")
     set(RC_COPYRIGHT "Copyright 2023 SineStriker")
@@ -25,18 +29,16 @@ if(WIN32)
 endif()
 
 # if(MSVC)
-#     if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
-#         target_compile_options(${PROJECT_NAME} PRIVATE /GL /Os)
-#         target_link_options(${PROJECT_NAME} PRIVATE /OPT:REF /OPT:ICF /OPT:LBR)
-#     endif()
+# if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+# target_compile_options(${PROJECT_NAME} PRIVATE /GL /Os)
+# target_link_options(${PROJECT_NAME} PRIVATE /OPT:REF /OPT:ICF /OPT:LBR)
 # endif()
-
+# endif()
 if(SYSCMDLINE_INSTALL)
     target_include_directories(${PROJECT_NAME} PUBLIC
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
     )
 
-    # Install
     install(TARGETS ${PROJECT_NAME}
         EXPORT ${SYSCMDLINE_INSTALL_NAME}Targets
         RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" OPTIONAL

@@ -4,6 +4,10 @@
 #include "argument.h"
 #include "symbol_p.h"
 
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+#  include <stdexcept>
+#endif
+
 namespace SysCmdLine {
 
     class ArgumentPrivate : public SymbolPrivate {
@@ -29,6 +33,10 @@ namespace SysCmdLine {
 
     public:
         std::vector<Argument> arguments;
+
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+        void checkAddedArgument(const Argument &arg) const;
+#endif
     };
 
 }
