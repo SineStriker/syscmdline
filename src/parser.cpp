@@ -46,7 +46,7 @@ namespace SysCmdLine {
         };
 
         static const char *token_strings[] = {
-            "commands",
+            "command",
             "options",
         };
 

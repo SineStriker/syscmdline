@@ -1,6 +1,10 @@
 #include "argument.h"
 #include "argument_p.h"
 
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+#  include <stdexcept>
+#endif
+
 #include <algorithm>
 
 #include "utils_p.h"

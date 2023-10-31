@@ -4,10 +4,6 @@
 #include "argument.h"
 #include "symbol_p.h"
 
-#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
-#  include <stdexcept>
-#endif
-
 namespace SysCmdLine {
 
     class ArgumentPrivate : public SymbolPrivate {

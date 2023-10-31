@@ -427,17 +427,17 @@ namespace SysCmdLine {
                                 }
                             }
 
-                            bool hasCommands;
+                            bool hasCommand;
                             bool hasOptions;
                             void *a[3] = {
                                 &allOptions,
-                                &hasCommands,
+                                &hasCommand,
                                 &hasOptions,
                             };
                             text.title = parserData->textProvider(Strings::Title, Strings::Usage);
                             text.lines += command->helpText(Symbol::HP_Usage, displayOptions, a);
 
-                            if (hasCommands) {
+                            if (hasCommand) {
                                 text.lines += " [" +
                                               parserData->textProvider(Strings::Token,
                                                                        Strings::OptionalCommands) +

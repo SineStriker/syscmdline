@@ -4,6 +4,12 @@
 #include <algorithm>
 #include <utility>
 
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+#  include <stdexcept>
+
+#  include "option_p.h"
+#endif
+
 #include "parser.h"
 #include "utils_p.h"
 
