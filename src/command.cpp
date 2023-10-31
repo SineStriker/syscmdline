@@ -135,6 +135,8 @@ namespace SysCmdLine {
 
                     if (required)
                         ss += "(";
+                    
+                    assert((optionIndexes = exclusiveGroupIndexes.find(groupName)->second.il));
 
                     // Add exclusive
                     StringList exclusiveOptions;

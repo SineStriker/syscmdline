@@ -186,9 +186,9 @@ namespace SysCmdLine {
         OptionResult option(int index) const;
 
         // Get value of single-value argument of given option or its default value
-        inline Value valueForOption(const Option &option, int argIndex = 0) const;
-        inline Value valueForOption(const std::string &token, int argIndex = 0) const;
-        inline Value valueForOption(int index, int argIndex = 0) const;
+        inline Value valueForOption(const Option &option) const;
+        inline Value valueForOption(const std::string &token) const;
+        inline Value valueForOption(int index) const;
 
     protected:
         ParseResult(ParseResultPrivate *d);
@@ -247,16 +247,16 @@ namespace SysCmdLine {
         return option(indexOfOption(token));
     }
 
-    Value ParseResult::valueForOption(const Option &option, int argIndex) const {
-        return this->option(option).value(argIndex);
+    inline Value ParseResult::valueForOption(const Option &option) const {
+        return this->option(indexOfOption(option.token())).value();
     }
 
-    Value ParseResult::valueForOption(const std::string &token, int argIndex) const {
-        return option(indexOfOption(token)).value(argIndex);
+    inline Value ParseResult::valueForOption(const std::string &token) const {
+        return option(indexOfOption(token)).value();
     }
 
-    Value ParseResult::valueForOption(int index, int argIndex) const {
-        return option(index).value(argIndex);
+    inline Value ParseResult::valueForOption(int index) const {
+        return option(index).value();
     }
 
 }
