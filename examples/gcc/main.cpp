@@ -23,10 +23,10 @@ int main(int /* argc */, char * /* argv */[]) {
     rootCommand.addHelpOption(true, true);
     rootCommand.setHandler([](const ParseResult &result) {
         u8printf("Link directories:\n");
-        for (const auto &item : result.valuesForOption("-L"))
+        for (const auto &item : result.option("-L").allValues())
             u8printf("    %s\n", item.toString().data());
         u8printf("Include directories:\n");
-        for (const auto &item : result.valuesForOption("-I"))
+        for (const auto &item : result.option("-I").allValues())
             u8printf("    %s\n", item.toString().data());
         return 0;
     });

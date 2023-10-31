@@ -37,8 +37,8 @@ int main(int argc, char *argv[]) {
             Parser parser(cmd);
             ParseResult res = parser.parse({"cmd", "1", "2"});
             assert(res.error() == ParseResult::NoError);
-            assert(res.valueForArgument("arg1") == "1");
-            assert(res.valueForArgument("arg2") == "2");
+            assert(res.value("arg1") == "1");
+            assert(res.value("arg2") == "2");
         }
         std::cout << "Get positional arguments: OK" << std::endl;
     }

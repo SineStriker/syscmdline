@@ -52,7 +52,7 @@ namespace zh_CN {
 using namespace SysCmdLine;
 
 static int routine(const ParseResult &result) {
-    auto fileValues = Value::toStringList(result.valuesForArgument("files"));
+    auto fileValues = Value::toStringList(result.values("files"));
     u8printf("将要被删除的文件：\n");
     for (const auto &item : std::as_const(fileValues)) {
         u8printf("    %s\n", item.data());

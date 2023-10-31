@@ -32,7 +32,7 @@ namespace SysCmdLine {
         return v.option ? *v.option : Option();
     }
 
-    int OptionResult::argumentIndex(const std::string &name) const {
+    int OptionResult::indexOf(const std::string &name) const {
         auto &v = *reinterpret_cast<const OptionData *>(data);
         auto it = v.argNameIndexes.find(name);
         if (it == v.argNameIndexes.end())
@@ -43,6 +43,19 @@ namespace SysCmdLine {
     int OptionResult::count() const {
         auto &v = *reinterpret_cast<const OptionData *>(data);
         return v.count;
+    }
+
+    std::vector<Value> OptionResult::allValues(int index) const {
+        auto &v = *reinterpret_cast<const OptionData *>(data);
+        if (index < 0 || index >= v.argSize)
+            return sharedValues();
+
+        std::vector<Value> allValues;
+        for (int i = 0; i < v.count; ++i) {
+            const auto &values = v.argResult[i][index];
+            allValues.insert(allValues.end(), values.begin(), values.end());
+        }
+        return allValues;
     }
 
     const std::vector<Value> &OptionResult::values(int index, int n) const {
@@ -670,14 +683,14 @@ namespace SysCmdLine {
         return d->versionSet;
     }
 
-    const std::vector<Value> &ParseResult::valuesForArgument(int index) const {
+    const std::vector<Value> &ParseResult::values(int index) const {
         Q_D2(ParseResult);
         if (index < 0 || index >= d->core.argSize)
             return sharedValues();
         return d->core.argResult[index];
     }
 
-    Value ParseResult::valueForArgument(int index) const {
+    Value ParseResult::value(int index) const {
         Q_D2(ParseResult);
         if (index < 0 || index >= d->core.argSize)
             return {};

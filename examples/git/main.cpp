@@ -22,8 +22,8 @@ int main(int /* argc */, char * /* argv */[]) {
     rootCommand.addVersionOption("0.0.0.1");
     rootCommand.addHelpOption(true, true);
     rootCommand.setHandler([](const ParseResult &result) {
-        u8printf("%s\n", result.valueForArgument("weekday").toString().data());
-        u8printf("%s\n", result.valueForArgument("event").toString().data());
+        u8printf("%s\n", result.value("weekday").toString().data());
+        u8printf("%s\n", result.value("event").toString().data());
         return 0;
     });
 

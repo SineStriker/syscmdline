@@ -23,11 +23,11 @@ int main(int /* argc */, char * /* argv */[]) {
     rootCommand.addHelpOption();
     rootCommand.setHandler([](const ParseResult &result) {
         u8printf("Sources:\n");
-        for (const auto &item : result.valuesForArgument("src")) {
+        for (const auto &item : result.values("src")) {
             u8printf("    %s\n", item.toString().data());
         }
         u8printf("Destination:\n");
-        u8printf("    %s\n", result.valueForArgument("dest").toString().data());
+        u8printf("    %s\n", result.value("dest").toString().data());
         u8printf("Numbers:\n");
         for (const auto &item : result.option("-n").values("nums")) {
             u8printf("    %s\n", item.toString().data());
