@@ -104,7 +104,7 @@ namespace SysCmdLine {
                 }(d);
 
                 auto addArgumentsHelp = [&](bool front) {
-                    if (bool(displayOptions & Parser::ShowOptionsBehindArguments) != front &&
+                    if (bool((displayOptions & Parser::ShowOptionsBehindArguments)) != front &&
                         !d->arguments.empty()) {
                         ss += " " + displayedArguments(displayOptions);
                     }

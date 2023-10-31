@@ -29,11 +29,11 @@ int main(int /* argc */, char * /* argv */[]) {
         u8printf("Destination:\n");
         u8printf("    %s\n", result.valueForArgument("dest").toString().data());
         u8printf("Numbers:\n");
-        for (const auto &item : result.resultForOption("-n").valuesForArgument("nums")) {
+        for (const auto &item : result.option("-n").values("nums")) {
             u8printf("    %s\n", item.toString().data());
         }
         u8printf("Numbers 2:\n");
-        for (const auto &item : result.resultForOption("-n2").valuesForArgument("nums")) {
+        for (const auto &item : result.option("-n2").values("nums")) {
             u8printf("    %s\n", item.toString().data());
         }
         return 0;

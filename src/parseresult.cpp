@@ -19,6 +19,11 @@ namespace SysCmdLine {
         return _data;
     }
 
+    const std::vector<Value> &sharedValues() {
+        static std::vector<Value> _data;
+        return _data;
+    }
+
     OptionResult::OptionResult() : data(&OptionData::sharedNull()) {
     }
 
@@ -27,9 +32,9 @@ namespace SysCmdLine {
         return v.option ? *v.option : Option();
     }
 
-    int OptionResult::argumentIndex(const std::string &argName) const {
+    int OptionResult::argumentIndex(const std::string &name) const {
         auto &v = *reinterpret_cast<const OptionData *>(data);
-        auto it = v.argNameIndexes.find(argName);
+        auto it = v.argNameIndexes.find(name);
         if (it == v.argNameIndexes.end())
             return -1;
         return it->second.i;
@@ -40,22 +45,22 @@ namespace SysCmdLine {
         return v.count;
     }
 
-    std::vector<Value> OptionResult::valuesForArgument(int argIndex, int index) const {
+    const std::vector<Value> &OptionResult::values(int index, int n) const {
         auto &v = *reinterpret_cast<const OptionData *>(data);
-        if (argIndex < 0 || argIndex >= v.argSize)
-            return {};
-        if (index < 0 || index >= v.count)
-            return {};
-        return v.argResult[index][argIndex];
+        if (index < 0 || index >= v.argSize)
+            return sharedValues();
+        if (n < 0 || n >= v.count)
+            return sharedValues();
+        return v.argResult[n][index];
     }
 
-    Value OptionResult::valueForArgument(int argIndex, int index) const {
+    Value OptionResult::value(int index, int n) const {
         auto &v = *reinterpret_cast<const OptionData *>(data);
-        if (argIndex < 0 || argIndex >= v.argSize)
+        if (index < 0 || index >= v.argSize)
             return {};
-        if (index < 0 || index >= v.count)
-            return v.option->argument(argIndex).defaultValue();
-        const auto &args = v.argResult[index][argIndex];
+        if (n < 0 || n >= v.count)
+            return v.option->argument(index).defaultValue();
+        const auto &args = v.argResult[n][index];
         return args.empty() ? Value() : args.front();
     }
 
@@ -245,7 +250,7 @@ namespace SysCmdLine {
                                    parserData->textProvider(Strings::Title, Strings::Commands));
 
         const auto &helpLayoutData = parserData->helpLayout.d_func();
-        if (displayOptions & Parser::AlignAllCatalogues) {
+        if ((displayOptions & Parser::AlignAllCatalogues)) {
             for (const auto &helpItem : helpLayoutData->itemDataList) {
                 if (helpItem.itemType != HelpLayoutPrivate::UserHelpList) {
                     continue;
@@ -615,9 +620,9 @@ namespace SysCmdLine {
         return d->stack;
     }
 
-    int ParseResult::indexOfArgument(const std::string &argName) const {
+    int ParseResult::indexOfArgument(const std::string &name) const {
         Q_D2(ParseResult);
-        auto it = d->core.argNameIndexes.find(argName);
+        auto it = d->core.argNameIndexes.find(name);
         if (it == d->core.argNameIndexes.end())
             return -1;
         return it->second.i;
@@ -665,10 +670,10 @@ namespace SysCmdLine {
         return d->versionSet;
     }
 
-    std::vector<Value> ParseResult::valuesForArgument(int index) const {
+    const std::vector<Value> &ParseResult::valuesForArgument(int index) const {
         Q_D2(ParseResult);
         if (index < 0 || index >= d->core.argSize)
-            return {};
+            return sharedValues();
         return d->core.argResult[index];
     }
 
@@ -677,16 +682,14 @@ namespace SysCmdLine {
         if (index < 0 || index >= d->core.argSize)
             return {};
         const auto &args = d->core.argResult[index];
-        if (args.empty())
-            return d->command->argument(index).defaultValue();
-        return args.front();
+        return args.empty() ? d->command->argument(index).defaultValue() : args.front();
     }
 
-    OptionResult ParseResult::resultForOption(int index) const {
+    OptionResult ParseResult::option(int index) const {
         Q_D2(ParseResult);
         if (index < 0 || index >= d->core.allOptionsSize)
             return {};
-        return &d->core.allOptionsResult[index];
+        return {&d->core.allOptionsResult[index]};
     }
 
     ParseResult::ParseResult(ParseResultPrivate *d) : SharedBase(d) {

@@ -16,6 +16,8 @@ namespace SysCmdLine {
         SharedBasePrivate(const SharedBasePrivate &) : ref(0) {
         }
 
+        SharedBasePrivate &operator=(const SharedBasePrivate &) = delete;
+
         std::atomic_int ref;
     };
 

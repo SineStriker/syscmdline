@@ -297,7 +297,7 @@ namespace SysCmdLine {
                                         [](const std::string &s) { return s; });
 
                 // Build case-insensitive option indexes if needed
-                if (parseOptions & Parser::IgnoreOptionCase) {
+                if ((parseOptions & Parser::IgnoreOptionCase)) {
                     buildOptionTokenIndexes(lowerOptionTokenIndexes, [](const std::string &s) {
                         return Utils::toLower(s); //
                     });
@@ -716,7 +716,7 @@ namespace SysCmdLine {
                     return idx;
 
                 // second search case-insensitive map if flag is set
-                if (parseOptions & Parser::IgnoreOptionCase) {
+                if ((parseOptions & Parser::IgnoreOptionCase)) {
                     return searchOptionImpl(lowerOptionTokenIndexes, Utils::toLower(token), pos);
                 }
                 return -1;

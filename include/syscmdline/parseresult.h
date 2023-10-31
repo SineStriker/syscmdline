@@ -37,22 +37,26 @@ namespace SysCmdLine {
 
     class SYSCMDLINE_EXPORT OptionResult {
     public:
-         OptionResult();
+        OptionResult();
 
     public:
         Option option() const;
-        int argumentIndex(const std::string &argName) const;
+        int argumentIndex(const std::string &name) const;
         int count() const;
 
+        inline bool argumentIsSet(const Argument &arg, int n = 0) const;
+        inline bool argumentIsSet(const std::string &name, int n = 0) const;
+        inline bool argumentIsSet(int index, int n = 0) const;
+
         // Get values of multi-value argument at the option's N-th occurrence
-        inline std::vector<Value> valuesForArgument(const Argument &arg, int index = 0) const;
-        inline std::vector<Value> valuesForArgument(const std::string &name, int index = 0) const;
-        std::vector<Value> valuesForArgument(int argIndex = 0, int index = 0) const;
+        inline const std::vector<Value> &values(const Argument &arg, int n = 0) const;
+        inline const std::vector<Value> &values(const std::string &name, int n = 0) const;
+        const std::vector<Value> &values(int index = 0, int n = 0) const;
 
         // Get value of single-value argument at the option's N-th occurrence or its default value
-        inline Value valueForArgument(const Argument &arg, int index = 0) const;
-        inline Value valueForArgument(const std::string &name, int index = 0) const;
-        Value valueForArgument(int argIndex = 0, int index = 0) const;
+        inline Value value(const Argument &arg, int n = 0) const;
+        inline Value value(const std::string &name, int n = 0) const;
+        Value value(int index = 0, int n = 0) const;
 
     private:
         inline OptionResult(const void *data);
@@ -61,22 +65,30 @@ namespace SysCmdLine {
         friend class ParseResult;
     };
 
-    inline std::vector<Value> OptionResult::valuesForArgument(const Argument &arg,
-                                                              int index) const {
-        return valuesForArgument(argumentIndex(arg.name()), index);
+    inline bool OptionResult::argumentIsSet(const Argument &arg, int n) const {
+        return !values(argumentIndex(arg.name()), n).empty();
+    }
+    inline bool OptionResult::argumentIsSet(const std::string &name, int n) const {
+        return !values(argumentIndex(name), n).empty();
+    }
+    inline bool OptionResult::argumentIsSet(int index, int n) const {
+        return !values(index, n).empty();
     }
 
-    inline std::vector<Value> OptionResult::valuesForArgument(const std::string &name,
-                                                              int index) const {
-        return valuesForArgument(argumentIndex(name), index);
+    inline const std::vector<Value> &OptionResult::values(const Argument &arg, int n) const {
+        return values(argumentIndex(arg.name()), n);
     }
 
-    inline Value OptionResult::valueForArgument(const Argument &arg, int index) const {
-        return valueForArgument(argumentIndex(arg.name()), index);
+    inline const std::vector<Value> &OptionResult::values(const std::string &name, int n) const {
+        return values(argumentIndex(name), n);
     }
 
-    inline Value OptionResult::valueForArgument(const std::string &name, int index) const {
-        return valueForArgument(argumentIndex(name), index);
+    inline Value OptionResult::value(const Argument &arg, int n) const {
+        return value(argumentIndex(arg.name()), n);
+    }
+
+    inline Value OptionResult::value(const std::string &name, int n) const {
+        return value(argumentIndex(name), n);
     }
 
     inline OptionResult::OptionResult(const void *data) : data(data) {
@@ -123,7 +135,7 @@ namespace SysCmdLine {
         Command command() const;
         std::vector<Option> globalOptions() const;
         std::vector<int> commandIndexStack() const;
-        int indexOfArgument(const std::string &argName) const;
+        int indexOfArgument(const std::string &name) const;
         int indexOfOption(const std::string &token) const;
 
         void showError() const;
@@ -135,10 +147,14 @@ namespace SysCmdLine {
         bool isHelpSet() const;
         bool isVersionSet() const;
 
+        inline bool argumentIsSet(const Argument &arg) const;
+        inline bool argumentIsSet(const std::string &name) const;
+        inline bool argumentIsSet(int index) const;
+
         // Get values of multi-value argument
-        inline std::vector<Value> valuesForArgument(const Argument &arg) const;
-        inline std::vector<Value> valuesForArgument(const std::string &name) const;
-        std::vector<Value> valuesForArgument(int index) const;
+        inline const std::vector<Value> &valuesForArgument(const Argument &arg) const;
+        inline const std::vector<Value> &valuesForArgument(const std::string &name) const;
+        const std::vector<Value> &valuesForArgument(int index) const;
 
         // Get value of single-value argument or its default value
         inline Value valueForArgument(const Argument &arg) const;
@@ -149,10 +165,10 @@ namespace SysCmdLine {
         inline bool optionIsSet(const std::string &token) const;
         inline bool optionIsSet(int index) const;
 
-        // Get values of single argument option which occurs multiple times
-        inline std::vector<Value> valuesForOption(const Option &option) const;
-        inline std::vector<Value> valuesForOption(const std::string &token) const;
-        inline std::vector<Value> valuesForOption(int index) const;
+        // Get all values of the argument at `index` of the option
+        inline std::vector<Value> valuesForOption(const Option &option, int index = 0) const;
+        inline std::vector<Value> valuesForOption(const std::string &token, int index = 0) const;
+        inline std::vector<Value> valuesForOption(int optionIndex, int index = 0) const;
 
         // Get value of single argument option at its first occurrence or its default value
         inline Value valueForOption(const Option &option) const;
@@ -160,9 +176,9 @@ namespace SysCmdLine {
         inline Value valueForOption(int index) const;
 
         // Detailed result for an option
-        inline OptionResult resultForOption(const Option &option) const;
-        inline OptionResult resultForOption(const std::string &token) const;
-        OptionResult resultForOption(int index) const;
+        inline OptionResult option(const Option &option) const;
+        inline OptionResult option(const std::string &token) const;
+        OptionResult option(int index) const;
 
     protected:
         ParseResult(ParseResultPrivate *d);
@@ -174,11 +190,23 @@ namespace SysCmdLine {
         return d_ptr != nullptr;
     }
 
-    inline std::vector<Value> ParseResult::valuesForArgument(const Argument &arg) const {
+    inline bool ParseResult::argumentIsSet(const Argument &arg) const {
+        return argumentIsSet(indexOfArgument(arg.name()));
+    }
+
+    inline bool ParseResult::argumentIsSet(const std::string &name) const {
+        return argumentIsSet(indexOfArgument(name));
+    }
+
+    inline bool ParseResult::argumentIsSet(int index) const {
+        return !valuesForArgument(index).empty();
+    }
+
+    inline const std::vector<Value> &ParseResult::valuesForArgument(const Argument &arg) const {
         return valuesForArgument(indexOfArgument(arg.name()));
     }
 
-    inline std::vector<Value> ParseResult::valuesForArgument(const std::string &name) const {
+    inline const std::vector<Value> &ParseResult::valuesForArgument(const std::string &name) const {
         return valuesForArgument(indexOfArgument(name));
     }
 
@@ -191,53 +219,54 @@ namespace SysCmdLine {
     }
 
     inline bool ParseResult::optionIsSet(const Option &option) const {
-        return resultForOption(indexOfOption(option.token())).count() > 0;
+        return this->option(indexOfOption(option.token())).count() > 0;
     }
 
     inline bool ParseResult::optionIsSet(const std::string &token) const {
-        return resultForOption(indexOfOption(token)).count() > 0;
+        return option(indexOfOption(token)).count() > 0;
     }
 
     bool ParseResult::optionIsSet(int index) const {
-        return resultForOption(index).count() > 0;
+        return option(index).count() > 0;
     }
 
-    inline std::vector<Value> ParseResult::valuesForOption(const Option &option) const {
-        return valuesForOption(indexOfOption(option.token()));
+    inline std::vector<Value> ParseResult::valuesForOption(const Option &option, int index) const {
+        return valuesForOption(indexOfOption(option.token()), index);
     }
 
-    inline std::vector<Value> ParseResult::valuesForOption(const std::string &token) const {
-        return valuesForOption(indexOfOption(token));
+    inline std::vector<Value> ParseResult::valuesForOption(const std::string &token,
+                                                           int index) const {
+        return valuesForOption(indexOfOption(token), index);
     }
 
-    inline std::vector<Value> ParseResult::valuesForOption(int index) const {
-        OptionResult optionResult = resultForOption(index);
-        std::vector<Value> values;
-        values.reserve(optionResult.count());
+    inline std::vector<Value> ParseResult::valuesForOption(int optionIndex, int index) const {
+        OptionResult optionResult = option(optionIndex);
+        std::vector<Value> allValues;
         for (int i = 0; i < optionResult.count(); ++i) {
-            values.emplace_back(optionResult.valueForArgument(0, i));
+            const auto &values = optionResult.values(index, i);
+            allValues.insert(allValues.end(), values.begin(), values.end());
         }
-        return values;
+        return allValues;
     }
 
     inline Value ParseResult::valueForOption(const Option &option) const {
-        return resultForOption(indexOfOption(option.token())).valueForArgument(0);
+        return this->option(indexOfOption(option.token())).value(0);
     }
 
     inline Value ParseResult::valueForOption(const std::string &token) const {
-        return resultForOption(indexOfOption(token)).valueForArgument(0);
+        return option(indexOfOption(token)).value(0);
     }
 
-    Value ParseResult::valueForOption(int index) const {
-        return resultForOption(index).valueForArgument(0);
+    inline Value ParseResult::valueForOption(int index) const {
+        return option(index).value(0);
     }
 
-    inline OptionResult ParseResult::resultForOption(const Option &option) const {
-        return resultForOption(indexOfOption(option.token()));
+    inline OptionResult ParseResult::option(const Option &option) const {
+        return this->option(indexOfOption(option.token()));
     }
 
-    OptionResult ParseResult::resultForOption(const std::string &token) const {
-        return resultForOption(indexOfOption(token));
+    inline OptionResult ParseResult::option(const std::string &token) const {
+        return option(indexOfOption(token));
     }
 
 }

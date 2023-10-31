@@ -33,8 +33,8 @@ int main(int /* argc */, char * /* argv */ []) {
     rootCommand.addVersionOption("0.0.1.1");
     rootCommand.addHelpOption();
     rootCommand.setHandler([](const ParseResult &result) {
-        std::cout << result.valueForArgument("src").toString() << std::endl;
-        std::cout << result.valueForArgument("dest").toString() << std::endl;
+        std::cout << result.value("src").toString() << std::endl;
+        std::cout << result.value("dest").toString() << std::endl;
         return 0;
     });
 
@@ -88,8 +88,8 @@ int main(int /* argc */, char * /* argv */ []) {
     rootCommand.setArguments({weekdayArg, eventArg});
     rootCommand.addHelpOption();
     rootCommand.setHandler([](const ParseResult &result) {
-        std::cout << result.valueForArgument("weekday").toString() << std::endl;
-        std::cout << result.valueForArgument("event").toString() << std::endl;
+        std::cout << result.value("weekday").toString() << std::endl;
+        std::cout << result.value("event").toString() << std::endl;
         return 0;
     });
 

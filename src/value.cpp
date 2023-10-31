@@ -124,7 +124,7 @@ namespace SysCmdLine {
     }
 
     bool Value::toBool() const {
-        return _type == Bool ? data.b : bool(toInt());
+        return _type == Bool && data.b;
     }
 
     int Value::toInt() const {
