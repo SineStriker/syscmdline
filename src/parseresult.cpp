@@ -114,10 +114,11 @@ namespace SysCmdLine {
             int size;
         };
 
+        // Avoid using `std::function` to reduce binary size
         const auto &getLists = [](int displayOptions, const GenericMap &catalog,
                                   const StringList &catalogNames,         // catalog
 
-                                  const GenericMap &symbolIndexes,          // name -> index
+                                  const GenericMap &symbolIndexes,        // name -> index
                                   int symbolCount, const Symbol *(*getter)(int, const void *),
                                   const void *user,                       // get symbol from index
 

@@ -636,7 +636,7 @@ namespace SysCmdLine {
                 if (prefix == "--")
                     return -1;
 
-                if (it != indexes.end() && Utils::starts_with(token, prefix)) {
+                if (it != indexes.end() && token.starts_with(prefix)) {
                     const auto &idx = it->second.i;
                     const auto &opt = core.allOptionsResult[idx].option;
                     const auto &args = opt->d_func()->arguments;
@@ -691,15 +691,17 @@ namespace SysCmdLine {
                 }
 
                 if (token.size() > 1) {
+                    auto front = token.front();
                     // Try unix short option
-                    if (!(parseOptions & Parser::DontAllowUnixShortOptions) &&
-                        token.front() == '-') {
-                        return searchShortOptions(indexes, token, '=', pos);
-                    }
-
-                    // Try dos short option
-                    if ((parseOptions & Parser::AllowDosShortOptions) && token.front() == '/') {
-                        return searchShortOptions(indexes, token, ':', pos);
+                    if (front == '-') {
+                        if (!(parseOptions & Parser::DontAllowUnixShortOptions)) {
+                            return searchShortOptions(indexes, token, '=', pos);
+                        }
+                    } else if (front == '/') {
+                        // Try dos short option
+                        if ((parseOptions & Parser::AllowDosShortOptions)) {
+                            return searchShortOptions(indexes, token, ':', pos);
+                        }
                     }
                 }
                 return -1;

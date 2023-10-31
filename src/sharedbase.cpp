@@ -38,7 +38,7 @@ namespace SysCmdLine {
         auto &d = d_ptr;
         if (d->ref.load() != 1) {
             auto x = d->clone();
-            if (d->ref.fetch_sub(1) == 1)
+            if (d->ref.fetch_sub(1) == 1) // atomicity
                 delete d;
             d = x;
         }

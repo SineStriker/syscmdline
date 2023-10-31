@@ -23,10 +23,6 @@ namespace SysCmdLine::Utils {
 
     std::string toLower(std::string s);
 
-    inline bool starts_with(const std::string &s, const std::string &prefix) {
-        return s.substr(0, prefix.size()) == prefix;
-    }
-
     template <class T>
     std::vector<T> concatVector(const std::vector<T> &v1, const std::vector<T> &v2) {
         std::vector<T> res;
