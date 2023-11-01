@@ -19,7 +19,7 @@ namespace SysCmdLine {
         return _data;
     }
 
-    const std::vector<Value> &sharedValues() {
+    static const std::vector<Value> &sharedEmptyValues() {
         static std::vector<Value> _data;
         return _data;
     }
@@ -48,7 +48,7 @@ namespace SysCmdLine {
     std::vector<Value> OptionResult::allValues(int index) const {
         auto &v = *reinterpret_cast<const OptionData *>(data);
         if (index < 0 || index >= v.argSize)
-            return sharedValues();
+            return {};
 
         std::vector<Value> allValues;
         for (int i = 0; i < v.count; ++i) {
@@ -62,9 +62,9 @@ namespace SysCmdLine {
     const std::vector<Value> &OptionResult::values(int index, int n) const {
         auto &v = *reinterpret_cast<const OptionData *>(data);
         if (index < 0 || index >= v.argSize)
-            return sharedValues();
+            return sharedEmptyValues();
         if (n < 0 || n >= v.count)
-            return sharedValues();
+            return sharedEmptyValues();
         return v.argResult[n][index];
     }
 
@@ -567,13 +567,14 @@ namespace SysCmdLine {
     int ParseResult::dispatch() const {
         Q_D2(ParseResult);
         if (d->error != NoError) {
-            throw std::runtime_error("cannot dispatch handler when parser failed");
+            throw std::runtime_error("don't call dispatch when parsing fails");
         }
 
         const auto &cmdData = d->command->d_func();
         const auto &handler = cmdData->handler;
 
-        if (d->versionSet) {
+        // If version is empty, you should do something in the handler
+        if (d->versionSet && !cmdData->version.empty()) {
             u8printf("%s\n", cmdData->version.data());
             return 0;
         }
@@ -584,8 +585,10 @@ namespace SysCmdLine {
         }
 
         if (!handler) {
-            throw std::runtime_error("command \"" + cmdData->name +
-                                     "\" doesn't have a valid handler");
+            throw std::runtime_error(
+                Utils::formatText(R"(command "%1" doesn't have a valid handler)", {
+                                                                                      cmdData->name,
+                                                                                  }));
         }
 
         return handler(*this);
@@ -687,7 +690,7 @@ namespace SysCmdLine {
     const std::vector<Value> &ParseResult::values(int index) const {
         Q_D2(ParseResult);
         if (index < 0 || index >= d->core.argSize)
-            return sharedValues();
+            return sharedEmptyValues();
         return d->core.argResult[index];
     }
 

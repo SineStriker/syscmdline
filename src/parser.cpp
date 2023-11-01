@@ -152,7 +152,7 @@ namespace SysCmdLine {
                     return false;
                 }
 
-                // Set special flags
+                // Scan roles
                 for (int i = 0; i < core.allOptionsSize; ++i) {
                     const auto &resultData = core.allOptionsResult[i];
                     if (resultData.count > 0) {

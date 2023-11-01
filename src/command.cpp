@@ -182,8 +182,11 @@ namespace SysCmdLine {
     Command::Command() : Command({}, {}) {
     }
 
-    Command::Command(const std::string &name, const std::string &desc)
+    Command::Command(const std::string &name, const std::string &desc,
+                     const std::vector<Argument> &args)
         : ArgumentHolder(new CommandPrivate(name, desc)) {
+        if (!args.empty())
+            addArguments(args);
     }
 
     std::string Command::helpText(Symbol::HelpPosition pos, int displayOptions, void *extra) const {
@@ -254,35 +257,38 @@ namespace SysCmdLine {
                 auto addExclusiveOptions = [&](int optIdx, bool required) {
                     const auto &opt = options[optIdx];
                     const auto &groupName = groupNames[optIdx];
-                    const IntList *optionIndexes;
 
-                    // Search group
-                    if (groupName.empty() ||
-                        (optionIndexes = exclusiveGroupIndexes.find(groupName)->second.il)
-                                ->size() <= 1) {
-                        ss += opt.helpText(Symbol::HP_Usage, displayOptions);
-                        addVisited(optIdx);
+                    do {
+                        if (groupName.empty())
+                            break;
+
+                        const auto &optionIndexes =
+                            *exclusiveGroupIndexes.find(groupName)->second.il;
+                        if (optionIndexes.size() <= 1)
+                            break;
+
+                        // Add exclusive groups
+                        if (required)
+                            ss += "(";
+
+                        StringList exclusiveOptions;
+                        exclusiveOptions.reserve(optionIndexes.size());
+                        for (const auto &idx : optionIndexes) {
+                            const auto &curOpt = options[idx];
+                            exclusiveOptions.push_back(
+                                curOpt.helpText(Symbol::HP_Usage, displayOptions));
+                            addVisited(idx);
+                        }
+
+                        ss += Utils::join(exclusiveOptions, " | ");
+                        if (required)
+                            ss += ")";
                         return;
-                    }
+                    } while (false);
 
-                    if (required)
-                        ss += "(";
-
-                    assert((optionIndexes = exclusiveGroupIndexes.find(groupName)->second.il));
-
-                    // Add exclusive
-                    StringList exclusiveOptions;
-                    exclusiveOptions.reserve(optionIndexes->size());
-                    for (const auto &idx : *optionIndexes) {
-                        const auto &curOpt = options[idx];
-                        exclusiveOptions.push_back(
-                            curOpt.helpText(Symbol::HP_Usage, displayOptions));
-                        addVisited(idx);
-                    }
-
-                    ss += Utils::join(exclusiveOptions, " | ");
-                    if (required)
-                        ss += ")";
+                    // Add single
+                    ss += opt.helpText(Symbol::HP_Usage, displayOptions);
+                    addVisited(optIdx);
                 };
 
                 auto addOptionsHelp = [&](bool required) {

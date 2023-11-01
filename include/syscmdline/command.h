@@ -56,7 +56,8 @@ namespace SysCmdLine {
         using Handler = std::function<int /* code */ (const ParseResult & /* result */)>;
 
         Command();
-        Command(const std::string &name, const std::string &desc = {});
+        Command(const std::string &name, const std::string &desc = {},
+                const std::vector<Argument> &args = {});
 
         using Symbol::helpText;
         std::string helpText(HelpPosition pos, int displayOptions, void *extra) const override;
