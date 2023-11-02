@@ -631,28 +631,84 @@ namespace SysCmdLine {
 
             // indexes: token indexes map
             // token:   token
-            // sign:    equal sign, '=' or ':'
             // pos:     followed argument beginning index
             // ->       option index
-            int searchShortOptions(const GenericMap &indexes, const std::string &token, char sign,
-                                   int *pos) const {
-                // Search for short option
-                auto it = indexes.lower_bound(token);
-                if (it == indexes.end())
+            int searchOptionImpl(const GenericMap &indexes, const std::string &token,
+                                 int *pos) const {
+                if (pos)
+                    *pos = -1;
+
+                if (indexes.empty())
                     return -1;
 
-                if (it != indexes.begin() && !token.starts_with(it->first)) {
-                    --it;
+                // Find the first element greater or equal than given token
+                auto it = indexes.lower_bound(token);
+
+                // A.
+                // For example,
+                // token = -l
+                // indexes = ..., -l, -m, -n
+                // then `it` points to `-l`
+                if (it != indexes.end() && it->first == token) {
+                    return it->second.i; // The luckiest situation
                 }
 
+                // Only Unix or Dos option can fallback to short match
+                auto front = token.front();
+                if (front != '-' && front != '/') {
+                    return -1;
+                }
+
+                // B.
+                // Another example,
+                // token = -lpthread
+                // indexes = ..., -m, -n
+                // then `it` points to `-m`
+
+                // In such case, we should try short option
+
+                // B.A. If all elements are greater than the given token, abort
+                if (it == indexes.begin()) {
+                    return -1;
+                }
+
+                // B.B. The predecessor maybe the target
+                it--;
                 const auto &prefix = it->first;
-                if (!token.starts_with(prefix))
-                    return -1;
 
-                // Ignore `--` option because it's too special
-                if (prefix == "--")
+                // B.B.A.
+                // For example,
+                // token = -lpthread
+                // indexes = -j, -k, -m, -n
+                // then `it` points to -k, not match
+                if (token.size() == 1 || !token.starts_with(prefix)) {
                     return -1;
+                }
 
+                // B.B.B.
+                // Another example,
+                // token = -lpthread
+                // indexes = -j, -k, -l, -m, -n
+                // then it points to -l, match
+
+                char sign;
+                if (front == '/') {
+                    // Try dos short option
+                    if ((parseOptions & Parser::AllowDosShortOptions)) {
+                        sign = ':';
+                        goto short_match;
+                    }
+                } else if (!(parseOptions & Parser::DontAllowUnixShortOptions)) {
+                    // Try unix short option
+                    // Ignore `--` option because it's too special
+                    if (prefix != "--") {
+                        sign = '=';
+                        goto short_match;
+                    }
+                }
+                return -1;
+
+            short_match:
                 const auto &idx = it->second.i;
                 const auto &opt = core.allOptionsResult[idx].option;
                 const auto &args = opt->d_func()->arguments;
@@ -684,40 +740,6 @@ namespace SysCmdLine {
                     if (pos)
                         *pos = int(prefix.size()) + 1;
                     return idx;
-                }
-                return -1;
-            };
-
-            // indexes: token indexes map
-            // token:   token
-            // pos:     followed argument beginning index
-            // ->       option index
-            int searchOptionImpl(const GenericMap &indexes, const std::string &token,
-                                 int *pos) const {
-                if (pos)
-                    *pos = -1;
-
-                if (indexes.empty())
-                    return -1;
-
-                auto it = indexes.find(token);
-                if (it != indexes.end()) {
-                    return it->second.i;
-                }
-
-                if (token.size() > 1) {
-                    auto front = token.front();
-                    // Try unix short option
-                    if (front == '-') {
-                        if (!(parseOptions & Parser::DontAllowUnixShortOptions)) {
-                            return searchShortOptions(indexes, token, '=', pos);
-                        }
-                    } else if (front == '/') {
-                        // Try dos short option
-                        if ((parseOptions & Parser::AllowDosShortOptions)) {
-                            return searchShortOptions(indexes, token, ':', pos);
-                        }
-                    }
                 }
                 return -1;
             };
