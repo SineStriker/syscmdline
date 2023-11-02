@@ -79,7 +79,7 @@ namespace SysCmdLine {
 
     public:
         inline Argument &metavar(const std::string &metavar);
-        inline Argument &require(bool required = true);
+        inline Argument &required(bool required = true);
         inline Argument &default_value(const Value &value);
         inline Argument &expect(const std::vector<Value> &expectedValues);
         inline Argument &multi(bool multiValueEnabled = true);
@@ -99,7 +99,7 @@ namespace SysCmdLine {
         return *this;
     }
 
-    inline Argument &Argument::require(bool required) {
+    inline Argument &Argument::required(bool required) {
         setRequired(required);
         return *this;
     }

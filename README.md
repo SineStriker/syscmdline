@@ -20,14 +20,9 @@ Therefore, the project is designed to be configurable, but it's not intended to 
 + Support help text customization
 + Support localization
 + Simple tips for typo correction
++ Special implementations for Windows
 + Highly configurable
-+ Interface friendly
-
-<!-- ## Concepts
-
-If you are confused about some of the concepts of command line programs, you can learn the following, which will help you use this project.
-
-See [Concepts](docs/concepts.md) to learn more. -->
++ Friendly interface
 
 
 <!-- ## Help Text
@@ -69,21 +64,23 @@ Options:
     /?       Show help information.
 ``` -->
 
-## Quick Start
+## Simple Example
 
 A simple `mv` command:
 ```c++
 #include <iostream>
 #include <syscmdline/parser.h>
-using namespace SysCmdLine;
+
+namespace SCL = SysCmdLine;
+
 int main(int argc, char *argv[]) {
-    Command cmd("mv", "move files to directory");
+    SCL::Command cmd("mv", "move files to directory");
     cmd.addArguments({
-        Argument("files", "Source files").multi(),
-        Argument("dir", "Destination directory"),
+        SCL::Argument("files", "Source files").multi(),
+        SCL::Argument("dir", "Destination directory"),
     });
     cmd.addHelpOption();
-    cmd.setHandler([](const ParseResult &result) -> int {
+    cmd.setHandler([](const SCL::ParseResult &result) -> int {
         std::cout << "[Sources]" << std::endl;
         for (const auto &item : result.values("files")) {
             std::cout << item.toString() << std::endl;
@@ -92,10 +89,25 @@ int main(int argc, char *argv[]) {
         std::cout <<  result.value("dir").toString() << std::endl;
         return 0;
     });
-    return Parser(cmd).invoke(argc, argv);
+    return SCL::Parser(cmd).invoke(argc, argv);
 }
 ```
 Running the code:
+```sh
+> ./mv --help
+Description:
+    move files to directory
+
+Usage:
+    mv <files>... <dir> [options]
+
+Arguments:
+    <files>    Source files
+    <dir>      Destination directory
+
+Options:
+    -h, --help    Show help information
+```
 ```sh
 > ./mv 1 2
 [Sources]
@@ -112,7 +124,19 @@ Running the code:
 3
 ```
 
+## Quick  Start
+
+### Concepts
+
+If you are confused about some of the concepts of command line programs, you can learn the following, which will help you use this project.
+
+See [Concepts](docs/concepts.md) to learn more.
+
+### More Examples
+
 See [Examples](docs/examples.md) to learn more.
+
+## CMake Intergration
 
 ### Build & Install
 
@@ -122,7 +146,7 @@ cmake --build build --target all
 cmake --build build --target install
 ```
 
-### Integrate
+### Import
 
 ```cmake
 find_package(syscmdline REQUIRED)

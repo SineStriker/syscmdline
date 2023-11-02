@@ -170,7 +170,7 @@ namespace SysCmdLine {
                         Utils::formatText(R"(option "%1" is %2, but exclusive group "3" isn't)",
                                           {
                                               opt.token(),
-                                              opt.isRequired() ? "required" : "require",
+                                              opt.isRequired() ? "required" : "required",
                                               exclusiveGroup,
                                           }));
                 }

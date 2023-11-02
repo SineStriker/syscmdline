@@ -101,11 +101,11 @@ namespace SysCmdLine {
     public:
         inline Option &arg(const std::string &name, bool required = true,
                            const Value &defaultValue = {});
-        inline Option &require(bool required = true);
-        inline Option &short_match(ShortMatchRule shortMatchRule);
+        inline Option &required(bool required = true);
+        inline Option &short_match(ShortMatchRule shortMatchRule = ShortMatchAll);
         inline Option &prior(PriorLevel priorLevel);
         inline Option &global(bool global = true);
-        inline Option &limit(int maxOccurrence);
+        inline Option &occurs(int maxOccurrence = 0);
     };
 
     inline Option::Option(std::initializer_list<std::string> tokens, const std::string &desc,
@@ -134,11 +134,12 @@ namespace SysCmdLine {
     }
 
     inline Option &Option::arg(const std::string &name, bool required, const Value &defaultValue) {
+        // Option's argument doesn't need a description
         addArgument(Argument(name, {}, required, defaultValue).metavar(name));
         return *this;
     }
 
-    inline Option &Option::require(bool required) {
+    inline Option &Option::required(bool required) {
         setRequired(required);
         return *this;
     }
@@ -158,7 +159,7 @@ namespace SysCmdLine {
         return *this;
     }
 
-    inline Option &Option::limit(int maxOccurrence) {
+    inline Option &Option::occurs(int maxOccurrence) {
         setMaxOccurrence(maxOccurrence);
         return *this;
     }

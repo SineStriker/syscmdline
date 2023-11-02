@@ -1,8 +1,6 @@
 #include <syscmdline/parser.h>
 #include <syscmdline/system.h>
 
-#include <thread>
-
 namespace zh_CN {
 
     static const char *error_strings[] = {

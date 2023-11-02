@@ -4,6 +4,10 @@
 #include <cctype>
 #include <algorithm>
 
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+#  include <stdexcept>
+#endif
+
 #include "utils_p.h"
 #include "command_p.h"
 #include "option_p.h"
@@ -123,6 +127,11 @@ namespace SysCmdLine {
 
     void Parser::setRootCommand(const Command &rootCommand) {
         Q_D(Parser);
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+        if (rootCommand.name().empty()) {
+            throw std::runtime_error("command doesn't have a name");
+        }
+#endif
         d->rootCommand = rootCommand;
     }
 
@@ -629,49 +638,52 @@ namespace SysCmdLine {
                                    int *pos) const {
                 // Search for short option
                 auto it = indexes.lower_bound(token);
-                if (it != indexes.begin() && it != indexes.end() && token.find(it->first) != 0) {
+                if (it == indexes.end())
+                    return -1;
+
+                if (it != indexes.begin() && !token.starts_with(it->first)) {
                     --it;
                 }
 
                 const auto &prefix = it->first;
+                if (!token.starts_with(prefix))
+                    return -1;
 
                 // Ignore `--` option because it's too special
                 if (prefix == "--")
                     return -1;
 
-                if (it != indexes.end() && token.starts_with(prefix)) {
-                    const auto &idx = it->second.i;
-                    const auto &opt = core.allOptionsResult[idx].option;
-                    const auto &args = opt->d_func()->arguments;
+                const auto &idx = it->second.i;
+                const auto &opt = core.allOptionsResult[idx].option;
+                const auto &args = opt->d_func()->arguments;
 
-                    // only option with single required argument can be matched
-                    if (args.size() != 1 || !args.front().isRequired()) {
-                        return -1;
-                    }
+                // only option with single required argument can be matched
+                if (args.size() != 1 || !args.front().isRequired()) {
+                    return -1;
+                }
 
-                    switch (opt->shortMatchRule()) {
-                        case Option::ShortMatchSingleChar: {
-                            if (prefix.size() > 2)
-                                break;
-                        }
-                        case Option::ShortMatchSingleLetter: {
-                            if (!std::isalpha(prefix.at(1)))
-                                break;
-                        }
-                        case Option::ShortMatchAll: {
-                            if (pos)
-                                *pos = int(prefix.size());
-                            return idx;
-                        }
-                        default:
+                switch (opt->shortMatchRule()) {
+                    case Option::ShortMatchSingleChar: {
+                        if (prefix.size() > 2)
                             break;
                     }
-
-                    if (token.at(prefix.size()) == sign) {
+                    case Option::ShortMatchSingleLetter: {
+                        if (!std::isalpha(prefix.at(1)))
+                            break;
+                    }
+                    case Option::ShortMatchAll: {
                         if (pos)
-                            *pos = int(prefix.size()) + 1;
+                            *pos = int(prefix.size());
                         return idx;
                     }
+                    default:
+                        break;
+                }
+
+                if (token.at(prefix.size()) == sign) {
+                    if (pos)
+                        *pos = int(prefix.size()) + 1;
+                    return idx;
                 }
                 return -1;
             };

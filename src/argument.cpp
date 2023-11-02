@@ -188,7 +188,7 @@ namespace SysCmdLine {
 
         // Required argument behind optional one?
         if (!arguments.empty() && arguments.back().isOptional() && d->required) {
-            throw std::runtime_error("required argument after require arguments is prohibited");
+            throw std::runtime_error("required argument after required arguments is prohibited");
         }
 
         bool hasMultiValueArgument =
@@ -204,20 +204,43 @@ namespace SysCmdLine {
             hasMultiValueArgument = true;
         } else if (hasMultiValueArgument && !d->required) {
             // Optional argument after multi-value argument?
-            throw std::runtime_error("require argument after multi-value argument is prohibited");
+            throw std::runtime_error("required argument after multi-value argument is prohibited");
         }
 
-        // Invalid default value?
         {
             const auto &expectedValues = d->expectedValues;
             const auto &defaultValue = d->defaultValue;
-            if (!expectedValues.empty() && defaultValue.type() != Value::Null &&
-                std::find(expectedValues.begin(), expectedValues.end(), defaultValue) ==
-                    expectedValues.end()) {
-                throw std::runtime_error(Utils::formatText(
-                    "default value \"%1\" is not in expect values", {defaultValue.toString()}));
+            if (!expectedValues.empty()) {
+                // Null expected value?
+                for (size_t i = 0; i < expectedValues.size(); ++i) {
+                    if (expectedValues[i].type() == Value::Null) {
+                        throw std::runtime_error(
+                            Utils::formatText("expected value at %1 is null", {std::to_string(i)}));
+                    }
+                }
+
+                // Invalid default value?
+                if (defaultValue.type() != Value::Null &&
+                    std::find(expectedValues.begin(), expectedValues.end(), defaultValue) ==
+                        expectedValues.end()) {
+                    throw std::runtime_error(Utils::formatText(
+                        "default value \"%1\" is not in expect values", {defaultValue.toString()}));
+                }
+            }
+
+            const auto &validator = d->validator;
+            if (validator && defaultValue.type() != Value::Null) {
+                // Validator is incompatible with the default value?
+                Value val;
+                std::string errorMessage;
+                auto res = validator(defaultValue.toString(), &val, &errorMessage);
+                if (!res) {
+                    throw std::runtime_error("validator is not able to handle the default value.");
+                }
             }
         }
+
+        // ...
     }
 #endif
 
@@ -283,5 +306,4 @@ namespace SysCmdLine {
 
     ArgumentHolder::ArgumentHolder(ArgumentHolderPrivate *d) : Symbol(d) {
     }
-
 }
