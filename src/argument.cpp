@@ -105,26 +105,6 @@ namespace SysCmdLine {
         d->name = name;
     }
 
-    const std::vector<Value> &Argument::expectedValues() const {
-        Q_D2(Argument);
-        return d->expectedValues;
-    }
-
-    void Argument::setExpectedValues(const std::vector<Value> &expectedValues) {
-        Q_D(Argument);
-        d->expectedValues = expectedValues;
-    }
-
-    Value Argument::defaultValue() const {
-        Q_D2(Argument);
-        return d->defaultValue;
-    }
-
-    void Argument::setDefaultValue(const Value &defaultValue) {
-        Q_D(Argument);
-        d->defaultValue = defaultValue;
-    }
-
     std::string Argument::displayName() const {
         Q_D2(Argument);
         return d->displayName;
@@ -143,6 +123,26 @@ namespace SysCmdLine {
     void Argument::setRequired(bool required) {
         Q_D(Argument);
         d->required = required;
+    }
+
+    Value Argument::defaultValue() const {
+        Q_D2(Argument);
+        return d->defaultValue;
+    }
+
+    void Argument::setDefaultValue(const Value &defaultValue) {
+        Q_D(Argument);
+        d->defaultValue = defaultValue;
+    }
+
+    const std::vector<Value> &Argument::expectedValues() const {
+        Q_D2(Argument);
+        return d->expectedValues;
+    }
+
+    void Argument::setExpectedValues(const std::vector<Value> &expectedValues) {
+        Q_D(Argument);
+        d->expectedValues = expectedValues;
     }
 
     bool Argument::multiValueEnabled() const {
@@ -188,7 +188,7 @@ namespace SysCmdLine {
 
         // Required argument behind optional one?
         if (!arguments.empty() && arguments.back().isOptional() && d->required) {
-            throw std::runtime_error("required argument after optional arguments is prohibited");
+            throw std::runtime_error("required argument after require arguments is prohibited");
         }
 
         bool hasMultiValueArgument =
@@ -204,7 +204,7 @@ namespace SysCmdLine {
             hasMultiValueArgument = true;
         } else if (hasMultiValueArgument && !d->required) {
             // Optional argument after multi-value argument?
-            throw std::runtime_error("optional argument after multi-value argument is prohibited");
+            throw std::runtime_error("require argument after multi-value argument is prohibited");
         }
 
         // Invalid default value?
@@ -215,7 +215,7 @@ namespace SysCmdLine {
                 std::find(expectedValues.begin(), expectedValues.end(), defaultValue) ==
                     expectedValues.end()) {
                 throw std::runtime_error(Utils::formatText(
-                    "default value \"%1\" is not in expected values", {defaultValue.toString()}));
+                    "default value \"%1\" is not in expect values", {defaultValue.toString()}));
             }
         }
     }

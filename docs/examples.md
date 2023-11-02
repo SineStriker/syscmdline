@@ -98,11 +98,11 @@ int main(int /* argc */, char * /* argv */ []) {
     return parser.invoke(SysCmdLine::commandLineArguments());
 }
 ```
-+ In this case, we add a restricted argument and another optional argument with default value.
++ In this case, we add a restricted argument and another require argument with default value.
 
-+ If an argument has an expected value list, only symbols listed in it will be regarded as valid argument.
++ If an argument has an expect value list, only symbols listed in it will be regarded as valid argument.
 
-+ We also tell the parser to show default value and expected values on help list which would be hided if the flags weren't set.
++ We also tell the parser to show default value and expect values on help list which would be hided if the flags weren't set.
 
 ```sh
 Description:

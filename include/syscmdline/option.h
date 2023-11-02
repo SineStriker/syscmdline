@@ -71,6 +71,9 @@ namespace SysCmdLine {
         std::string helpText(HelpPosition pos, int displayOptions, void *extra) const override;
 
     public:
+        Role role() const;
+        void setRole(Role role);
+
         const std::vector<std::string> &tokens() const;
         inline std::string token() const;
         void setTokens(const std::vector<std::string> &tokens);
@@ -95,8 +98,14 @@ namespace SysCmdLine {
         void setMaxOccurrence(int max);
         inline void setUnlimitedOccurrence();
 
-        Role role() const;
-        void setRole(Role role);
+    public:
+        inline Option &arg(const std::string &name, bool required = true,
+                           const Value &defaultValue = {});
+        inline Option &require(bool required = true);
+        inline Option &short_match(ShortMatchRule shortMatchRule);
+        inline Option &prior(PriorLevel priorLevel);
+        inline Option &global(bool global = true);
+        inline Option &limit(int maxOccurrence);
     };
 
     inline Option::Option(std::initializer_list<std::string> tokens, const std::string &desc,
@@ -122,6 +131,36 @@ namespace SysCmdLine {
 
     inline void Option::setUnlimitedOccurrence() {
         setMaxOccurrence(0);
+    }
+
+    inline Option &Option::arg(const std::string &name, bool required, const Value &defaultValue) {
+        addArgument(Argument(name, {}, required, defaultValue).metavar(name));
+        return *this;
+    }
+
+    inline Option &Option::require(bool required) {
+        setRequired(required);
+        return *this;
+    }
+
+    inline Option &Option::short_match(Option::ShortMatchRule shortMatchRule) {
+        setShortMatchRule(shortMatchRule);
+        return *this;
+    }
+
+    inline Option &Option::prior(Option::PriorLevel priorLevel) {
+        setPriorLevel(priorLevel);
+        return *this;
+    }
+
+    inline Option &Option::global(bool global) {
+        setGlobal(global);
+        return *this;
+    }
+
+    inline Option &Option::limit(int maxOccurrence) {
+        setMaxOccurrence(maxOccurrence);
+        return *this;
     }
 
 }

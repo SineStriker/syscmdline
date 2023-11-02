@@ -30,7 +30,7 @@ If you are confused about some of the concepts of command line programs, you can
 See [Concepts](docs/concepts.md) to learn more. -->
 
 
-## Help Text
+<!-- ## Help Text
 
 The help text is highly configurable, here we show some simple ones.
 
@@ -67,9 +67,50 @@ Options:
     /S       Deletes specified files from the current directory and all subdirectories.
     /Q       Specifies quiet mode. You are not prompted for delete confirmation.
     /?       Show help information.
-```
+``` -->
 
 ## Quick Start
+
+A simple `mv` command:
+```c++
+#include <iostream>
+#include <syscmdline/parser.h>
+using namespace SysCmdLine;
+int main(int argc, char *argv[]) {
+    Command cmd("mv", "move files to directory");
+    cmd.addArguments({
+        Argument("files", "Source files").multi(),
+        Argument("dir", "Destination directory"),
+    });
+    cmd.addHelpOption();
+    cmd.setHandler([](const ParseResult &result) -> int {
+        std::cout << "[Sources]" << std::endl;
+        for (const auto &item : result.values("files")) {
+            std::cout << item.toString() << std::endl;
+        }
+        std::cout << "[Destination]" << std::endl;
+        std::cout <<  result.value("dir").toString() << std::endl;
+        return 0;
+    });
+    return Parser(cmd).invoke(argc, argv);
+}
+```
+Running the code:
+```sh
+> ./mv 1 2
+[Sources]
+1
+[Destination]
+2
+```
+```sh
+>./mv 1 2 3
+[Sources]
+1        
+2        
+[Destination]
+3
+```
 
 See [Examples](docs/examples.md) to learn more.
 

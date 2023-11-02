@@ -20,4 +20,4 @@
 
 + **Option**, usually a word or letter beginning with the `-` or `/` sign. (`-` is the Unix style and `/` is the Dos style)
 
-+ Options can have none or a fixed number of positional arguments which are recommended to be non-optional.
++ Options can have none or a fixed number of positional arguments which are recommended to be non-require.

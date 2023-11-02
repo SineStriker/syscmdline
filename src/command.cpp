@@ -170,7 +170,7 @@ namespace SysCmdLine {
                         Utils::formatText(R"(option "%1" is %2, but exclusive group "3" isn't)",
                                           {
                                               opt.token(),
-                                              opt.isRequired() ? "required" : "optional",
+                                              opt.isRequired() ? "required" : "require",
                                               exclusiveGroup,
                                           }));
                 }
@@ -358,29 +358,6 @@ namespace SysCmdLine {
         d->name = name;
     }
 
-    int Command::commandCount() const {
-        Q_D2(Command);
-        return int(d->commands.size());
-    }
-
-    Command Command::command(int index) const {
-        Q_D2(Command);
-        return d->commands[index];
-    }
-
-    void Command::addCommands(const std::vector<Command> &commands) {
-        Q_D(Command);
-#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
-        for (const auto &cmd : commands) {
-            d->checkAddedCommand(cmd);
-            d->commands.push_back(cmd);
-        }
-#else
-        // d->commands.insert(d->commands.end(), commands.begin(), commands.end());
-        d->commands = Utils::concatVector(d->commands, commands);
-#endif
-    }
-
     int Command::optionCount() const {
         Q_D2(Command);
         return int(d->options.size());
@@ -404,6 +381,29 @@ namespace SysCmdLine {
         // d->optionGroupNames.insert(d->optionGroupNames.end(), options.size(), group);
         d->options = Utils::concatVector(d->options, options);
         d->optionGroupNames = Utils::concatVector(d->optionGroupNames, {options.size(), group});
+#endif
+    }
+
+    int Command::commandCount() const {
+        Q_D2(Command);
+        return int(d->commands.size());
+    }
+
+    Command Command::command(int index) const {
+        Q_D2(Command);
+        return d->commands[index];
+    }
+
+    void Command::addCommands(const std::vector<Command> &commands) {
+        Q_D(Command);
+#ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+        for (const auto &cmd : commands) {
+            d->checkAddedCommand(cmd);
+            d->commands.push_back(cmd);
+        }
+#else
+        // d->commands.insert(d->commands.end(), commands.begin(), commands.end());
+        d->commands = Utils::concatVector(d->commands, commands);
 #endif
     }
 
@@ -437,15 +437,15 @@ namespace SysCmdLine {
         d->catalogue = catalogue;
     }
 
-    std::string Command::version() const {
+    std::string Command::versionString() const {
         Q_D2(Command);
         return d->version;
     }
 
-    void Command::addVersionOption(const std::string &ver, const StringList &tokens,
+    void Command::addVersionOption(const std::string &version, const StringList &tokens,
                                    const std::string &desc) {
         Q_D(Command);
-        d->version = ver;
+        d->version = version;
 
         Option versionOption(Option::Version,
                              tokens.empty() ? StringList{"-v", "--version"} : tokens, desc);

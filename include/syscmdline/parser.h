@@ -81,6 +81,11 @@ namespace SysCmdLine {
         inline int invoke(const std::vector<std::string> &args, int errCode = -1,
                           int parseOptions = Standard);
 
+        // Don't use this pair of API on Windows because the arguemnts passed by `main`
+        // entry is in ANSI encoding, but the library uses UTF-8.
+        inline ParseResult parse(int argc, char **argv, int parseOptions = Standard);
+        inline int invoke(int argc, char **argv, int errCode = -1, int parseOptions = Standard);
+
     public:
         HelpLayout helpLayout() const;
         void setHelpLayout(const HelpLayout &helpLayout);
@@ -103,6 +108,14 @@ namespace SysCmdLine {
 
     inline int Parser::invoke(const std::vector<std::string> &args, int errCode, int parseOptions) {
         return parse(args, parseOptions).invoke(errCode);
+    }
+
+    inline ParseResult Parser::parse(int argc, char **argv, int parseOptions) {
+        return parse({argv, argv + argc}, parseOptions);
+    }
+
+    inline int Parser::invoke(int argc, char **argv, int errCode, int parseOptions) {
+        return parse({argv, argv + argc}, parseOptions).invoke(errCode);
     }
 
 }

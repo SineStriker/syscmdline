@@ -103,6 +103,16 @@ namespace SysCmdLine {
         return {};
     }
 
+    Option::Role Option::role() const {
+        Q_D2(Option);
+        return d->role;
+    }
+
+    void Option::setRole(Role role) {
+        Q_D(Option);
+        d->role = role;
+    }
+
     const std::vector<std::string> &Option::tokens() const {
         Q_D2(Option);
         return d->tokens;
@@ -161,16 +171,6 @@ namespace SysCmdLine {
     void Option::setMaxOccurrence(int max) {
         Q_D(Option);
         d->maxOccurrence = max;
-    }
-
-    Option::Role Option::role() const {
-        Q_D2(Option);
-        return d->role;
-    }
-
-    void Option::setRole(Role role) {
-        Q_D(Option);
-        d->role = role;
     }
 
 }

@@ -56,11 +56,8 @@ namespace SysCmdLine {
         std::string name() const;
         void setName(const std::string &name);
 
-        const std::vector<Value> &expectedValues() const;
-        void setExpectedValues(const std::vector<Value> &expectedValues);
-
-        Value defaultValue() const;
-        void setDefaultValue(const Value &defaultValue);
+        std::string displayName() const;
+        void setDisplayName(const std::string &displayName);
 
         bool isRequired() const;
         void setRequired(bool required);
@@ -68,14 +65,25 @@ namespace SysCmdLine {
         inline bool isOptional() const;
         inline void setOptional(bool optional);
 
+        Value defaultValue() const;
+        void setDefaultValue(const Value &defaultValue);
+
+        const std::vector<Value> &expectedValues() const;
+        void setExpectedValues(const std::vector<Value> &expectedValues);
+
         bool multiValueEnabled() const;
         void setMultiValueEnabled(bool on);
 
         Validator validator() const;
         void setValidator(const Validator &validator);
 
-        std::string displayName() const;
-        void setDisplayName(const std::string &displayName);
+    public:
+        inline Argument &metavar(const std::string &metavar);
+        inline Argument &require(bool required = true);
+        inline Argument &default_value(const Value &value);
+        inline Argument &expect(const std::vector<Value> &expectedValues);
+        inline Argument &multi(bool multiValueEnabled = true);
+        inline Argument &validate(const Validator &validator);
     };
 
     inline bool Argument::isOptional() const {
@@ -84,6 +92,36 @@ namespace SysCmdLine {
 
     inline void Argument::setOptional(bool optional) {
         setRequired(!optional);
+    }
+
+    inline Argument &Argument::metavar(const std::string &metavar) {
+        setDisplayName(metavar);
+        return *this;
+    }
+
+    inline Argument &Argument::require(bool required) {
+        setRequired(required);
+        return *this;
+    }
+
+    Argument &Argument::default_value(const Value &value) {
+        setDefaultValue(value);
+        return *this;
+    }
+
+    Argument &Argument::expect(const std::vector<Value> &expectedValues) {
+        setExpectedValues(expectedValues);
+        return *this;
+    }
+
+    inline Argument &Argument::multi(bool multiValueEnabled) {
+        setMultiValueEnabled(multiValueEnabled);
+        return *this;
+    }
+
+    inline Argument &Argument::validate(const Argument::Validator &validator) {
+        setValidator(validator);
+        return *this;
     }
 
     class ArgumentHolderPrivate;
@@ -105,7 +143,7 @@ namespace SysCmdLine {
         ArgumentHolder(ArgumentHolderPrivate *d);
     };
 
-    void ArgumentHolder::addArgument(const Argument &argument) {
+    inline void ArgumentHolder::addArgument(const Argument &argument) {
         addArguments({argument});
     }
 

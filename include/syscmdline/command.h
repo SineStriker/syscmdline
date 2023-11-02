@@ -66,15 +66,15 @@ namespace SysCmdLine {
         std::string name() const;
         void setName(const std::string &name);
 
-        int commandCount() const;
-        Command command(int index) const;
-        inline void addCommand(const Command &command);
-        void addCommands(const std::vector<Command> &commands);
-
         int optionCount() const;
         Option option(int index) const;
         inline void addOption(const Option &option, const std::string &group = {});
         void addOptions(const std::vector<Option> &options, const std::string &group = {});
+
+        int commandCount() const;
+        Command command(int index) const;
+        inline void addCommand(const Command &command);
+        void addCommands(const std::vector<Command> &commands);
 
         std::string detailedDescription() const;
         void setDetailedDescription(const std::string &detailedDescription);
@@ -85,13 +85,25 @@ namespace SysCmdLine {
         CommandCatalogue catalogue() const;
         void setCatalogue(const CommandCatalogue &catalogue);
 
-        std::string version() const;
+        std::string versionString() const;
 
-        void addVersionOption(const std::string &ver, const std::vector<std::string> &tokens = {},
+        void addVersionOption(const std::string &version,
+                              const std::vector<std::string> &tokens = {},
                               const std::string &desc = {});
         void addHelpOption(bool showHelpIfNoArg = false, bool global = false,
                            const std::vector<std::string> &tokens = {},
                            const std::string &desc = {});
+
+    public:
+        inline Command &detailed(const std::string &detailedDescription);
+        inline Command &action(const Handler &handler);
+        inline Command &catalog(const CommandCatalogue &catalogue);
+        inline Command &version(const std::string &version,
+                                const std::vector<std::string> &tokens = {},
+                                const std::string &desc = {});
+        inline Command &help(bool showHelpIfNoArg = false, bool global = false,
+                             const std::vector<std::string> &tokens = {},
+                             const std::string &desc = {});
     };
 
     inline void Command::addCommand(const Command &command) {
@@ -100,6 +112,34 @@ namespace SysCmdLine {
 
     inline void Command::addOption(const Option &option, const std::string &group) {
         addOptions({option}, group);
+    }
+
+    inline Command &Command::detailed(const std::string &detailedDescription) {
+        setDetailedDescription(detailedDescription);
+        return *this;
+    }
+
+    inline Command &Command::action(const Command::Handler &handler) {
+        setHandler(handler);
+        return *this;
+    }
+
+    inline Command &Command::catalog(const CommandCatalogue &catalogue) {
+        setCatalogue(catalogue);
+        return *this;
+    }
+
+    inline Command &Command::version(const std::string &version,
+                                     const std::vector<std::string> &tokens,
+                                     const std::string &desc) {
+        addVersionOption(version, tokens, desc);
+        return *this;
+    }
+
+    inline Command &Command::help(bool showHelpIfNoArg, bool global,
+                                  const std::vector<std::string> &tokens, const std::string &desc) {
+        addHelpOption(showHelpIfNoArg, global, tokens, desc);
+        return *this;
     }
 
 }
