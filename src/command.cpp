@@ -12,6 +12,7 @@
 
 #include "parser.h"
 #include "utils_p.h"
+#include "strings.h"
 
 namespace SysCmdLine {
 
@@ -214,6 +215,11 @@ namespace SysCmdLine {
                 //                   d->optionGroupNames.end());
                 groupNames = Utils::concatVector(groupNames, d->optionGroupNames);
 
+                auto textProvider = a ? reinterpret_cast<Parser::TextProvider>(a[1]) : nullptr;
+                if (!textProvider) {
+                    textProvider = Parser::defaultTextProvider();
+                }
+
                 std::string ss;
 
                 // write command name
@@ -307,6 +313,8 @@ namespace SysCmdLine {
                     }
                 };
 
+                int frontOptionInsertionPos = ss.size();
+
                 // write forward arguments
                 addArgumentsHelp(true);
 
@@ -322,13 +330,19 @@ namespace SysCmdLine {
                 // write backward arguments
                 addArgumentsHelp(false);
 
-                // tell the caller if commands and options should be written
-                if (a) {
-                    // command
-                    *(bool *) a[1] = !d->commands.empty();
+                if (visitedCount < options.size() || !d->commands.empty()) {
+                    std::string optionHint =
+                        " [" + textProvider(Strings::Token, Strings::OptionalOptions) + "]";
+                    if ((displayOptions & Parser::ShowOptionsHintFront)) {
+                        ss = ss.substr(0, frontOptionInsertionPos) + optionHint +
+                             ss.substr(frontOptionInsertionPos);
+                    } else {
+                        ss += optionHint;
+                    }
+                }
 
-                    // options
-                    *(bool *) a[2] = visitedCount < options.size() || !d->commands.empty();
+                if (!d->commands.empty()) {
+                    ss += " [" + textProvider(Strings::Token, Strings::OptionalCommands) + "]";
                 }
 
                 // release indexes

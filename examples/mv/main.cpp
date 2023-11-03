@@ -14,8 +14,11 @@ int main(int argc, char *argv[]) {
             std::cout << item.toString() << std::endl;
         }
         std::cout << "[Destination]" << std::endl;
-        std::cout <<  result.value("dir").toString() << std::endl;
+        std::cout << result.value("dir").toString() << std::endl;
         return 0;
     });
-    return Parser(cmd).invoke(argc, argv);
+
+    Parser parser(cmd);
+    parser.setDisplayOptions(Parser::ShowOptionsHintFront);
+    return parser.invoke(argc, argv);
 }

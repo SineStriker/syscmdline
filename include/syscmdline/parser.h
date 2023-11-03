@@ -55,14 +55,15 @@ namespace SysCmdLine {
             DontShowHelpOnError = 0x1,
             DontShowIntroOnError = 0x2,
             SkipCorrection = 0x4,
-            DontShowRequiredOptionsOnUsage = 0x8,
-            ShowOptionalOptionsOnUsage = 0x10,
-            ShowOptionsBehindArguments = 0x20,
-            ShowArgumentDefaultValue = 0x40,
-            ShowArgumentExpectedValues = 0x80,
-            ShowArgumentIsRequired = 0x100,
-            ShowOptionIsRequired = 0x200,
-            AlignAllCatalogues = 0x400,
+            ShowArgumentDefaultValue = 0x8,
+            ShowArgumentExpectedValues = 0x10,
+            ShowArgumentIsRequired = 0x20,
+            ShowOptionIsRequired = 0x40,
+            AlignAllCatalogues = 0x80,
+            DontShowRequiredOptionsOnUsage = 0x100,
+            ShowOptionalOptionsOnUsage = 0x200,
+            ShowOptionsBehindArguments = 0x400,
+            ShowOptionsHintFront = 0x800,
         };
 
         std::string prologue() const;

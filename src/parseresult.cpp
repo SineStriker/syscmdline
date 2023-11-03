@@ -431,24 +431,10 @@ namespace SysCmdLine {
                             bool hasOptions;
                             void *a[3] = {
                                 &allOptions,
-                                &hasCommand,
-                                &hasOptions,
+                                reinterpret_cast<void *>(parserData->textProvider),
                             };
                             text.title = parserData->textProvider(Strings::Title, Strings::Usage);
                             text.lines += command->helpText(Symbol::HP_Usage, displayOptions, a);
-
-                            if (hasCommand) {
-                                text.lines += " [" +
-                                              parserData->textProvider(Strings::Token,
-                                                                       Strings::OptionalCommands) +
-                                              "]";
-                            }
-                            if (hasOptions) {
-                                text.lines += " [" +
-                                              parserData->textProvider(Strings::Token,
-                                                                       Strings::OptionalOptions) +
-                                              "]";
-                            }
                             break;
                         }
                     }
