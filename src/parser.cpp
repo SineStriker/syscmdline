@@ -689,7 +689,7 @@ namespace SysCmdLine {
                 // Another example,
                 // token = -lpthread
                 // indexes = -j, -k, -l, -m, -n
-                // then it points to -l, match
+                // then `it` points to -l, match
 
                 char sign;
                 if (front == '/') {

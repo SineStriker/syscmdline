@@ -6,6 +6,8 @@
 + Positional Argument
 + Optinal Argument And Restricted Argument
 + Option
++ Multi-argument Option
++ Multi-value Argument
 
 ### Acquire Program Arguments
 
@@ -74,8 +76,7 @@ int main(int /* argc */, char * /* argv */ []) {
 + The `Argument` instance is default to be required, and we set an implicit defualt value to force the parser to to accept only numeric input.
 
 Help text:
-```sh
-> ./square --help
+```
 Description:
     Display the square of a given integer.
 
@@ -103,13 +104,8 @@ Simple example of one restricted argument and one optional argument:
 int main(int /* argc */, char * /* argv */ []) {
     SCL::Argument weekdayArg("weekday", "Weekday");
     weekdayArg.setExpectedValues({
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
+        "Monday", "Tuesday",  "Wednesday", "Thursday",
+        "Friday", "Saturday", "Sunday",
     });
 
     SCL::Argument eventArg("event", "Event to do");
@@ -137,8 +133,32 @@ int main(int /* argc */, char * /* argv */ []) {
 
 + We also tell the parser to show default value and expect values on help list which would be hided if the flags weren't set.
 
+<!-- We could simplify the above code by using the self-return API:
+```c++
+int main(int /* argc */, char * /* argv */ []) {
+    SCL::Command rootCommand("work", "What to do on which day?");
+    rootCommand.addArguments({
+        SCL::Argument("weekday", "Weekday").expect({
+            "Monday", "Tuesday",  "Wednesday", "Thursday",
+            "Friday", "Saturday", "Sunday",
+        }),     
+        SCL::Argument("event", "Event to do", false, "football"),
+    });
+    rootCommand.help().action([](const SCL::ParseResult &result) {
+        std::cout << result.value("weekday").toString() << std::endl;
+        std::cout << result.value("event").toString() << std::endl;
+        return 0;
+    });
+
+    SCL::Parser parser(rootCommand);
+    parser.setDisplayOptions(SCL::Parser::ShowArgumentDefaultValue |
+                             SCL::Parser::ShowArgumentExpectedValues);
+    return parser.invoke(SCL::commandLineArguments());
+}
+``` -->
+
 Help Text:
-```sh
+```
 Description:
     What to do on which day?
 
@@ -165,5 +185,67 @@ basketball
 ```
 
 ### Option
+
+Simple example of a converter:
+```c++
+int main(int /* argc */, char * /* argv */ []) {
+    SCL::Option inputOpt("--input", "Input file");
+    inputOpt.addArgument(SCL::Argument("file"));
+    inputOpt.setRequired(true);
+
+    SCL::Option outputOpt("--output", "Output file");
+    outputOpt.addArgument(SCL::Argument("file"));
+
+    SCL::Command rootCommand("converter", "Convert A to B.");
+    rootCommand.addOptions({inputOpt, outputOpt});
+    rootCommand.addHelpOption();
+    rootCommand.setHandler([](const SCL::ParseResult &result) {
+        std::cout << "Input: " << result.valueForOption("--input").toString() << std::endl;
+        if (result.optionIsSet("--output")) {
+            std::cout << "Output: " << result.valueForOption("--output").toString() << std::endl;
+        }
+        return 0;
+    });
+
+    SCL::Parser parser(rootCommand);
+    parser.setDisplayOptions(SCL::Parser::ShowOptionalOptionsOnUsage);
+    return parser.invoke(SCL::commandLineArguments());
+}
+```
++ In this case, we add two single argument options `input` and `output`, and `input` is required.
+
++ We also tell the parser to show verbose options on usage.
+
+Help Text:
+```
+Description:
+    Convert A to B.
+
+Usage:
+    converter --input <file> [--output <file>] [-h]
+
+Options:
+    --input <file>     Input file
+    --output <file>    Output file
+    -h, --help         Show help information
+```
+
+Test:
+```sh
+> ./converter --input in    
+Input: in
+```
+
+```sh
+> ./converter --input in --output out  
+Input: in
+Output: out
+```
+
+### Multi-argument Option
+
+TODO
+
+### Multi-value Argument
 
 TODO
