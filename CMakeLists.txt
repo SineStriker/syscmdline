@@ -64,6 +64,8 @@ if(TRUE)
         add_library(${PROJECT_NAME} SHARED)
     endif()
 
+    add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
     # Add sources
     file(GLOB_RECURSE _src include/syscmdline/*.h src/*.h src/*.cpp)
     target_sources(${PROJECT_NAME} PRIVATE ${_src})
