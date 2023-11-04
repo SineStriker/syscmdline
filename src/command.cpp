@@ -330,6 +330,10 @@ namespace SysCmdLine {
                 // write backward arguments
                 addArgumentsHelp(false);
 
+                if (!d->commands.empty()) {
+                    ss += " [" + textProvider(Strings::Token, Strings::OptionalCommands) + "]";
+                }
+
                 if (visitedCount < options.size() || !d->commands.empty()) {
                     std::string optionHint =
                         " [" + textProvider(Strings::Token, Strings::OptionalOptions) + "]";
@@ -339,10 +343,6 @@ namespace SysCmdLine {
                     } else {
                         ss += optionHint;
                     }
-                }
-
-                if (!d->commands.empty()) {
-                    ss += " [" + textProvider(Strings::Token, Strings::OptionalCommands) + "]";
                 }
 
                 // release indexes

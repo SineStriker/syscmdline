@@ -427,9 +427,7 @@ namespace SysCmdLine {
                                 }
                             }
 
-                            bool hasCommand;
-                            bool hasOptions;
-                            void *a[3] = {
+                            void *a[2] = {
                                 &allOptions,
                                 reinterpret_cast<void *>(parserData->textProvider),
                             };
