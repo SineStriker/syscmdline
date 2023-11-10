@@ -40,6 +40,7 @@ namespace SysCmdLine {
             NoRole,
             Help,
             Version,
+            OtherRole,
         };
 
         enum PriorLevel {

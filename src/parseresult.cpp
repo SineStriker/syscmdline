@@ -134,16 +134,16 @@ namespace SysCmdLine {
         };
 
         // Avoid using `std::function` to reduce binary size
-        const auto &getLists = [](int displayOptions, const GenericMap &catalog,
-                                  const StringList &catalogNames,         // catalog
+        const auto &getLists =
+            [](int displayOptions, const GenericMap &catalog,
+               const StringList &catalogNames,         // catalog
 
-                                  const GenericMap &symbolIndexes,        // name -> index
-                                  int symbolCount, const Symbol *(*getter)(int, const void *),
-                                  const void *user,                       // get symbol from index
+               const GenericMap &symbolIndexes,        // name -> index
+               int symbolCount, const Symbol *(*getter)(int, const void *, bool &defer),
+               const void *user,                       // get symbol from index
 
-                                  std::string (*getName)(const Symbol *), // get name of symbol
-                                  int *maxWidth, void *extra,
-                                  const std::string &defaultTitle) -> Lists {
+               std::string (*getName)(const Symbol *), // get name of symbol
+               int *maxWidth, void *extra, const std::string &defaultTitle) -> Lists {
             Lists res;
             int index = 0;
             res.data = new HelpLayout::List[catalogNames.size() + 1];
@@ -158,20 +158,33 @@ namespace SysCmdLine {
 
                 auto &symbolNames = *catalog.find(catalogName)->second.sl;
                 bool empty = true;
+                std::vector<std::string> deferredFirstColumn;
+                std::vector<std::string> deferredSecondColumn;
                 for (const auto &name : symbolNames) {
                     auto it = symbolIndexes.find(name);
                     if (it == symbolIndexes.end())
                         continue;
 
                     auto idx = it->second.i;
-                    const auto &sym = getter(idx, user);
+                    bool defer = false;
+                    const auto &sym = getter(idx, user, defer);
                     auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions, extra);
                     auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions, extra);
                     *maxWidth = std::max(int(first.size()), *maxWidth);
-                    list.firstColumn.emplace_back(std::move(first));
-                    list.secondColumn.emplace_back(std::move(second));
+                    if (defer) {
+                        deferredFirstColumn.emplace_back(std::move(first));
+                        deferredSecondColumn.emplace_back(std::move(second));
+                    } else {
+                        list.firstColumn.emplace_back(std::move(first));
+                        list.secondColumn.emplace_back(std::move(second));
+                    }
                     visitedIndexes[idx] = 1;
                     empty = false;
+                }
+
+                for (size_t i = 0; i < deferredFirstColumn.size(); ++i) {
+                    list.firstColumn.emplace_back(deferredFirstColumn[i]);
+                    list.secondColumn.emplace_back(deferredSecondColumn[i]);
                 }
 
                 if (!empty)
@@ -184,17 +197,30 @@ namespace SysCmdLine {
                 list.title = defaultTitle;
 
                 bool empty = true;
+                std::vector<std::string> deferredFirstColumn;
+                std::vector<std::string> deferredSecondColumn;
                 for (int i = 0; i < symbolCount; ++i) {
                     if (visitedIndexes[i])
                         continue;
 
-                    const auto &sym = getter(i, user);
+                    bool defer = false;
+                    const auto &sym = getter(i, user, defer);
                     auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions, extra);
                     auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions, extra);
                     *maxWidth = std::max(int(first.size()), *maxWidth);
-                    list.firstColumn.emplace_back(std::move(first));
-                    list.secondColumn.emplace_back(std::move(second));
+                    if (defer) {
+                        deferredFirstColumn.emplace_back(std::move(first));
+                        deferredSecondColumn.emplace_back(std::move(second));
+                    } else {
+                        list.firstColumn.emplace_back(std::move(first));
+                        list.secondColumn.emplace_back(std::move(second));
+                    }
                     empty = false;
+                }
+
+                for (size_t i = 0; i < deferredFirstColumn.size(); ++i) {
+                    list.firstColumn.emplace_back(deferredFirstColumn[i]);
+                    list.secondColumn.emplace_back(deferredSecondColumn[i]);
                 }
 
                 if (!empty)
@@ -221,7 +247,7 @@ namespace SysCmdLine {
                    : getLists(
                          displayOptions, catalogueData->arg.data, catalogueData->arguments,
                          core.argNameIndexes, int(d->arguments.size()),
-                         [](int i, const void *user) -> const Symbol * {
+                         [](int i, const void *user, bool &defer) -> const Symbol * {
                              return &reinterpret_cast<decltype(d)>(user)->arguments[i]; //
                          },
                          d,
@@ -236,10 +262,13 @@ namespace SysCmdLine {
                              : getLists(
                                    displayOptions, catalogueData->opt.data, catalogueData->options,
                                    core.allOptionTokenIndexes, int(core.allOptionsSize),
-                                   [](int i, const void *user) -> const Symbol * {
-                                       return reinterpret_cast<const ParseResultData2 *>(user)
-                                           ->allOptionsResult[i]
-                                           .option; //
+                                   [](int i, const void *user, bool &defer) -> const Symbol * {
+                                       auto opt = reinterpret_cast<const ParseResultData2 *>(user)
+                                                      ->allOptionsResult[i]
+                                                      .option;
+                                       if (opt->role() != Option::NoRole)
+                                           defer = true;
+                                       return opt; //
                                    },
                                    &core,
                                    [](const Symbol *s) {
@@ -253,7 +282,7 @@ namespace SysCmdLine {
                              : getLists(
                                    displayOptions, catalogueData->cmd.data, catalogueData->commands,
                                    core.cmdNameIndexes, int(d->commands.size()),
-                                   [](int i, const void *user) -> const Symbol * {
+                                   [](int i, const void *user, bool &defer) -> const Symbol * {
                                        return &reinterpret_cast<decltype(d)>(user)->commands[i]; //
                                    },
                                    d,

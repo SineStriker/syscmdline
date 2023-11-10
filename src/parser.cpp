@@ -5,7 +5,9 @@
 #include <algorithm>
 
 #ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
+
 #  include <stdexcept>
+
 #endif
 
 #include "utils_p.h"
@@ -18,44 +20,44 @@ namespace SysCmdLine {
     namespace Strings::en_US {
 
         static const char *error_strings[] = {
-            R"(No error.)",
-            R"(Unknown option "%1".)",
-            R"(Unknown command or argument "%1".)",
-            R"(Missing required argument "%1" of option "%2".)",
-            R"(Missing required argument "%1".)",
-            R"(Too many arguments.)",
-            R"(Invalid value "%1" of argument "%2".)",
-            R"(Invalid occurrence of option "%1", which should be argument "%2".)",
-            R"(Missing required option "%1".)",
-            R"(Option "%1" occurs too much, at most %2.)",
-            R"(Invalid token "%1" of argument "%2", expect "%3".)",
-            R"(Invalid token "%1" of argument "%2", reason: %3)",
-            R"(Options "%1" and "%2" are mutually exclusive.)",
-            R"(Option "%1" and other arguments cannot be specified simultaneously.)",
-            R"(Option "%1" and other options cannot be specified simultaneously.)",
+                R"(No error.)",
+                R"(Unknown option "%1".)",
+                R"(Unknown command or argument "%1".)",
+                R"(Missing required argument "%1" of option "%2".)",
+                R"(Missing required argument "%1".)",
+                R"(Too many arguments.)",
+                R"(Invalid value "%1" of argument "%2".)",
+                R"(Invalid occurrence of option "%1", which should be argument "%2".)",
+                R"(Missing required option "%1".)",
+                R"(Option "%1" occurs too much, at most %2.)",
+                R"(Invalid token "%1" of argument "%2", expect "%3".)",
+                R"(Invalid token "%1" of argument "%2", reason: %3)",
+                R"(Options "%1" and "%2" are mutually exclusive.)",
+                R"(Option "%1" and other arguments cannot be specified simultaneously.)",
+                R"(Option "%1" and other options cannot be specified simultaneously.)",
         };
 
         static const char *title_strings[] = {
-            "Error",    "Usage",    "Description", "Arguments", "Options",
-            "Commands", "Required", "Default",     "Expected",
+                "Error", "Usage", "Description", "Arguments", "Options",
+                "Commands", "Required", "Default", "Expected",
         };
 
         static const char *command_strings[] = {
-            "Show version information",
-            "Show help information",
+                "Show version information",
+                "Show help information",
         };
 
         static const char *info_strings[] = {
-            R"("%1" is not matched. Do you mean one of the following?)",
+                R"("%1" is not matched. Do you mean one of the following?)",
         };
 
         static const char *token_strings[] = {
-            "command",
-            "options",
+                "command",
+                "options",
         };
 
         static const char **strings[] = {
-            error_strings, title_strings, command_strings, info_strings, token_strings,
+                error_strings, title_strings, command_strings, info_strings, token_strings,
         };
 
         static std::string provider(int category, int index) {
@@ -65,8 +67,8 @@ namespace SysCmdLine {
     }
 
     ParserPrivate::ParserPrivate()
-        : displayOptions(Parser::Normal), helpLayout(HelpLayout::defaultHelpLayout()),
-          textProvider(Strings::en_US::provider) {
+            : displayOptions(Parser::Normal), helpLayout(HelpLayout::defaultHelpLayout()),
+              textProvider(Strings::en_US::provider) {
     }
 
     ParserPrivate *ParserPrivate::clone() const {
@@ -141,8 +143,8 @@ namespace SysCmdLine {
         public:
             ParserCore(const std::vector<std::string> &params, int parseOptions, int displayOptions,
                        const Command *rootCommand)
-                : params(params), parseOptions(parseOptions), displayOptions(displayOptions),
-                  rootCommand(rootCommand), result(new ParseResultPrivate()), core(result->core) {
+                    : params(params), parseOptions(parseOptions), displayOptions(displayOptions),
+                      rootCommand(rootCommand), result(new ParseResultPrivate()), core(result->core) {
             }
 
             ~ParserCore() {
@@ -208,7 +210,7 @@ namespace SysCmdLine {
                         result->stack.push_back(int(j));
                         globalOptionCount += [](const Command *cmd) {
                             int cnt = 0;
-                            for (const auto &opt : cmd->d_func()->options)
+                            for (const auto &opt: cmd->d_func()->options)
                                 if (opt.isGlobal())
                                     cnt++;
                             return cnt;
@@ -222,7 +224,7 @@ namespace SysCmdLine {
                     // Build command indexes
                     for (size_t j = 0; j < targetCommandData->commands.size(); ++j) {
                         core.cmdNameIndexes.insert(std::make_pair(
-                            targetCommandData->commands[j].name(), Ele{.i = int(j)}));
+                                targetCommandData->commands[j].name(), Ele{.i = int(j)}));
                     }
                 }
 
@@ -235,7 +237,7 @@ namespace SysCmdLine {
                         const auto &d = cmd->d_func();
 
                         // Add options
-                        for (const auto &option : d->options) {
+                        for (const auto &option: d->options) {
                             if (!option.isGlobal())
                                 continue;
                             globalOptionList[globalOptionListIndex++] = &option;
@@ -253,7 +255,7 @@ namespace SysCmdLine {
                         const auto &dd = opt->d_func();
 
                         bool visited = false;
-                        for (const auto &token : dd->tokens) {
+                        for (const auto &token: dd->tokens) {
                             if (visitedTokens.count(token)) {
                                 visited = true;
                                 break;
@@ -266,7 +268,7 @@ namespace SysCmdLine {
                             continue;
                         }
 
-                        for (const auto &token : dd->tokens) {
+                        for (const auto &token: dd->tokens) {
                             visitedTokens.insert(std::make_pair(token, Ele{.s = 0}));
                         }
                     }
@@ -275,7 +277,7 @@ namespace SysCmdLine {
                 // 4. Alloc option spaces
                 {
                     core.allOptionsSize =
-                        realGlobalOptionCount + int(targetCommandData->options.size());
+                            realGlobalOptionCount + int(targetCommandData->options.size());
                     core.globalOptionsSize = realGlobalOptionCount;
                     core.allOptionsResult = new OptionData[core.allOptionsSize];
 
@@ -288,7 +290,7 @@ namespace SysCmdLine {
                         initOptionData(core.allOptionsResult[allOptionsIndex++], opt);
                     }
 
-                    for (const auto &option : targetCommandData->options) {
+                    for (const auto &option: targetCommandData->options) {
                         initOptionData(core.allOptionsResult[allOptionsIndex++], &option);
                     }
                 }
@@ -370,19 +372,19 @@ namespace SysCmdLine {
                             rangeData.push(int(i), 0, token.substr(pos));
                         } else if (!dd->arguments.empty()) {
                             int minArgCount = (optData.optionalArgIndex < 0)
-                                                  ? int(dd->arguments.size())
-                                                  : optData.optionalArgIndex;
+                                              ? int(dd->arguments.size())
+                                              : optData.optionalArgIndex;
                             int maxArgCount =
-                                (optData.multiValueArgIndex < 0) ? minArgCount : 65535;
+                                    (optData.multiValueArgIndex < 0) ? minArgCount : 65535;
 
                             auto j = i + minArgCount + 1; // next of last required index
                             if (j > params.size()) {
                                 size_t argIndex = params.size() - i - 1;
                                 buildError(ParseResult::MissingOptionArgument,
                                            {
-                                               dd->arguments[argIndex].helpText(
-                                                   Symbol::HP_ErrorText, displayOptions),
-                                               opt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                                   dd->arguments[argIndex].helpText(
+                                                           Symbol::HP_ErrorText, displayOptions),
+                                                   opt->helpText(Symbol::HP_ErrorText, displayOptions),
                                            },
                                            {}, nullptr, opt);
                                 break;
@@ -424,7 +426,7 @@ namespace SysCmdLine {
                     if (lastResultType == TRT_GroupFlags || tryGroupFlags(token)) {
                         const auto &flags = groupFlagsResult;
                         bool failed = false;
-                        for (const auto &optIdx : std::as_const(flags)) {
+                        for (const auto &optIdx: std::as_const(flags)) {
                             auto &rangeData = optionRanges[optIdx];
 
                             // Check option common
@@ -501,8 +503,8 @@ namespace SysCmdLine {
 
                 // Parse positional arguments
                 auto missingIdx = parsePositionArguments(
-                    targetCommandData->arguments, positionalArguments.data(),
-                    positionalArguments.size(), core.argResult, core.multiValueArgIndex);
+                        targetCommandData->arguments, positionalArguments.data(),
+                        positionalArguments.size(), core.argResult, core.multiValueArgIndex);
                 if (result->error != ParseResult::NoError) {
                     return;
                 }
@@ -535,7 +537,7 @@ namespace SysCmdLine {
                     const auto &arg = targetCommandData->arguments[missingIdx];
                     buildError(ParseResult::MissingCommandArgument,
                                {
-                                   arg.helpText(Symbol::HP_ErrorText, displayOptions),
+                                       arg.helpText(Symbol::HP_ErrorText, displayOptions),
                                },
                                {}, &arg);
                 } else {
@@ -553,7 +555,7 @@ namespace SysCmdLine {
                     if (missingOpt) {
                         buildError(ParseResult::MissingRequiredOption,
                                    {
-                                       missingOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                           missingOpt->helpText(Symbol::HP_ErrorText, displayOptions),
                                    },
                                    {}, nullptr, missingOpt);
                     }
@@ -601,7 +603,7 @@ namespace SysCmdLine {
                                          std::string (*f)(const std::string &)) const {
                 for (int i = 0; i < core.allOptionsSize; ++i) {
                     const auto &opt = core.allOptionsResult[i].option;
-                    for (const auto &token : opt->d_func()->tokens) {
+                    for (const auto &token: opt->d_func()->tokens) {
                         indexes.insert(std::make_pair(f(token), Ele{.i = i}));
                     }
                 }
@@ -708,7 +710,7 @@ namespace SysCmdLine {
                 }
                 return -1;
 
-            short_match:
+                short_match:
                 const auto &idx = it->second.i;
                 const auto &opt = core.allOptionsResult[idx].option;
                 const auto &args = opt->d_func()->arguments;
@@ -806,7 +808,7 @@ namespace SysCmdLine {
                 const auto &d = arg->d_func();
                 const auto &expectedValues = d->expectedValues;
                 if (!expectedValues.empty()) {
-                    for (const auto &item : expectedValues) {
+                    for (const auto &item: expectedValues) {
                         auto val = Value::fromString(token, item.type());
                         if (val == item) {
                             *out = val;
@@ -849,19 +851,23 @@ namespace SysCmdLine {
                 if (setError) {
                     buildError(ParseResult::ArgumentTypeMismatch,
                                {
-                                   token,
-                                   arg->name(),
-                                   Value::typeName(type),
+                                       token,
+                                       arg->name(),
+                                       Value::typeName(type),
                                },
                                token, arg);
                 }
                 return false;
             };
 
-            // optIndex:         option index in command's list
+            // optIndex:         option index of all option list
             // insertIfNotFound: if not colliding, set current group as visited
-            // ->                colliding option index
+            // ->                colliding option index in command's option list
             int searchExclusiveOption(int optIndex, bool insertIfNotFound = false) {
+                if (optIndex < core.globalOptionsSize)
+                    return -1;
+                optIndex -= core.globalOptionsSize; // get index in command's option list
+
                 const auto &groupName = targetCommandData->optionGroupNames[optIndex];
                 if (groupName.empty())
                     return -1;
@@ -873,7 +879,7 @@ namespace SysCmdLine {
 
                 if (insertIfNotFound) {
                     encounteredExclusiveGroups.insert(
-                        std::make_pair(groupName, Ele{.i = optIndex}));
+                            std::make_pair(groupName, Ele{.i = optIndex}));
                 }
                 return -1;
             };
@@ -884,8 +890,8 @@ namespace SysCmdLine {
                 if (opt->maxOccurrence() > 0 && occurrence == opt->maxOccurrence()) {
                     buildError(ParseResult::OptionOccurTooMuch,
                                {
-                                   opt->helpText(Symbol::HP_ErrorText, displayOptions),
-                                   std::to_string(opt->maxOccurrence()),
+                                       opt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                       std::to_string(opt->maxOccurrence()),
                                },
                                token, nullptr, opt);
                     return false;
@@ -897,40 +903,40 @@ namespace SysCmdLine {
                         case Option::ExclusiveToArguments: {
                             if (hasArgument) {
                                 buildError(
-                                    ParseResult::PriorOptionWithArguments,
-                                    {
-                                        priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
-                                    },
-                                    token, nullptr, opt);
+                                        ParseResult::PriorOptionWithArguments,
+                                        {
+                                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                        },
+                                        token, nullptr, opt);
                             }
                             break;
                         }
                         case Option::ExclusiveToOptions: {
                             if (hasOption) {
                                 buildError(
-                                    ParseResult::PriorOptionWithOptions,
-                                    {
-                                        priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
-                                    },
-                                    token, nullptr, opt);
+                                        ParseResult::PriorOptionWithOptions,
+                                        {
+                                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                        },
+                                        token, nullptr, opt);
                             }
                             break;
                         }
                         case Option::ExclusiveToAll: {
                             if (hasArgument) {
                                 buildError(
-                                    ParseResult::PriorOptionWithArguments,
-                                    {
-                                        priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
-                                    },
-                                    token, nullptr, opt);
+                                        ParseResult::PriorOptionWithArguments,
+                                        {
+                                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                        },
+                                        token, nullptr, opt);
                             } else if (hasOption) {
                                 buildError(
-                                    ParseResult::PriorOptionWithOptions,
-                                    {
-                                        priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
-                                    },
-                                    token, nullptr, opt);
+                                        ParseResult::PriorOptionWithOptions,
+                                        {
+                                                priorOpt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                        },
+                                        token, nullptr, opt);
                             }
                             break;
                         }
@@ -942,13 +948,13 @@ namespace SysCmdLine {
                 // Check exclusive
                 {
                     const auto &exclusiveIdx =
-                        searchExclusiveOption(optIndex - core.globalOptionsSize, true);
+                            searchExclusiveOption(optIndex, true);
                     if (exclusiveIdx >= 0) {
                         buildError(ParseResult::MutuallyExclusiveOptions,
                                    {
-                                       core.allOptionsResult[core.globalOptionsSize + exclusiveIdx]
-                                           .option->helpText(Symbol::HP_ErrorText, displayOptions),
-                                       opt->helpText(Symbol::HP_ErrorText, displayOptions),
+                                           core.allOptionsResult[core.globalOptionsSize + exclusiveIdx]
+                                                   .option->helpText(Symbol::HP_ErrorText, displayOptions),
+                                           opt->helpText(Symbol::HP_ErrorText, displayOptions),
                                    },
                                    token, nullptr, opt);
                         return false;
