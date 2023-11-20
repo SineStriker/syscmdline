@@ -724,12 +724,12 @@ namespace SysCmdLine {
                 }
 
                 switch (opt->shortMatchRule()) {
-                    case Option::ShortMatchSingleChar: {
-                        if (prefix.size() > 2)
-                            break;
-                    }
                     case Option::ShortMatchSingleLetter: {
                         if (!std::isalpha(prefix.at(1)))
+                            break;
+                    }
+                    case Option::ShortMatchSingleChar: {
+                        if (prefix.size() > 2)
                             break;
                     }
                     case Option::ShortMatchAll: {

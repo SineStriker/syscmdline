@@ -55,9 +55,9 @@ namespace SysCmdLine {
 
         enum ShortMatchRule {
             NoShortMatch,
-            ShortMatchAll,
-            ShortMatchSingleChar,
             ShortMatchSingleLetter,
+            ShortMatchSingleChar,
+            ShortMatchAll,
         };
 
         Option();
