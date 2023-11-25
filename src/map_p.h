@@ -19,6 +19,56 @@ namespace SysCmdLine {
         void *p;
     };
 
+    inline Ele ele(int i) noexcept {
+#if __cplusplus >= 202002L
+        return Ele{.i = i};
+#else
+        Ele res;
+        res.i = i;
+        return res;
+#endif
+    }
+
+    inline Ele ele(size_t s) noexcept {
+#if __cplusplus >= 202002L
+        return Ele{.s = s};
+#else
+        Ele res;
+        res.s = s;
+        return res;
+#endif
+    }
+
+    inline Ele ele(IntList *il) noexcept {
+#if __cplusplus >= 202002L
+        return Ele{.il = il};
+#else
+        Ele res;
+        res.il = il;
+        return res;
+#endif
+    }
+
+    inline Ele ele(StringList *sl) noexcept {
+#if __cplusplus >= 202002L
+        return Ele{.sl = sl};
+#else
+        Ele res;
+        res.sl = sl;
+        return res;
+#endif
+    }
+
+    inline Ele ele(void *p) noexcept {
+#if __cplusplus >= 202002L
+        return Ele{.p = p};
+#else
+        Ele res;
+        res.p = p;
+        return res;
+#endif
+    }
+
     // Avoiding template specialization greatly helps to reduce the binary size,
     // so we only use this map in the library implementation.
     using GenericMap = std::map<std::string, Ele>;
@@ -28,7 +78,7 @@ namespace SysCmdLine {
 
         StringListMapWrapper(const StringListMapWrapper &other) {
             for (const auto &pair : other.data) {
-                data.insert(std::make_pair(pair.first, Ele{.sl = new StringList(*pair.second.sl)}));
+                data.insert(std::make_pair(pair.first, ele(new StringList(*pair.second.sl))));
             }
         }
 
@@ -46,7 +96,7 @@ namespace SysCmdLine {
 
         IntListMapWrapper(const IntListMapWrapper &other) {
             for (const auto &pair : other.data) {
-                data.insert(std::make_pair(pair.first, Ele{.il = new IntList(*pair.second.il)}));
+                data.insert(std::make_pair(pair.first, ele(new IntList(*pair.second.il))));
             }
         }
 

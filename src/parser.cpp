@@ -223,8 +223,8 @@ namespace SysCmdLine {
 
                     // Build command indexes
                     for (size_t j = 0; j < targetCommandData->commands.size(); ++j) {
-                        core.cmdNameIndexes.insert(std::make_pair(
-                            targetCommandData->commands[j].name(), Ele{.i = int(j)}));
+                        core.cmdNameIndexes.insert(
+                            std::make_pair(targetCommandData->commands[j].name(), ele(int(j))));
                     }
                 }
 
@@ -256,7 +256,7 @@ namespace SysCmdLine {
 
                         bool visited = false;
                         for (const auto &token : dd->tokens) {
-                            if (visitedTokens.count(token)) {
+                            if (Utils::contains(visitedTokens, token)) {
                                 visited = true;
                                 break;
                             }
@@ -269,7 +269,7 @@ namespace SysCmdLine {
                         }
 
                         for (const auto &token : dd->tokens) {
-                            visitedTokens.insert(std::make_pair(token, Ele{.s = 0}));
+                            visitedTokens.insert(std::make_pair(token, ele(size_t(0))));
                         }
                     }
                 }
@@ -607,7 +607,7 @@ namespace SysCmdLine {
                 for (int i = 0; i < core.allOptionsSize; ++i) {
                     const auto &opt = core.allOptionsResult[i].option;
                     for (const auto &token : opt->d_func()->tokens) {
-                        indexes.insert(std::make_pair(f(token), Ele{.i = i}));
+                        indexes.insert(std::make_pair(f(token), ele(i)));
                     }
                 }
             }
@@ -630,7 +630,7 @@ namespace SysCmdLine {
                     if (arg.multiValueEnabled() && data.multiValueArgIndex < 0) {
                         data.multiValueArgIndex = i;
                     }
-                    data.argNameIndexes.insert(std::make_pair(arg.name(), Ele{.i = i}));
+                    data.argNameIndexes.insert(std::make_pair(arg.name(), ele(i)));
                 }
             };
 
@@ -686,7 +686,7 @@ namespace SysCmdLine {
                 // token = -lpthread
                 // indexes = -j, -k, -m, -n
                 // then `it` points to -k, not match
-                if (token.size() == 1 || !token.starts_with(prefix)) {
+                if (token.size() == 1 || !Utils::starts_with(token, prefix)) {
                     return -1;
                 }
 
@@ -881,8 +881,7 @@ namespace SysCmdLine {
                 }
 
                 if (insertIfNotFound) {
-                    encounteredExclusiveGroups.insert(
-                        std::make_pair(groupName, Ele{.i = optIndex}));
+                    encounteredExclusiveGroups.insert(std::make_pair(groupName, ele(optIndex)));
                 }
                 return -1;
             };

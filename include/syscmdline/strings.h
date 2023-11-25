@@ -27,42 +27,46 @@
 #ifndef STRINGS_H
 #define STRINGS_H
 
-namespace SysCmdLine::Strings {
+namespace SysCmdLine {
 
-    enum TextCategory {
-        ParseError,
-        Title,
-        DefaultCommand,
-        Information,
-        Token,
-    };
+    namespace Strings {
 
-    enum TitleText {
-        Error,
-        Usage,
-        Description,
-        Arguments,
-        Options,
-        Commands,
-        Required,
-        Default,
-        ExpectedValues,
-    };
+        enum TextCategory {
+            ParseError,
+            Title,
+            DefaultCommand,
+            Information,
+            Token,
+        };
 
-    enum DefaultCommandText {
-        Version,
-        Help,
-    };
+        enum TitleText {
+            Error,
+            Usage,
+            Description,
+            Arguments,
+            Options,
+            Commands,
+            Required,
+            Default,
+            ExpectedValues,
+        };
 
-    enum InformationText {
-        MatchCommand,
-    };
+        enum DefaultCommandText {
+            Version,
+            Help,
+        };
 
-    enum TokenText {
-        OptionalCommands,
-        OptionalOptions,
-    };
+        enum InformationText {
+            MatchCommand,
+        };
 
+        enum TokenText {
+            OptionalCommands,
+            OptionalOptions,
+        };
+
+    }
+    
 }
 
 #endif // STRINGS_H

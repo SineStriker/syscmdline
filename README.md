@@ -155,8 +155,8 @@ target_link_libraries(my_project PRIVATE syscmdline::syscmdline)
 
 ## Notice
 
-+ C++ Standard
-    + You need a C++ compiler which supports C++20 to build the library. The interface is compatible with C++11.
+<!-- + C++ Standard
+    + You need a C++ compiler which supports C++17 to build the library. The interface is compatible with C++11. -->
 
 + Minimize Size
     + In order to achieve more functionalities, this project contains a large amount of codes so that the binary size may be relatively large compared with other libraries. Therefore, this implementation uses STL templates as little as possible.

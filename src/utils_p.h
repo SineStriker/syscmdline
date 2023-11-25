@@ -1,6 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -22,6 +23,23 @@ namespace SysCmdLine::Utils {
     std::string toUpper(std::string s);
 
     std::string toLower(std::string s);
+
+    inline bool starts_with(const std::string &s, const std::string &prefix) {
+#if __cplusplus >= 202002L
+        return s.starts_with(prefix);
+#else
+        return s.size() >= prefix.size() && !memcmp(s.data(), prefix.data(), prefix.size());
+#endif
+    }
+
+    template <class Container, class T>
+    inline bool contains(const Container &container, const T &key) {
+#if __cplusplus >= 202002L
+        return container.contains(key);
+#else
+        return container.count(key) != 0;
+#endif
+    }
 
     template <class T>
     std::vector<T> concatVector(const std::vector<T> &v1, const std::vector<T> &v2) {

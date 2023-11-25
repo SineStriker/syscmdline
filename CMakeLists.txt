@@ -70,13 +70,18 @@ if(TRUE)
     file(GLOB_RECURSE _src include/syscmdline/*.h src/*.h src/*.cpp)
     target_sources(${PROJECT_NAME} PRIVATE ${_src})
 
+    # Add features
+    target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20 cxx_std_17)
+
     # Add options
-    target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
-    target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
     target_compile_definitions(${PROJECT_NAME} PRIVATE SYSCMDLINE_LIBRARY)
 
-    if(SYSCMDLINE_FORCE_VALIDITY_CHECK OR(NOT CMAKE_BUILD_TYPE OR "${CMAKE_BUILD_TYPE}" MATCHES "Deb"))
+    if(SYSCMDLINE_FORCE_VALIDITY_CHECK)
         target_compile_definitions(${PROJECT_NAME} PRIVATE SYSCMDLINE_ENABLE_VALIDITY_CHECK)
+    else()
+        target_compile_definitions(${PROJECT_NAME} PRIVATE
+            "$<$<CONFIG:Debug>:SYSCMDLINE_ENABLE_VALIDITY_CHECK>"
+        )
     endif()
 
     # Include directories

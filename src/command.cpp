@@ -24,7 +24,7 @@ namespace SysCmdLine {
                            const StringList &val) {
         auto it = indexes.find(key);
         if (it == indexes.end()) {
-            indexes.insert(std::make_pair(key, Ele{.sl = new StringList(val)}));
+            indexes.insert(std::make_pair(key, ele(new StringList(val))));
             keys.push_back(key);
             return;
         }
@@ -239,7 +239,7 @@ namespace SysCmdLine {
                             it->second.il->push_back(i);
                             continue;
                         }
-                        res[group] = Ele{.il = new IntList({i})};
+                        res[group] = ele(new IntList({i}));
                     }
                     return res;
                 }(d);
