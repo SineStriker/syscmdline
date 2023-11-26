@@ -269,7 +269,9 @@ namespace SysCmdLine {
         }
 
         if (optionalIdx < size) {
-            ss += " [";
+            if (optionalIdx > 0)
+                ss += " ";
+            ss += "[";
             for (int i = optionalIdx; i < size - 1; ++i) {
                 ss += arguments[i].helpText(Symbol::HP_Usage, displayOptions, nullptr);
                 ss += " ";

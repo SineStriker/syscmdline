@@ -374,8 +374,9 @@ namespace SysCmdLine {
                             int minArgCount = (optData.optionalArgIndex < 0)
                                                   ? int(dd->arguments.size())
                                                   : optData.optionalArgIndex;
-                            int maxArgCount =
-                                (optData.multiValueArgIndex < 0) ? minArgCount : 65535;
+                            int maxArgCount = (optData.multiValueArgIndex < 0)
+                                                  ? (minArgCount + 1 + optData.optionalArgIndex)
+                                                  : 65535;
 
                             auto j = i + minArgCount + 1; // next of last required index
                             if (j > params.size()) {
@@ -488,8 +489,9 @@ namespace SysCmdLine {
 
                         // missing index must be -1
                         // because we have already check the integrity
-                        std::ignore = parsePositionArguments(args, params.data() + start + 1, len,
-                                                             resVec, resultData.multiValueArgIndex);
+                        std::ignore =
+                            parsePositionalArguments(args, params.data() + start + 1, len, resVec,
+                                                     resultData.multiValueArgIndex);
                         if (result->error != ParseResult::NoError) {
                             failed = true;
                             break;
@@ -502,7 +504,7 @@ namespace SysCmdLine {
                 }
 
                 // Parse positional arguments
-                auto missingIdx = parsePositionArguments(
+                auto missingIdx = parsePositionalArguments(
                     targetCommandData->arguments, positionalArguments.data(),
                     positionalArguments.size(), core.argResult, core.multiValueArgIndex);
                 if (result->error != ParseResult::NoError) {
@@ -975,9 +977,9 @@ namespace SysCmdLine {
             // res:     result array
             // ->       missing index
             // if failed, the error will be set, check it first.
-            int parsePositionArguments(const std::vector<Argument> &args, const std::string *tokens,
-                                       size_t tokensCount, std::vector<Value> *res,
-                                       int multiValueIndex) const {
+            int parsePositionalArguments(const std::vector<Argument> &args,
+                                         const std::string *tokens, size_t tokensCount,
+                                         std::vector<Value> *res, int multiValueIndex) const {
                 // Parse forward
                 size_t end = args.size();
                 if (multiValueIndex >= 0) {
