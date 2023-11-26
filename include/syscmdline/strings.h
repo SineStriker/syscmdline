@@ -34,7 +34,7 @@ namespace SysCmdLine {
         enum TextCategory {
             ParseError,
             Title,
-            DefaultCommand,
+            OptionRole,
             Information,
             Token,
         };
@@ -51,7 +51,10 @@ namespace SysCmdLine {
             ExpectedValues,
         };
 
-        enum DefaultCommandText {
+        enum OptionRoleText {
+            NoRole,
+            Debug,
+            Verbose,
             Version,
             Help,
         };

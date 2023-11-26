@@ -25,9 +25,8 @@ namespace zh_CN {
         "错误", "用法", "简介", "参数", "选项", "命令", "必选", "默认", "合法值",
     };
 
-    static const char *command_strings[] = {
-        "显示版本信息",
-        "显示帮助信息",
+    static const char *role_strings[] = {
+        "", "调试模式", "显示详细信息", "显示版本信息", "显示帮助信息",
     };
 
     static const char *info_strings[] = {
@@ -37,7 +36,7 @@ namespace zh_CN {
     static const char **strings[] = {
         error_strings,
         title_strings,
-        command_strings,
+        role_strings,
         info_strings,
     };
 
@@ -56,10 +55,10 @@ static int routine(const ParseResult &result) {
         u8printf("    %s\n", item.data());
     }
 
-    bool prompt = result.optionIsSet("/P");
-    bool force = result.optionIsSet("/F");
-    bool subdir = result.optionIsSet("/S");
-    bool quiet = result.optionIsSet("/Q");
+    bool prompt = result.isOptionSet("/P");
+    bool force = result.isOptionSet("/F");
+    bool subdir = result.isOptionSet("/S");
+    bool quiet = result.isOptionSet("/Q");
 
     u8printf("模式: \n");
     if (prompt) {

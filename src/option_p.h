@@ -21,6 +21,9 @@ namespace SysCmdLine {
         Option::PriorLevel priorLevel;
         bool global;
         int maxOccurrence;
+
+        static std::vector<Option> reorderOptions(const std::vector<Option> &options,
+                                                  const std::vector<Option> &globalOptions);
     };
 
 }

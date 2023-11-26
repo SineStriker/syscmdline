@@ -38,9 +38,10 @@ namespace SysCmdLine {
     public:
         enum Role {
             NoRole,
-            Help,
+            Debug,
+            Verbose,
             Version,
-            OtherRole,
+            Help,
         };
 
         enum PriorLevel {
@@ -61,7 +62,7 @@ namespace SysCmdLine {
         };
 
         Option();
-        Option(Role role, const std::vector<std::string> &tokens, const std::string &desc = {});
+        Option(Role role, const std::vector<std::string> &tokens = {}, const std::string &desc = {});
         Option(const std::string &token, const std::string &desc = {}, const Argument &arg = {},
                bool required = false);
         Option(const std::vector<std::string> &tokens, const std::string &desc = {},

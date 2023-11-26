@@ -125,6 +125,15 @@ namespace SysCmdLine {
         return ss;
     }
 
+    std::vector<Option> ParseResultPrivate::globalOptions() const {
+        std::vector<Option> res;
+        res.reserve(core.globalOptionsSize);
+        for (int i = 0; i < core.globalOptionsSize; ++i) {
+            res.push_back(*core.allOptionsResult[i].option);
+        }
+        return res;
+    }
+
     void ParseResultPrivate::showMessage(const std::string &info, const std::string &warn,
                                          const std::string &err, bool isMsg) const {
         // Make it as a POD structure
@@ -134,16 +143,16 @@ namespace SysCmdLine {
         };
 
         // Avoid using `std::function` to reduce binary size
-        const auto &getLists =
-            [](int displayOptions, const GenericMap &catalog,
-               const StringList &catalogNames,         // catalog
+        const auto &getLists = [](int displayOptions, const GenericMap &catalog,
+                                  const StringList &catalogNames,         // catalog
 
-               const GenericMap &symbolIndexes,        // name -> index
-               int symbolCount, const Symbol *(*getter)(int, const void *, bool &defer),
-               const void *user,                       // get symbol from index
+                                  const GenericMap &symbolIndexes,        // name -> index
+                                  int symbolCount, const Symbol *(*getter)(int, const void *),
+                                  const void *user,                       // get symbol from index
 
-               std::string (*getName)(const Symbol *), // get name of symbol
-               int *maxWidth, void *extra, const std::string &defaultTitle) -> Lists {
+                                  std::string (*getName)(const Symbol *), // get name of symbol
+                                  int *maxWidth, void *extra,
+                                  const std::string &defaultTitle) -> Lists {
             Lists res;
             int index = 0;
             res.data = new HelpLayout::List[catalogNames.size() + 1];
@@ -158,33 +167,20 @@ namespace SysCmdLine {
 
                 auto &symbolNames = *catalog.find(catalogName)->second.sl;
                 bool empty = true;
-                std::vector<std::string> deferredFirstColumn;
-                std::vector<std::string> deferredSecondColumn;
                 for (const auto &name : symbolNames) {
                     auto it = symbolIndexes.find(name);
                     if (it == symbolIndexes.end())
                         continue;
 
                     auto idx = it->second.i;
-                    bool defer = false;
-                    const auto &sym = getter(idx, user, defer);
+                    const auto &sym = getter(idx, user);
                     auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions, extra);
                     auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions, extra);
                     *maxWidth = std::max(int(first.size()), *maxWidth);
-                    if (defer) {
-                        deferredFirstColumn.emplace_back(std::move(first));
-                        deferredSecondColumn.emplace_back(std::move(second));
-                    } else {
-                        list.firstColumn.emplace_back(std::move(first));
-                        list.secondColumn.emplace_back(std::move(second));
-                    }
+                    list.firstColumn.emplace_back(std::move(first));
+                    list.secondColumn.emplace_back(std::move(second));
                     visitedIndexes[idx] = 1;
                     empty = false;
-                }
-
-                for (size_t i = 0; i < deferredFirstColumn.size(); ++i) {
-                    list.firstColumn.emplace_back(deferredFirstColumn[i]);
-                    list.secondColumn.emplace_back(deferredSecondColumn[i]);
                 }
 
                 if (!empty)
@@ -197,30 +193,17 @@ namespace SysCmdLine {
                 list.title = defaultTitle;
 
                 bool empty = true;
-                std::vector<std::string> deferredFirstColumn;
-                std::vector<std::string> deferredSecondColumn;
                 for (int i = 0; i < symbolCount; ++i) {
                     if (visitedIndexes[i])
                         continue;
 
-                    bool defer = false;
-                    const auto &sym = getter(i, user, defer);
+                    const auto &sym = getter(i, user);
                     auto first = sym->helpText(Symbol::HP_FirstColumn, displayOptions, extra);
                     auto second = sym->helpText(Symbol::HP_SecondColumn, displayOptions, extra);
                     *maxWidth = std::max(int(first.size()), *maxWidth);
-                    if (defer) {
-                        deferredFirstColumn.emplace_back(std::move(first));
-                        deferredSecondColumn.emplace_back(std::move(second));
-                    } else {
-                        list.firstColumn.emplace_back(std::move(first));
-                        list.secondColumn.emplace_back(std::move(second));
-                    }
+                    list.firstColumn.emplace_back(std::move(first));
+                    list.secondColumn.emplace_back(std::move(second));
                     empty = false;
-                }
-
-                for (size_t i = 0; i < deferredFirstColumn.size(); ++i) {
-                    list.firstColumn.emplace_back(deferredFirstColumn[i]);
-                    list.secondColumn.emplace_back(deferredSecondColumn[i]);
                 }
 
                 if (!empty)
@@ -239,15 +222,17 @@ namespace SysCmdLine {
         bool noHelp = isMsg && (displayOptions & Parser::DontShowHelpOnError);
         bool noIntro = isMsg && (displayOptions & Parser::DontShowIntroOnError);
 
-        // Alloc
         int maxWidth = 0;
+        auto reorderedOptions = OptionPrivate::reorderOptions(d->options, globalOptions());
+
+        // Alloc
 
         Lists argLists =
             noHelp ? Lists{nullptr, 0}
                    : getLists(
                          displayOptions, catalogueData->arg.data, catalogueData->arguments,
                          core.argNameIndexes, int(d->arguments.size()),
-                         [](int i, const void *user, bool &defer) -> const Symbol * {
+                         [](int i, const void *user) -> const Symbol * {
                              return &reinterpret_cast<decltype(d)>(user)->arguments[i]; //
                          },
                          d,
@@ -257,32 +242,28 @@ namespace SysCmdLine {
                          &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
                          parserData->textProvider(Strings::Title, Strings::Arguments));
 
-        Lists optLists = noHelp
-                             ? Lists{nullptr, 0}
-                             : getLists(
-                                   displayOptions, catalogueData->opt.data, catalogueData->options,
-                                   core.allOptionTokenIndexes, int(core.allOptionsSize),
-                                   [](int i, const void *user, bool &defer) -> const Symbol * {
-                                       auto opt = reinterpret_cast<const ParseResultData2 *>(user)
-                                                      ->allOptionsResult[i]
-                                                      .option;
-                                       if (opt->role() != Option::NoRole)
-                                           defer = true;
-                                       return opt; //
-                                   },
-                                   &core,
-                                   [](const Symbol *s) {
-                                       return static_cast<const Option *>(s)->token(); //
-                                   },
-                                   &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
-                                   parserData->textProvider(Strings::Title, Strings::Options));
+        Lists optLists =
+            noHelp
+                ? Lists{nullptr, 0}
+                : getLists(
+                      displayOptions, catalogueData->opt.data, catalogueData->options,
+                      core.allOptionTokenIndexes, int(core.allOptionsSize),
+                      [](int i, const void *user) -> const Symbol * {
+                          return &(*reinterpret_cast<const decltype(reorderedOptions) *>(user))[i];
+                      },
+                      &reorderedOptions,
+                      [](const Symbol *s) {
+                          return static_cast<const Option *>(s)->token(); //
+                      },
+                      &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
+                      parserData->textProvider(Strings::Title, Strings::Options));
 
         Lists cmdLists = noHelp
                              ? Lists{nullptr, 0}
                              : getLists(
                                    displayOptions, catalogueData->cmd.data, catalogueData->commands,
                                    core.cmdNameIndexes, int(d->commands.size()),
-                                   [](int i, const void *user, bool &defer) -> const Symbol * {
+                                   [](int i, const void *user) -> const Symbol * {
                                        return &reinterpret_cast<decltype(d)>(user)->commands[i]; //
                                    },
                                    d,
@@ -587,12 +568,12 @@ namespace SysCmdLine {
         const auto &handler = cmdData->handler;
 
         // If version is empty, you should do something in the handler
-        if (d->versionSet && !cmdData->version.empty()) {
+        if (d->roleSet[Option::Version] && !cmdData->version.empty()) {
             u8printf("%s\n", cmdData->version.data());
             return 0;
         }
 
-        if (d->helpSet) {
+        if (d->roleSet[Option::Help]) {
             showHelpText();
             return 0;
         }
@@ -637,12 +618,7 @@ namespace SysCmdLine {
 
     std::vector<Option> ParseResult::globalOptions() const {
         Q_D2(ParseResult);
-        std::vector<Option> res;
-        res.reserve(d->core.globalOptionsSize);
-        for (int i = 0; i < d->core.globalOptionsSize; ++i) {
-            res.push_back(*d->core.allOptionsResult[i].option);
-        }
-        return res;
+        return d->globalOptions();
     }
 
     std::vector<int> ParseResult::commandIndexStack() const {
@@ -690,14 +666,9 @@ namespace SysCmdLine {
         d->showMessage(info, warn, err, true);
     }
 
-    bool ParseResult::isHelpSet() const {
+    bool ParseResult::isRoleSet(Option::Role role) const {
         Q_D2(ParseResult);
-        return d->helpSet;
-    }
-
-    bool ParseResult::isVersionSet() const {
-        Q_D2(ParseResult);
-        return d->versionSet;
+        return d->roleSet[role];
     }
 
     const std::vector<Value> &ParseResult::values(int index) const {

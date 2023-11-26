@@ -43,10 +43,11 @@ namespace SysCmdLine {
         Option option() const;
         int indexOf(const std::string &name) const;
         int count() const;
+        inline bool isSet() const;
 
-        inline bool argumentIsSet(const Argument &arg, int n = 0) const;
-        inline bool argumentIsSet(const std::string &name, int n = 0) const;
-        inline bool argumentIsSet(int index, int n = 0) const;
+        inline bool isArgumentSet(const Argument &arg, int n = 0) const;
+        inline bool isArgumentSet(const std::string &name, int n = 0) const;
+        inline bool isArgumentSet(int index, int n = 0) const;
 
         // Get all values of an argument
         inline std::vector<Value> allValues(const Argument &arg) const;
@@ -70,15 +71,19 @@ namespace SysCmdLine {
         friend class ParseResult;
     };
 
-    inline bool OptionResult::argumentIsSet(const Argument &arg, int n) const {
+    inline bool OptionResult::isSet() const {
+        return count() > 0;
+    }
+
+    inline bool OptionResult::isArgumentSet(const Argument &arg, int n) const {
         return !values(indexOf(arg.name()), n).empty();
     }
 
-    inline bool OptionResult::argumentIsSet(const std::string &name, int n) const {
+    inline bool OptionResult::isArgumentSet(const std::string &name, int n) const {
         return !values(indexOf(name), n).empty();
     }
 
-    inline bool OptionResult::argumentIsSet(int index, int n) const {
+    inline bool OptionResult::isArgumentSet(int index, int n) const {
         return !values(index, n).empty();
     }
 
@@ -159,12 +164,13 @@ namespace SysCmdLine {
                          const std::string &error) const;
 
     public:
-        bool isHelpSet() const;
-        bool isVersionSet() const;
+        inline bool isVersionSet() const;
+        inline bool isHelpSet() const;
+        bool isRoleSet(Option::Role role) const;
 
-        inline bool argumentIsSet(const Argument &arg) const;
-        inline bool argumentIsSet(const std::string &name) const;
-        inline bool argumentIsSet(int index) const;
+        inline bool isArgumentSet(const Argument &arg) const;
+        inline bool isArgumentSet(const std::string &name) const;
+        inline bool isArgumentSet(int index) const;
 
         // Get values of multi-value argument
         inline const std::vector<Value> &values(const Argument &arg) const;
@@ -176,9 +182,9 @@ namespace SysCmdLine {
         inline Value value(const std::string &name) const;
         Value value(int index) const;
 
-        inline bool optionIsSet(const Option &option) const;
-        inline bool optionIsSet(const std::string &token) const;
-        inline bool optionIsSet(int index) const;
+        inline bool isOptionSet(const Option &option) const;
+        inline bool isOptionSet(const std::string &token) const;
+        inline bool isOptionSet(int index) const;
 
         // Detailed result for an option
         inline OptionResult option(const Option &option) const;
@@ -199,15 +205,23 @@ namespace SysCmdLine {
         return d_ptr != nullptr;
     }
 
-    inline bool ParseResult::argumentIsSet(const Argument &arg) const {
-        return argumentIsSet(indexOfArgument(arg.name()));
+    inline bool ParseResult::isVersionSet() const {
+        return isRoleSet(Option::Version);
     }
 
-    inline bool ParseResult::argumentIsSet(const std::string &name) const {
-        return argumentIsSet(indexOfArgument(name));
+    inline bool ParseResult::isHelpSet() const {
+        return isRoleSet(Option::Help);
     }
 
-    inline bool ParseResult::argumentIsSet(int index) const {
+    inline bool ParseResult::isArgumentSet(const Argument &arg) const {
+        return isArgumentSet(indexOfArgument(arg.name()));
+    }
+
+    inline bool ParseResult::isArgumentSet(const std::string &name) const {
+        return isArgumentSet(indexOfArgument(name));
+    }
+
+    inline bool ParseResult::isArgumentSet(int index) const {
         return !values(index).empty();
     }
 
@@ -227,15 +241,15 @@ namespace SysCmdLine {
         return value(indexOfArgument(name));
     }
 
-    inline bool ParseResult::optionIsSet(const Option &option) const {
+    inline bool ParseResult::isOptionSet(const Option &option) const {
         return this->option(indexOfOption(option.token())).count() > 0;
     }
 
-    inline bool ParseResult::optionIsSet(const std::string &token) const {
+    inline bool ParseResult::isOptionSet(const std::string &token) const {
         return option(indexOfOption(token)).count() > 0;
     }
 
-    inline bool ParseResult::optionIsSet(int index) const {
+    inline bool ParseResult::isOptionSet(int index) const {
         return option(index).count() > 0;
     }
 

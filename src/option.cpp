@@ -7,9 +7,29 @@
 
 namespace SysCmdLine {
 
-    OptionPrivate::OptionPrivate(Option::Role role,
-                                 const std::vector<std::string> &tokens, const std::string &desc,
-                                 bool required)
+    static std::vector<std::string> defaultTokensForRole(Option::Role role) {
+        std::vector<std::string> res;
+        switch (role) {
+            case Option::Help:
+                res = {"-h", "--help"};
+                break;
+            case Option::Version:
+                res = {"-v", "--version"};
+                break;
+            case Option::Verbose:
+                res = {"-V", "--verbose"};
+                break;
+            case Option::Debug:
+                res = {"-d", "--debug"};
+                break;
+            default:
+                break;
+        }
+        return res;
+    }
+
+    OptionPrivate::OptionPrivate(Option::Role role, const std::vector<std::string> &tokens,
+                                 const std::string &desc, bool required)
         : ArgumentHolderPrivate(Symbol::ST_Option, desc), role(role), tokens(tokens),
           required(required), shortMatchRule(Option::NoShortMatch), priorLevel(Option::NoPrior),
           global(false), maxOccurrence(1) {
@@ -17,6 +37,32 @@ namespace SysCmdLine {
 
     SymbolPrivate *OptionPrivate::clone() const {
         return new OptionPrivate(*this);
+    }
+
+    std::vector<Option> OptionPrivate::reorderOptions(const std::vector<Option> &options,
+                                                      const std::vector<Option> &globalOptions) {
+        std::vector<Option> res;
+        std::vector<Option> roles;
+        for (const auto &opt : options) {
+            if (opt.role() == Option::NoRole) {
+                res.push_back(opt);
+                continue;
+            }
+            roles.push_back(opt);
+        }
+
+        for (const auto &opt : globalOptions) {
+            if (opt.role() == Option::NoRole) {
+                res.push_back(opt);
+                continue;
+            }
+            roles.push_back(opt);
+        }
+
+        for (const auto &opt : std::as_const(roles)) {
+            res.push_back(opt);
+        }
+        return res;
     }
 
     //        template <typename... Args>
@@ -31,9 +77,9 @@ namespace SysCmdLine {
     Option::Option() : Option(NoRole, {}) {
     }
 
-    Option::Option(Role role, const std::vector<std::string> &tokens,
-                   const std::string &desc)
-        : ArgumentHolder(new OptionPrivate(role, tokens, desc, false)) {
+    Option::Option(Role role, const std::vector<std::string> &tokens, const std::string &desc)
+        : ArgumentHolder(new OptionPrivate(
+              role, tokens.empty() ? defaultTokensForRole(role) : tokens, desc, false)) {
     }
 
     Option::Option(const std::string &token, const std::string &desc, const Argument &arg,
@@ -80,17 +126,9 @@ namespace SysCmdLine {
 
                 std::string appendix;
                 std::string desc = d->desc;
-                if (desc.empty()) {
-                    switch (d->role) {
-                        case Version:
-                            desc = textProvider(Strings::DefaultCommand, Strings::Version);
-                            break;
-                        case Help:
-                            desc = textProvider(Strings::DefaultCommand, Strings::Help);
-                            break;
-                        default:
-                            break;
-                    }
+                if (desc.empty() && d->role != NoRole) {
+                    desc = textProvider(Strings::OptionRole,
+                                        static_cast<Strings::OptionRoleText>(d->role));
                 }
 
                 // Required

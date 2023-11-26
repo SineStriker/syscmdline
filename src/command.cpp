@@ -12,6 +12,7 @@
 
 #include "parser.h"
 #include "utils_p.h"
+#include "option_p.h"
 #include "strings.h"
 
 namespace SysCmdLine {
@@ -208,7 +209,7 @@ namespace SysCmdLine {
                 if (globalOptions) {
                     // options.insert(options.begin(), globalOptions->begin(),
                     // globalOptions->end());
-                    options = Utils::concatVector(*globalOptions, options);
+                    options = OptionPrivate::reorderOptions(options, *globalOptions);
                 }
                 StringList groupNames(globalOptions ? globalOptions->size() : 0);
                 // groupNames.insert(groupNames.end(), d->optionGroupNames.begin(),
@@ -461,8 +462,7 @@ namespace SysCmdLine {
         Q_D(Command);
         d->version = version;
 
-        Option versionOption(Option::Version,
-                             tokens.empty() ? StringList{"-v", "--version"} : tokens, desc);
+        Option versionOption(Option::Version, tokens, desc);
         versionOption.setPriorLevel(Option::IgnoreMissingSymbols);
         addOption(versionOption);
     }
@@ -470,7 +470,7 @@ namespace SysCmdLine {
     void Command::addHelpOption(bool showHelpIfNoArg, bool global, const StringList &tokens,
                                 const std::string &desc) {
         Q_D(Command);
-        Option helpOption(Option::Help, tokens.empty() ? StringList{"-h", "--help"} : tokens, desc);
+        Option helpOption(Option::Help, tokens, desc);
         helpOption.setPriorLevel(showHelpIfNoArg ? Option::AutoSetWhenNoSymbols
                                                  : Option::IgnoreMissingSymbols);
         helpOption.setGlobal(global);

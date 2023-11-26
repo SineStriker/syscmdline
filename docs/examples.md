@@ -201,7 +201,7 @@ int main(int /* argc */, char * /* argv */ []) {
     rootCommand.addHelpOption();
     rootCommand.setHandler([](const SCL::ParseResult &result) {
         std::cout << "Input: " << result.valueForOption("--input").toString() << std::endl;
-        if (result.optionIsSet("--output")) {
+        if (result.isOptionSet("--output")) {
             std::cout << "Output: " << result.valueForOption("--output").toString() << std::endl;
         }
         return 0;

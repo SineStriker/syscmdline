@@ -43,6 +43,9 @@ namespace SysCmdLine {
         };
 
         static const char *command_strings[] = {
+            "",
+            "Debug mode",
+            "Show verbose",
             "Show version information",
             "Show help information",
         };
@@ -167,15 +170,9 @@ namespace SysCmdLine {
                 for (int i = 0; i < core.allOptionsSize; ++i) {
                     const auto &resultData = core.allOptionsResult[i];
                     if (resultData.count > 0) {
-                        switch (resultData.option->role()) {
-                            case Option::Help:
-                                result->helpSet = true;
-                                continue;
-                            case Option::Version:
-                                result->versionSet = true;
-                                continue;
-                            default:
-                                break;
+                        auto role = resultData.option->role();
+                        if (role != Option::NoRole) {
+                            result->roleSet[role] = true;
                         }
                     }
                 }

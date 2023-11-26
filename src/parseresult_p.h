@@ -55,8 +55,7 @@ namespace SysCmdLine {
     class ParseResultPrivate : public SharedBasePrivate {
     public:
         ParseResultPrivate()
-            : error(ParseResult::NoError), errorOption(nullptr), errorArgument(nullptr),
-              versionSet(false), helpSet(false) {
+            : error(ParseResult::NoError), errorOption(nullptr), errorArgument(nullptr) {
         }
 
         ParseResultPrivate(const ParseResultPrivate &) = delete;
@@ -85,10 +84,11 @@ namespace SysCmdLine {
 
         ParseResultData2 core;
 
-        bool versionSet;
-        bool helpSet;
+        bool roleSet[5] = {};
 
         std::string correctionText() const;
+
+        std::vector<Option> globalOptions() const;
 
         // isMsg: mainly to display message rather than help
         void showMessage(const std::string &info, const std::string &catalogNames,
