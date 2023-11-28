@@ -78,7 +78,7 @@ namespace SysCmdLine {
 
         StringListMapWrapper(const StringListMapWrapper &other) {
             for (const auto &pair : other.data) {
-                data.insert(std::make_pair(pair.first, ele(new StringList(*pair.second.sl))));
+                data[pair.first] = ele(new StringList(*pair.second.sl));
             }
         }
 
@@ -96,7 +96,7 @@ namespace SysCmdLine {
 
         IntListMapWrapper(const IntListMapWrapper &other) {
             for (const auto &pair : other.data) {
-                data.insert(std::make_pair(pair.first, ele(new IntList(*pair.second.il))));
+                data[pair.first] = ele(new IntList(*pair.second.il));
             }
         }
 

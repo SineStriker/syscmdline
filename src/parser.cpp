@@ -43,11 +43,7 @@ namespace SysCmdLine {
         };
 
         static const char *command_strings[] = {
-            "",
-            "Debug mode",
-            "Show verbose",
-            "Show version information",
-            "Show help information",
+            "", "Debug mode", "Show verbose", "Show version information", "Show help information",
         };
 
         static const char *info_strings[] = {
@@ -220,8 +216,7 @@ namespace SysCmdLine {
 
                     // Build command indexes
                     for (size_t j = 0; j < targetCommandData->commands.size(); ++j) {
-                        core.cmdNameIndexes.insert(
-                            std::make_pair(targetCommandData->commands[j].name(), ele(int(j))));
+                        core.cmdNameIndexes[targetCommandData->commands[j].name()] = ele(int(j));
                     }
                 }
 
@@ -266,7 +261,7 @@ namespace SysCmdLine {
                         }
 
                         for (const auto &token : dd->tokens) {
-                            visitedTokens.insert(std::make_pair(token, ele(size_t(0))));
+                            visitedTokens[token] = ele(size_t(0));
                         }
                     }
                 }
@@ -606,7 +601,7 @@ namespace SysCmdLine {
                 for (int i = 0; i < core.allOptionsSize; ++i) {
                     const auto &opt = core.allOptionsResult[i].option;
                     for (const auto &token : opt->d_func()->tokens) {
-                        indexes.insert(std::make_pair(f(token), ele(i)));
+                        indexes[f(token)] = ele(i);
                     }
                 }
             }
@@ -629,7 +624,7 @@ namespace SysCmdLine {
                     if (arg.multiValueEnabled() && data.multiValueArgIndex < 0) {
                         data.multiValueArgIndex = i;
                     }
-                    data.argNameIndexes.insert(std::make_pair(arg.name(), ele(i)));
+                    data.argNameIndexes[arg.name()] = ele(i);
                 }
             };
 
@@ -880,7 +875,7 @@ namespace SysCmdLine {
                 }
 
                 if (insertIfNotFound) {
-                    encounteredExclusiveGroups.insert(std::make_pair(groupName, ele(optIndex)));
+                    encounteredExclusiveGroups[groupName] = ele(optIndex);
                 }
                 return -1;
             };
