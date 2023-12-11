@@ -2,6 +2,7 @@
 
 #include <cstdarg>
 #include <algorithm>
+#include <limits>
 
 #ifdef _WIN32
 #  include <windows.h>
