@@ -1,6 +1,7 @@
 #include "parseresult.h"
 #include "parseresult_p.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 #include "utils_p.h"

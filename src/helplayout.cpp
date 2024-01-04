@@ -1,6 +1,8 @@
 #include "helplayout.h"
 #include "helplayout_p.h"
 
+#include <algorithm>
+
 #include "system.h"
 #include "parser_p.h"
 #include "utils_p.h"
