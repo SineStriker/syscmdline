@@ -24,11 +24,11 @@ namespace SysCmdLine::Utils {
 
     std::string toLower(std::string s);
 
-    inline bool starts_with(const std::string &s, const std::string &prefix) {
+    inline bool starts_with(const std::string_view &s, const std::string_view &prefix) {
 #if __cplusplus >= 202002L
         return s.starts_with(prefix);
 #else
-        return s.size() >= prefix.size() && !memcmp(s.data(), prefix.data(), prefix.size());
+        return s.size() >= prefix.size() && s.substr(0, prefix.size()) == prefix;
 #endif
     }
 
