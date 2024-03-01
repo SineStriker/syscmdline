@@ -30,6 +30,68 @@
 
 namespace SysCmdLine {
 
+#ifdef _WIN32
+    static std::wstring winGetFullModuleFileName(HMODULE hModule) {
+        // Use stack buffer for the first try
+        wchar_t stackBuf[MAX_PATH + 1];
+
+        // Call
+        wchar_t *buf = stackBuf;
+        auto size = ::GetModuleFileNameW(nullptr, buf, MAX_PATH);
+        if (size == 0) {
+            return {};
+        }
+        if (size > MAX_PATH) {
+            // Re-alloc
+            buf = new wchar_t[size + 1]; // The return size doesn't contain the terminating 0
+
+            // Call
+            if (::GetModuleFileNameW(nullptr, buf, size) == 0) {
+                delete[] buf;
+                return {};
+            }
+        }
+
+        std::replace(buf, buf + size, L'\\', L'/');
+
+        // Return
+        std::wstring res(buf);
+        if (buf != stackBuf) {
+            delete[] buf;
+        }
+        return res;
+    }
+#elif defined(__APPLE__)
+    static std::string macGetExecutablePath() {
+        // Use stack buffer for the first try
+        char stackBuf[MAX_PATH + 1];
+
+        // "_NSGetExecutablePath" will return "-1" if the buffer is not large enough
+        // and "*bufferSize" will be set to the size required.
+
+        // Call
+        unsigned int size = MAX_PATH + 1;
+        char *buf = stackBuf;
+        if (_NSGetExecutablePath(buf, &size) != 0) {
+            // Re-alloc
+            buf = new char[size]; // The return size contains the terminating 0
+
+            // Call
+            if (_NSGetExecutablePath(buf, &size) != 0) {
+                delete[] buf;
+                return {};
+            }
+        }
+
+        // Return
+        std::string res(buf);
+        if (buf != stackBuf) {
+            delete[] buf;
+        }
+        return res;
+    }
+#endif
+
     /*!
         Returns the wide string converted from UTF-8 multi-byte string.
     */
@@ -89,54 +151,9 @@ namespace SysCmdLine {
     */
     std::string appPath() {
 #ifdef _WIN32
-        UINT size = MAX_PATH;
-
-        // Alloc
-        auto buf = new wchar_t[size + 1];
-        memset(buf, 0, (size + 1) * sizeof(wchar_t));
-
-        // Call
-        size = ::GetModuleFileNameW(nullptr, buf, size);
-        if (size > MAX_PATH) {
-            // Re-alloc
-            delete[] buf;
-            buf = new wchar_t[size];
-            memset(buf, 0, size * sizeof(wchar_t));
-
-            // Call
-            ::GetModuleFileNameW(nullptr, buf, size);
-        }
-        std::replace(buf, buf + size, L'\\', L'/');
-
-        // Return
-        std::wstring res(buf);
-        delete[] buf;
-        return wideToUtf8(res);
+        return wideToUtf8(winGetFullModuleFileName(nullptr));
 #elif defined(__APPLE__)
-        unsigned int size = PATH_MAX;
-
-        // Alloc
-        auto buf = new char[size + 1];
-        memset(buf, 0, (size + 1) * sizeof(char));
-
-        // "_NSGetExecutablePath" will return "-1" if the buffer is not large enough
-        // and "*bufferSize" will be set to the size required.
-
-        // Call
-        if (_NSGetExecutablePath(buf, &size) != 0) {
-            // Re-alloc
-            delete[] buf;
-            buf = new char[size];
-            memset(buf, 0, size * sizeof(char));
-
-            // Call
-            _NSGetExecutablePath(buf, &size);
-        }
-
-        // Return
-        std::string res(buf);
-        delete[] buf;
-        return res;
+        return macGetExecutablePath();
 #else
         char buf[PATH_MAX];
         if (!realpath("/proc/self/exe", buf)) {
