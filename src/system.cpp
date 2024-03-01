@@ -150,17 +150,20 @@ namespace SysCmdLine {
         Returns the application file path, the path separator of which is <tt>/</tt>.
     */
     std::string appPath() {
+        static const auto res = []() -> std::string {
 #ifdef _WIN32
-        return wideToUtf8(winGetFullModuleFileName(nullptr));
+            return wideToUtf8(winGetFullModuleFileName(nullptr));
 #elif defined(__APPLE__)
-        return macGetExecutablePath();
+            return macGetExecutablePath();
 #else
-        char buf[PATH_MAX];
-        if (!realpath("/proc/self/exe", buf)) {
-            return {};
-        }
-        return buf;
+            char buf[PATH_MAX];
+            if (!realpath("/proc/self/exe", buf)) {
+                return {};
+            }
+            return buf;
 #endif
+        }();
+        return res;
     }
 
     /*!
