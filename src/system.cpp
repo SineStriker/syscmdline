@@ -64,13 +64,13 @@ namespace SysCmdLine {
 #elif defined(__APPLE__)
     static std::string macGetExecutablePath() {
         // Use stack buffer for the first try
-        char stackBuf[MAX_PATH + 1];
+        char stackBuf[PATH_MAX + 1];
 
         // "_NSGetExecutablePath" will return "-1" if the buffer is not large enough
         // and "*bufferSize" will be set to the size required.
 
         // Call
-        unsigned int size = MAX_PATH + 1;
+        unsigned int size = PATH_MAX + 1;
         char *buf = stackBuf;
         if (_NSGetExecutablePath(buf, &size) != 0) {
             // Re-alloc
