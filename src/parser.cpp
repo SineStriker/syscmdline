@@ -962,7 +962,15 @@ namespace SysCmdLine {
                 if (s.size() <= 1 || s.front() != '-')
                     return false;
                 return std::all_of(s.begin() + 1, s.end(), ::isalnum);
-            };
+            }
+
+            static bool isSymbol(std::string_view s) {
+                if (!::isalpha(s.front()))
+                    return false;
+                return std::all_of(s.begin() + 1, s.end(), [](char ch) {
+                    return ::isalnum(ch) || ch == '_'; //
+                });
+            }
 
             // args:    arguments
             // tokens:  tokens
@@ -1027,7 +1035,7 @@ namespace SysCmdLine {
                         return -1;
                     }
 
-                    if (args.empty() && std::all_of(token.begin(), token.end(), ::isalpha)) {
+                    if (args.empty() && isSymbol(token)) {
                         buildError(ParseResult::UnknownCommand, {token}, token, nullptr);
                         return -1;
                     }
