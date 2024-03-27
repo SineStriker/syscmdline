@@ -7,9 +7,10 @@
 
 #include <algorithm>
 
-#include "utils_p.h"
 #include "strings.h"
 #include "parser.h"
+
+#include "utils_p.h"
 
 namespace SysCmdLine {
 
