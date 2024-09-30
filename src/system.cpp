@@ -3,6 +3,7 @@
 #include <cstdarg>
 #include <algorithm>
 #include <limits>
+#include <mutex>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -250,8 +251,14 @@ namespace SysCmdLine {
             White,
         };
 
+        static std::mutex &global_mtx() {
+            static std::mutex _instance;
+            return _instance;
+        }
+
         explicit PrintScopeGuard(Color color = NoColor, bool highlight = false)
             : needReset(color != NoColor) {
+            global_mtx().lock();
 #ifdef _WIN32
             _codepage = ::GetConsoleOutputCP();
             ::SetConsoleOutputCP(CP_UTF8);
@@ -316,6 +323,7 @@ namespace SysCmdLine {
                 printf("%s", resetColor);
             }
 #endif
+            global_mtx().unlock();
         }
 
     private:
