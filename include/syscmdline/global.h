@@ -55,4 +55,11 @@ public:                                                                         
         return reinterpret_cast<const X##Private *>(d_ptr);                                        \
     }
 
+#if defined(__GNUC__) || defined(__clang__)
+#  define SYSCMDLINE_PRINTF_FORMAT(fmtpos, attrpos)                                                \
+      __attribute__((__format__(__printf__, fmtpos, attrpos)))
+#else
+#  define SYSCMDLINE_PRINTF_FORMAT(fmtpos, attrpos)
+#endif
+
 #endif // GLOBAL_H

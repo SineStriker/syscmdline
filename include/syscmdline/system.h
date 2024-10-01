@@ -50,8 +50,9 @@ namespace SysCmdLine {
         MT_Warning,
         MT_Critical,
     };
-    SYSCMDLINE_EXPORT int u8debug(MessageType messageType, bool highlight, const char *fmt, ...);
-    SYSCMDLINE_EXPORT int u8printf(const char *fmt, ...);
+    SYSCMDLINE_EXPORT int u8debug(MessageType messageType, bool highlight, const char *fmt, ...)
+        SYSCMDLINE_PRINTF_FORMAT(3, 4);
+    SYSCMDLINE_EXPORT int u8printf(const char *fmt, ...) SYSCMDLINE_PRINTF_FORMAT(1, 2);
 
 }
 
