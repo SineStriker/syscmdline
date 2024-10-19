@@ -22,12 +22,12 @@ int main(int /* argc */, char * /* argv */[]) {
     rootCommand.addVersionOption("0.0.0.1");
     rootCommand.addHelpOption(true, true);
     rootCommand.setHandler([](const ParseResult &result) {
-        u8printf("Link directories:\n");
+        u8info("Link directories:\n");
         for (const auto &item : result.option("-L").allValues())
-            u8printf("    %s\n", item.toString().data());
-        u8printf("Include directories:\n");
+            u8info("    %s\n", item.toString().data());
+        u8info("Include directories:\n");
         for (const auto &item : result.option("-I").allValues())
-            u8printf("    %s\n", item.toString().data());
+            u8info("    %s\n", item.toString().data());
         return 0;
     });
 

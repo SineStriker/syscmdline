@@ -373,16 +373,6 @@ namespace SysCmdLine {
         d->name = name;
     }
 
-    int Command::optionCount() const {
-        Q_D2(Command);
-        return int(d->options.size());
-    }
-
-    Option Command::option(int index) const {
-        Q_D2(Command);
-        return d->options[index];
-    }
-
     void Command::addOptions(const std::vector<Option> &options, const std::string &group) {
         Q_D(Command);
 #ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
@@ -397,16 +387,6 @@ namespace SysCmdLine {
         d->options = Utils::concatVector(d->options, options);
         d->optionGroupNames = Utils::concatVector(d->optionGroupNames, {options.size(), group});
 #endif
-    }
-
-    int Command::commandCount() const {
-        Q_D2(Command);
-        return int(d->commands.size());
-    }
-
-    Command Command::command(int index) const {
-        Q_D2(Command);
-        return d->commands[index];
     }
 
     void Command::addCommands(const std::vector<Command> &commands) {
@@ -475,6 +455,16 @@ namespace SysCmdLine {
                                                  : Option::IgnoreMissingSymbols);
         helpOption.setGlobal(global);
         addOption(helpOption);
+    }
+
+    HelpLayout Command::helpLayout() const {
+        Q_D2(Command);
+        return d->helpLayout;
+    }
+
+    void Command::setHelpLayout(const HelpLayout &helpLayout) {
+        Q_D(Command);
+        d->helpLayout = helpLayout;
     }
 
 }

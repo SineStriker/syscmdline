@@ -283,16 +283,6 @@ namespace SysCmdLine {
         return ss;
     }
 
-    int ArgumentHolder::argumentCount() const {
-        Q_D2(ArgumentHolder);
-        return int(d->arguments.size());
-    }
-
-    Argument ArgumentHolder::argument(int index) const {
-        Q_D2(ArgumentHolder);
-        return d->arguments[index];
-    }
-
     void ArgumentHolder::addArguments(const std::vector<Argument> &arguments) {
         Q_D(ArgumentHolder);
 

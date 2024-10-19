@@ -132,8 +132,6 @@ namespace SysCmdLine {
         std::string displayedArguments(int displayOptions) const;
 
     public:
-        int argumentCount() const;
-        Argument argument(int index) const;
         inline void addArgument(const Argument &argument);
         void addArguments(const std::vector<Argument> &arguments);
 

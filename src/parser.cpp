@@ -66,8 +66,7 @@ namespace SysCmdLine {
     }
 
     ParserPrivate::ParserPrivate()
-        : displayOptions(Parser::Normal), helpLayout(HelpLayout::defaultHelpLayout()),
-          textProvider(Strings::en_US::provider) {
+        : displayOptions(Parser::Normal), textProvider(Strings::en_US::provider) {
     }
 
     ParserPrivate *ParserPrivate::clone() const {
@@ -109,16 +108,6 @@ namespace SysCmdLine {
     void Parser::setDisplayOptions(int displayOptions) {
         Q_D(Parser);
         d->displayOptions = displayOptions;
-    }
-
-    HelpLayout Parser::helpLayout() const {
-        Q_D2(Parser);
-        return d->helpLayout;
-    }
-
-    void Parser::setHelpLayout(const HelpLayout &helpLayout) {
-        Q_D(Parser);
-        d->helpLayout = helpLayout;
     }
 
     Command Parser::rootCommand() const {

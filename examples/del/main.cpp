@@ -50,9 +50,9 @@ using namespace SysCmdLine;
 
 static int routine(const ParseResult &result) {
     auto fileValues = Value::toStringList(result.values("files"));
-    u8printf("将要被删除的文件：\n");
+    u8info("将要被删除的文件：\n");
     for (const auto &item : std::as_const(fileValues)) {
-        u8printf("    %s\n", item.data());
+        u8info("    %s\n", item.data());
     }
 
     bool prompt = result.isOptionSet("/P");
@@ -60,18 +60,18 @@ static int routine(const ParseResult &result) {
     bool subdir = result.isOptionSet("/S");
     bool quiet = result.isOptionSet("/Q");
 
-    u8printf("模式: \n");
+    u8info("模式: \n");
     if (prompt) {
-        u8printf("    提示\n");
+        u8info("    提示\n");
     }
     if (force) {
-        u8printf("    强制\n");
+        u8info("    强制\n");
     }
     if (subdir) {
-        u8printf("    子文件夹\n");
+        u8info("    子文件夹\n");
     }
     if (quiet) {
-        u8printf("    静默\n");
+        u8info("    静默\n");
     }
 
     return 0;
