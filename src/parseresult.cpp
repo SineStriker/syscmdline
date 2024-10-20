@@ -274,10 +274,31 @@ namespace SysCmdLine {
                                    &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
                                    parserData->textProvider(Strings::Title, Strings::Commands));
 
-        static HelpLayout defaultHelpLayout = HelpLayout::defaultHelpLayout();
-        auto helpLayoutData = d->helpLayout.d_func();
-        if (helpLayoutData->itemDataList.empty()) {
-            helpLayoutData = defaultHelpLayout.d_func();
+        // Get valid help layout
+        const HelpLayoutPrivate *helpLayoutData = nullptr;
+        {
+            int cmdCnt = stack.size() + 1;
+            auto cmds = new const Command *[cmdCnt]; // alloc
+            auto cmd = &parserData->rootCommand;
+            cmds[0] = cmd;
+            int cmdIdx = 0;
+            for (const auto &idx : std::as_const(stack)) {
+                cmd = &cmd->d_func()->commands[idx];
+                cmds[++cmdIdx] = cmd;
+            }
+            for (int i = cmdCnt - 1; i >= 0; --i) {
+                auto curHelpLayoutData = cmds[i]->d_func()->helpLayout.d_func();
+                if (!curHelpLayoutData->itemDataList.empty()) {
+                    helpLayoutData = curHelpLayoutData;
+                    break;
+                }
+            }
+            delete[] cmds; // free
+
+            if (!helpLayoutData) {
+                static HelpLayout defaultHelpLayout = HelpLayout::defaultHelpLayout();
+                helpLayoutData = defaultHelpLayout.d_func();
+            }
         }
         if ((displayOptions & Parser::AlignAllCatalogues)) {
             for (const auto &helpItem : helpLayoutData->itemDataList) {

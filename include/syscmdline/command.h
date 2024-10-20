@@ -68,6 +68,8 @@ namespace SysCmdLine {
         inline void addOption(const Option &option, const std::string &group = {});
         void addOptions(const std::vector<Option> &options, const std::string &group = {});
 
+        int commandCount() const;
+        Command command(int index) const;
         inline void addCommand(const Command &command);
         void addCommands(const std::vector<Command> &commands);
 

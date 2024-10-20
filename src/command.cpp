@@ -389,6 +389,16 @@ namespace SysCmdLine {
 #endif
     }
 
+    int Command::commandCount() const {
+        Q_D2(Command);
+        return int(d->commands.size());
+    }
+
+    Command Command::command(int index) const {
+        Q_D2(Command);
+        return d->commands[index];
+    }
+
     void Command::addCommands(const std::vector<Command> &commands) {
         Q_D(Command);
 #ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
