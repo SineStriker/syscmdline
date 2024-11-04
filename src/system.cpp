@@ -1,9 +1,10 @@
 #include "system.h"
 
-#include <cstdarg>
 #include <algorithm>
 #include <limits>
 #include <mutex>
+#include <cstring>
+#include <cstdarg>
 
 #ifdef _WIN32
 #  include <windows.h>
