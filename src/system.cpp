@@ -116,7 +116,7 @@ namespace SysCmdLine {
                               utf8Length, nullptr, nullptr);
         return utf8Str;
 #else
-        return std::filesystem::path(utf16Str).string();
+        return std::filesystem::path(s).string();
 #endif
     }
 
@@ -143,7 +143,7 @@ namespace SysCmdLine {
                               utf16Length);
         return utf16Str;
 #else
-        return std::filesystem::path(utf8Str).wstring();
+        return std::filesystem::path(s).wstring();
 #endif
     }
 
@@ -344,7 +344,7 @@ namespace SysCmdLine {
             if (consoleChanged) {
                 const char *strList[3];
                 int strListSize = 0;
-                if (foreground != Default) {
+                if (foreground != DefaultColor) {
                     bool light = foreground & Intensified;
                     const char *colorStr = nullptr;
                     switch (foreground & 0xF) {
@@ -377,7 +377,7 @@ namespace SysCmdLine {
                         strListSize++;
                     }
                 }
-                if (background != Default) {
+                if (background != DefaultColor) {
                     bool light = background & Intensified;
                     const char *colorStr = nullptr;
                     switch (background & 0xF) {
