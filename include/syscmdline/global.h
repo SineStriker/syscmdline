@@ -46,6 +46,12 @@
 #  endif
 #endif
 
+#ifdef _MSC_VER
+#  define SYSCMDLINE_DECL_DEPRECATED __declspec(deprecated)
+#else
+#  define SYSCMDLINE_DECL_DEPRECATED __attribute__((__deprecated__))
+#endif
+
 // Utils
 #define SYSCMDLINE_UNUSED(X) (void) X;
 
