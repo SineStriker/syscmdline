@@ -28,7 +28,7 @@
 #define GLOBAL_H
 
 // Export define
-#ifdef _MSC_VER
+#ifdef _WIN32
 #  define SYSCMDLINE_DECL_EXPORT __declspec(dllexport)
 #  define SYSCMDLINE_DECL_IMPORT __declspec(dllimport)
 #else
@@ -46,7 +46,7 @@
 #  endif
 #endif
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #  define SYSCMDLINE_DECL_DEPRECATED __declspec(deprecated)
 #else
 #  define SYSCMDLINE_DECL_DEPRECATED __attribute__((__deprecated__))
