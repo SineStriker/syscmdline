@@ -47,6 +47,7 @@ namespace SysCmdLine {
             AllowUnixGroupFlags = 0x4,
             AllowDosShortOptions = 0x8,
             DontAllowUnixShortOptions = 0x10,
+            EnableResponseFile = 0x20,
         };
 
         enum DisplayOption {

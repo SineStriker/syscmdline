@@ -3,6 +3,8 @@
 
 #include <cctype>
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
 
 #ifdef SYSCMDLINE_ENABLE_VALIDITY_CHECK
 
@@ -14,6 +16,7 @@
 #include "command_p.h"
 #include "option_p.h"
 #include "parseresult_p.h"
+#include "system.h"
 
 namespace SysCmdLine {
 
@@ -35,6 +38,7 @@ namespace SysCmdLine {
             R"(Options "%1" and "%2" are mutually exclusive.)",
             R"(Option "%1" and other arguments cannot be specified simultaneously.)",
             R"(Option "%1" and other options cannot be specified simultaneously.)",
+            R"(Failed to read response file "%1".)",
         };
 
         static const char *title_strings[] = {
@@ -142,6 +146,9 @@ namespace SysCmdLine {
 
             bool parse() {
                 searchTargetCommandAndBuildIndexes();
+                if (result->error != ParseResult::NoError) {
+                    return false;
+                }
                 extractOptionsAndArguments();
                 if (result->error != ParseResult::NoError) {
                     return false;
@@ -160,6 +167,40 @@ namespace SysCmdLine {
                             result->roleSet[role] = true;
                         }
                     }
+                }
+                return true;
+            }
+
+            static bool readResponseFile(const std::string &pathStr,
+                                         std::vector<std::string> &lines) {
+                std::filesystem::path path =
+#ifdef _WIN32
+                    utf8ToWide(pathStr)
+#else
+                    pathStr
+#endif
+                    ;
+                std::ifstream file(path, std::ios::binary);
+                if (!file.is_open()) {
+                    return false;
+                }
+
+                // Skip BOM
+                char bom[3];
+                file.read(bom, 3);
+                if (file.gcount() != 3 ||
+                    !(bom[0] == (char) 0xEF && bom[1] == (char) 0xBB && bom[2] == (char) 0xBF)) {
+                    file.seekg(0);
+                }
+
+                std::string line;
+                while (std::getline(file, line)) {
+                    line = Utils::trim(line);
+                    if (line.empty())
+                        continue;
+                    if (line.size() >= 2 && line.front() == '\"' && line.back() == '\"')
+                        line = line.substr(1, line.size() - 2);
+                    lines.emplace_back(line);
                 }
                 return true;
             }
@@ -202,6 +243,20 @@ namespace SysCmdLine {
                     nonCommandIndex = i;
                     result->command = cmd;
                     targetCommandData = cmd->d_func();
+
+                    // Handle response file
+                    if ((parseOptions & Parser::EnableResponseFile) && params.size() == i + 1 &&
+                        params[i].front() == '@') {
+                        std::string pathStr = params[i].substr(1);
+                        std::vector<std::string> lines;
+                        if (readResponseFile(pathStr, lines)) {
+                            params.pop_back();
+                            params.insert(params.end(), lines.begin(), lines.end());
+                        } else {
+                            buildError(ParseResult::ErrorReadingResponseFile, {pathStr}, params[i],
+                                       nullptr);
+                        }
+                    }
 
                     // Build command indexes
                     for (size_t j = 0; j < targetCommandData->commands.size(); ++j) {
@@ -557,7 +612,7 @@ namespace SysCmdLine {
                 }
             }
 
-            const std::vector<std::string> &params;
+            std::vector<std::string> params;
             const int parseOptions;
             const int displayOptions;
             const Command *const rootCommand;

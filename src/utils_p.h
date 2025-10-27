@@ -48,6 +48,21 @@ namespace SysCmdLine::Utils {
         return res;
     }
 
+    template <class T>
+    std::basic_string<T> trim(const std::basic_string<T> &str) {
+        auto start = str.begin();
+        while (start != str.end() && std::isspace(*start)) {
+            start++;
+        }
+
+        auto end = str.end();
+        do {
+            end--;
+        } while (std::distance(start, end) > 0 && std::isspace(*end));
+
+        return {start, end + 1};
+    }
+
 }
 
 

@@ -145,6 +145,7 @@ namespace SysCmdLine {
             MutuallyExclusiveOptions,
             PriorOptionWithArguments,
             PriorOptionWithOptions,
+            ErrorReadingResponseFile,
         };
 
         Error error() const;
