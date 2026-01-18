@@ -1,6 +1,6 @@
 # SysCmdLine
 
-C++ Advanced Command Line Parser.
+Another C++ Command Line Parser.
 
 Inspired by Qt `QCommandLineParser` and C# `System.CommandLine`.
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(syscmdline VERSION 0.0.2.1 LANGUAGES C CXX)
+project(syscmdline VERSION 1.0.0.0 LANGUAGES C CXX)
 
 # ----------------------------------
 # Build Options
@@ -92,7 +92,7 @@ if(TRUE)
 
     # Add platform specific
     if(WIN32)
-        set(RC_DESCRIPTION "C++ Advanced Command Line Parser")
+        set(RC_DESCRIPTION "Another C++ Command Line Parser")
         set(RC_COPYRIGHT "Copyright 2023 SineStriker")
         include("cmake/winrc.cmake")
     endif()
