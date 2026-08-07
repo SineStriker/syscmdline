@@ -218,6 +218,9 @@ namespace SysCmdLine {
     }
 
     static void determineBase(std::string &s, int &base, int &f) {
+        if (s.empty()) {
+            return;
+        }
         if (s.front() == '+') {
             s = s.substr(1);
         } else if (s.front() == '-') {

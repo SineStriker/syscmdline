@@ -151,7 +151,13 @@ namespace SysCmdLine {
                                   int symbolCount, const Symbol *(*getter)(int, const void *),
                                   const void *user, // get symbol from index
 
-                                  std::string (*getName)(const Symbol *), // get name of symbol
+                                  // The order the uncatalogued ones are listed in, as indexes
+                                  // accepted by `getter`. Null lists them in natural order.
+                                  // `symbolIndexes` and `getter` must agree on what an index
+                                  // means, or a name is looked up and a different symbol comes
+                                  // back.
+                                  const int *order, //
+
                                   int *maxWidth, void *extra,
                                   const std::string &defaultTitle) -> Lists {
             Lists res;
@@ -194,7 +200,8 @@ namespace SysCmdLine {
                 list.title = defaultTitle;
 
                 bool empty = true;
-                for (int i = 0; i < symbolCount; ++i) {
+                for (int j = 0; j < symbolCount; ++j) {
+                    const int i = order ? order[j] : j;
                     if (visitedIndexes[i])
                         continue;
 
@@ -224,7 +231,26 @@ namespace SysCmdLine {
         bool noIntro = isMsg && (displayOptions & Parser::DontShowIntroOnError);
 
         int maxWidth = 0;
-        auto reorderedOptions = OptionPrivate::reorderOptions(d->options, globalOptions());
+
+        // The order options are listed in: this command's own first, then the global ones, and
+        // the roles after both, which is what `OptionPrivate::reorderOptions` does for the usage
+        // line. These are indexes into `core.allOptionsResult`, which is the space
+        // `core.allOptionTokenIndexes` speaks in, so a catalogued name and the symbol it names
+        // stay together.
+        std::vector<int> optionOrder;
+        {
+            optionOrder.reserve(core.allOptionsSize);
+            const auto &addRange = [&](int begin, int end, bool roles) {
+                for (int i = begin; i < end; ++i) {
+                    if ((core.allOptionsResult[i].option->role() != Option::NoRole) == roles)
+                        optionOrder.push_back(i);
+                }
+            };
+            addRange(core.globalOptionsSize, core.allOptionsSize, false); // command, non-role
+            addRange(0, core.globalOptionsSize, false);                   // global, non-role
+            addRange(core.globalOptionsSize, core.allOptionsSize, true);  // command, role
+            addRange(0, core.globalOptionsSize, true);                    // global, role
+        }
 
         // Alloc
 
@@ -236,28 +262,23 @@ namespace SysCmdLine {
                          [](int i, const void *user) -> const Symbol * {
                              return &reinterpret_cast<decltype(d)>(user)->arguments[i]; //
                          },
-                         d,
-                         [](const Symbol *s) {
-                             return static_cast<const Argument *>(s)->name(); //
-                         },
+                         d, nullptr, //
                          &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
                          parserData->textProvider(Strings::Title, Strings::Arguments));
 
         Lists optLists =
-            noHelp
-                ? Lists{nullptr, 0}
-                : getLists(
-                      displayOptions, catalogueData->opt.data, catalogueData->options,
-                      core.allOptionTokenIndexes, int(core.allOptionsSize),
-                      [](int i, const void *user) -> const Symbol * {
-                          return &(*reinterpret_cast<const decltype(reorderedOptions) *>(user))[i];
-                      },
-                      &reorderedOptions,
-                      [](const Symbol *s) {
-                          return static_cast<const Option *>(s)->token(); //
-                      },
-                      &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
-                      parserData->textProvider(Strings::Title, Strings::Options));
+            noHelp ? Lists{nullptr, 0}
+                   : getLists(
+                         displayOptions, catalogueData->opt.data, catalogueData->options,
+                         core.allOptionTokenIndexes, int(core.allOptionsSize),
+                         [](int i, const void *user) -> const Symbol * {
+                             return reinterpret_cast<const ParseResultData2 *>(user)
+                                 ->allOptionsResult[i]
+                                 .option; //
+                         },
+                         &core, optionOrder.data(), //
+                         &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
+                         parserData->textProvider(Strings::Title, Strings::Options));
 
         Lists cmdLists = noHelp
                              ? Lists{nullptr, 0}
@@ -267,10 +288,7 @@ namespace SysCmdLine {
                                    [](int i, const void *user) -> const Symbol * {
                                        return &reinterpret_cast<decltype(d)>(user)->commands[i]; //
                                    },
-                                   d,
-                                   [](const Symbol *s) {
-                                       return static_cast<const Command *>(s)->name(); //
-                                   },
+                                   d, nullptr, //
                                    &maxWidth, reinterpret_cast<void *>(parserData->textProvider),
                                    parserData->textProvider(Strings::Title, Strings::Commands));
 
@@ -458,7 +476,7 @@ namespace SysCmdLine {
                                 // get parent names
                                 auto p = &parserData->rootCommand;
                                 for (int index : stack) {
-                                    text.lines = p->name() + " ";
+                                    text.lines += p->name() + " ";
                                     p = &p->d_func()->commands[index];
                                 }
                             }

@@ -12,8 +12,9 @@ namespace SysCmdLine {
 
         virtual SharedBasePrivate *clone() const = 0;
 
-        // Declare basic copy constructor
-        SharedBasePrivate(const SharedBasePrivate &) : ref(0) {
+        // Declare basic copy constructor.
+        // A clone is the sole owner of itself, so it starts at one rather than zero.
+        SharedBasePrivate(const SharedBasePrivate &) : ref(1) {
         }
 
         SharedBasePrivate &operator=(const SharedBasePrivate &) = delete;

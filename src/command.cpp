@@ -29,7 +29,7 @@ namespace SysCmdLine {
             keys.push_back(key);
             return;
         }
-        auto list = *it->second.sl;
+        auto &list = *it->second.sl;
         // list.insert(list.end(), val.begin(), val.end());
         list = Utils::concatVector(list, val);
 

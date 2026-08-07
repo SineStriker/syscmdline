@@ -1,3 +1,9 @@
+> ## ARCHIVED
+>
+> **SysCmdLine is no longer maintained.**
+>
+> **It is replaced by [`stdc::cli`](https://github.com/stdware/stdcorelib), in STDCORELIB.**
+
 # SysCmdLine
 
 Another C++ Command Line Parser.

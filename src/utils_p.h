@@ -48,19 +48,25 @@ namespace SysCmdLine::Utils {
         return res;
     }
 
+    // Only ASCII whitespace. `std::isspace` takes an `int` that must be representable as an
+    // `unsigned char`, and a UTF-8 continuation byte arrives as a negative `char`.
+    template <class T>
+    inline bool isSpaceChar(T ch) {
+        return ch == T(' ') || ch == T('\t') || ch == T('\n') || ch == T('\v') || ch == T('\f') ||
+               ch == T('\r');
+    }
+
     template <class T>
     std::basic_string<T> trim(const std::basic_string<T> &str) {
         auto start = str.begin();
-        while (start != str.end() && std::isspace(*start)) {
-            start++;
-        }
-
         auto end = str.end();
-        do {
-            end--;
-        } while (std::distance(start, end) > 0 && std::isspace(*end));
-
-        return {start, end + 1};
+        while (start != end && isSpaceChar(*start)) {
+            ++start;
+        }
+        while (end != start && isSpaceChar(*(end - 1))) {
+            --end;
+        }
+        return {start, end};
     }
 
 }

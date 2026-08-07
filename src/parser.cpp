@@ -212,51 +212,67 @@ namespace SysCmdLine {
                 {
                     auto cmd = rootCommand;
                     size_t i = 1;
-                    for (; i < params.size(); ++i) {
-                        const auto &dd = cmd->d_func();
-                        const auto &param = params[i];
 
-                        size_t j = 0;
-                        size_t size = dd->commands.size();
-                        for (; j < size; ++j) {
-                            const auto &name = dd->commands[j].name();
-                            if (name == param || ((parseOptions & Parser::IgnoreCommandCase) &&
-                                                  Utils::toLower(name) == Utils::toLower(param))) {
+                    // A response file may name subcommands of its own, so the search has to be
+                    // able to run again over the tokens the file brought in. Once only, which
+                    // keeps a file that names itself from looping.
+                    bool responseFileExpanded = false;
+                    for (;;) {
+                        for (; i < params.size(); ++i) {
+                            const auto &dd = cmd->d_func();
+                            const auto &param = params[i];
+
+                            size_t j = 0;
+                            size_t size = dd->commands.size();
+                            for (; j < size; ++j) {
+                                const auto &name = dd->commands[j].name();
+                                if (name == param ||
+                                    ((parseOptions & Parser::IgnoreCommandCase) &&
+                                     Utils::toLower(name) == Utils::toLower(param))) {
+                                    break;
+                                }
+                            }
+
+                            if (j == size) {
                                 break;
                             }
+
+                            result->stack.push_back(int(j));
+                            globalOptionCount += [](const Command *cmd) {
+                                int cnt = 0;
+                                for (const auto &opt : cmd->d_func()->options)
+                                    if (opt.isGlobal())
+                                        cnt++;
+                                return cnt;
+                            }(cmd);
+                            cmd = &cmd->d_func()->commands.at(j);
                         }
 
-                        if (j == size) {
+                        // Handle response file
+                        if (responseFileExpanded || !(parseOptions & Parser::EnableResponseFile) ||
+                            params.size() != i + 1 || params[i].empty() ||
+                            params[i].front() != '@') {
                             break;
                         }
 
-                        result->stack.push_back(int(j));
-                        globalOptionCount += [](const Command *cmd) {
-                            int cnt = 0;
-                            for (const auto &opt : cmd->d_func()->options)
-                                if (opt.isGlobal())
-                                    cnt++;
-                            return cnt;
-                        }(cmd);
-                        cmd = &cmd->d_func()->commands.at(j);
+                        responseFileExpanded = true;
+                        std::string pathStr = params[i].substr(1);
+                        std::vector<std::string> lines;
+                        if (!readResponseFile(pathStr, lines)) {
+                            buildError(ParseResult::ErrorReadingResponseFile, {pathStr}, params[i],
+                                       nullptr);
+                            break;
+                        }
+
+                        // Replace the token with what it stood for, and look for a command
+                        // again from where those tokens now begin.
+                        params.pop_back();
+                        params.insert(params.end(), lines.begin(), lines.end());
                     }
+
                     nonCommandIndex = i;
                     result->command = cmd;
                     targetCommandData = cmd->d_func();
-
-                    // Handle response file
-                    if ((parseOptions & Parser::EnableResponseFile) && params.size() == i + 1 &&
-                        params[i].front() == '@') {
-                        std::string pathStr = params[i].substr(1);
-                        std::vector<std::string> lines;
-                        if (readResponseFile(pathStr, lines)) {
-                            params.pop_back();
-                            params.insert(params.end(), lines.begin(), lines.end());
-                        } else {
-                            buildError(ParseResult::ErrorReadingResponseFile, {pathStr}, params[i],
-                                       nullptr);
-                        }
-                    }
 
                     // Build command indexes
                     for (size_t j = 0; j < targetCommandData->commands.size(); ++j) {
@@ -278,7 +294,7 @@ namespace SysCmdLine {
                                 continue;
                             globalOptionList[globalOptionListIndex++] = &option;
                         }
-                        cmd = &d->commands[i];
+                        cmd = &d->commands[result->stack[i]];
                     }
                 }
 
@@ -800,6 +816,9 @@ namespace SysCmdLine {
             // pos:     followed argument beginning index
             // ->       option index
             int searchOption(const std::string &token, int *pos = nullptr) const {
+                if (token.empty()) {
+                    return -1; // an empty token is a value, not an option
+                }
                 if (auto ch = token.front(); ch != '-' && ch != '/') {
                     return -1;
                 }
@@ -866,7 +885,7 @@ namespace SysCmdLine {
                         }
                     }
                     if (setError) {
-                        if (token.front() == '-') {
+                        if (!token.empty() && token.front() == '-') {
                             buildError(ParseResult::InvalidOptionPosition, {token, arg->name()},
                                        token, arg);
                         } else {
@@ -1018,7 +1037,7 @@ namespace SysCmdLine {
             }
 
             static bool isSymbol(std::string_view s) {
-                if (!::isalpha(s.front()))
+                if (s.empty() || !std::isalpha(static_cast<unsigned char>(s.front())))
                     return false;
                 return std::all_of(s.begin() + 1, s.end(), [](char ch) {
                     return ::isalnum(ch) || ch == '_'; //
